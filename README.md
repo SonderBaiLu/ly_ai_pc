@@ -1,92 +1,118 @@
-# ly_ai_pc
+# ly_pc
 
+基于 **Vue 3 + TypeScript + Vite** 的 PC 端项目，集成 **Vue Router / Pinia / Vue I18n / Element Plus**，并通过 Vite Proxy 在开发环境转发 `/api` 请求。
 
+## 技术栈
 
-## Getting started
+- **框架**: Vue 3（SFC + `<script setup>`）
+- **构建**: Vite
+- **语言**: TypeScript
+- **路由**: Vue Router
+- **状态管理**: Pinia
+- **多语言**: Vue I18n
+- **UI**: Element Plus（自动按需导入 API / 组件）
+- **请求**: Axios
+- **样式**: SCSS（全局变量自动注入）
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## 运行环境
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- **Node.js**: 建议 18+（或与你本机 `npm`/依赖兼容的版本）
+- **包管理器**: npm
 
-## Add your files
+## 快速开始
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+安装依赖：
 
+```bash
+npm install
 ```
-cd existing_repo
-git remote add origin http://118.31.104.119:8559/ly_ai_pc/ly_ai_pc.git
-git branch -M main
-git push -uf origin main
+
+启动开发环境（默认端口 **9004**，严格占用）：
+
+```bash
+npm run dev
 ```
 
-## Integrate with your tools
+构建生产包（输出到 `dist/`）：
 
-- [ ] [Set up project integrations](http://118.31.104.119:8559/ly_ai_pc/ly_ai_pc/-/settings/integrations)
+```bash
+npm run build
+```
 
-## Collaborate with your team
+本地预览生产包：
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+```bash
+npm run preview
+```
 
-## Test and Deploy
+代码格式化与自动修复：
 
-Use the built-in continuous integration in GitLab.
+```bash
+npm run format
+npm run lint
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## 接口与环境配置
 
-***
+本项目通过 `vite.config.ts` 根据 `mode` 选择环境配置：
 
-# Editing this README
+- 开发：`env.development.ts`
+- 生产：`env.production.ts`
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+同时支持通过系统环境变量覆盖：
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+- **`VITE_API_PROXY_TARGET`**：开发环境代理目标域名（不带 `/api`）
+- **`VITE_API_BASE_URL`**：接口 baseURL（生产环境建议带 `/api`）
 
-## Name
-Choose a self-explaining name for your project.
+### 开发环境（proxy）
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+- **端口**：`9004`
+- **代理规则**：将 **`/api`** 转发到 `VITE_API_PROXY_TARGET`
+- **适用**：本地前端不跨域直连后端，通过代理访问
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### 生产环境（baseURL）
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- **直连规则**：使用 `VITE_API_BASE_URL` 作为 Axios baseURL（默认值见 `env.production.ts`）
+- **建议**：生产环境 `VITE_API_BASE_URL` 包含 `/api`
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## 目录结构
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```text
+.
+├─ public/                  # 静态资源（原样拷贝）
+├─ src/
+│  ├─ api/                   # API 封装入口
+│  ├─ assets/                # 图片/静态资源
+│  ├─ components/            # 通用组件（如 Header/Footer）
+│  ├─ router/                # 路由配置
+│  ├─ sections/              # 页面分区组件（如 home 各模块）
+│  ├─ services/              # 服务层（如 api 实例封装）
+│  ├─ stores/                # Pinia stores（含 i18n store 等）
+│  ├─ styles/                # 全局样式/变量（SCSS）
+│  ├─ views/                 # 页面
+│  ├─ App.vue
+│  └─ main.ts
+├─ env.development.ts        # 开发环境配置
+├─ env.production.ts         # 生产环境配置
+├─ vite.config.ts            # Vite 配置（alias/proxy/自动导入等）
+└─ dist/                     # 构建产物（build 生成）
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+## 约定与说明
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+- **路径别名**：`@` 指向 `src/`（见 `vite.config.ts`）
+- **Element Plus**：通过 `unplugin-auto-import` + `unplugin-vue-components` 自动导入（根目录会生成 `auto-imports.d.ts`、`components.d.ts`）
+- **SCSS 全局变量**：所有 `lang="scss"` 自动注入 `src/styles/_variables.scss`（见 `vite.config.ts` 的 `additionalData`）
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## 常见问题（FAQ）
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+- **端口被占用**
+  - 本项目 `strictPort: true`，端口 `9004` 被占用会直接启动失败；请释放端口或修改 `vite.config.ts` 的 `server.port`。
+- **接口请求失败 / 代理不生效**
+  - 检查 `VITE_API_PROXY_TARGET` 是否可访问（开发环境），以及请求路径是否以 `/api` 开头。
+- **生产环境接口地址不对**
+  - 修改 `env.production.ts` 的 `VITE_API_BASE_URL`，或在构建/运行时注入环境变量 `VITE_API_BASE_URL` 覆盖。
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 许可证
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+如需添加许可证（MIT/Apache-2.0 等），请补充 `LICENSE` 文件并在此处说明。

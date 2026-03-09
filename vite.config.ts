@@ -1,0 +1,69 @@
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import { fileURLToPath, URL } from 'node:url'
+import devEnv from './env.development'
+import prodEnv from './env.production'
+
+// https://vite.dev/config/
+export default defineConfig(({ mode }) => {
+  const env = mode === 'production' ? prodEnv : devEnv
+  const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || env.VITE_API_PROXY_TARGET
+  const apiBaseUrl = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL
+
+  return {
+    define: {
+      // 让业务代码里可以直接用 import.meta.env.VITE_API_BASE_URL
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
+    },
+    plugins: [
+      vue(),
+      // 自动导入 Vue/Router/Pinia 等 API + Element Plus 相关函数
+      AutoImport({
+        imports: ['vue', 'vue-router', 'pinia'],
+        dts: true, // 在项目根目录生成 auto-imports.d.ts
+        resolvers: [ElementPlusResolver()],
+      }),
+      // 自动注册组件（Element Plus + 本地组件）
+      Components({
+        dts: true, // 在项目根目录生成 components.d.ts
+        dirs: ['src/components', 'src/sections', 'src/views/**/components'],
+        extensions: ['vue'],
+        deep: true,
+        resolvers: [
+          ElementPlusResolver({
+            // 这里不自动导入样式，继续使用 main.ts 里全局引入的 CSS
+            importStyle: false,
+          }),
+        ],
+      }),
+    ],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // 让所有 <style lang="scss"> 自动可用全局变量/混入，避免每个组件重复导入
+          additionalData: `@use "@/styles/variables" as *;\n`,
+        },
+      },
+    },
+  server: {
+      port: 9004,
+      strictPort: true,
+      proxy: {
+        // 开发环境 API 代理：/api -> 线上域名（或 .env 配置）
+        '/api': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+  },
+  }
+})
