@@ -17,19 +17,18 @@ const handleLanguageChange = (value: string) => {
 
 // 模拟登录状态
 const isLoggedIn = ref(false)
-const userAvatar = ref('@/assets/images/avatar.png')
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
-  { key: 'fabricCreative' },
-  { key: 'about' },
-  { key: 'contactUs' },
-  { key: 'followUs' },
+  { key: 'fabricCreative', path: '/fabric-creative' },
+  { key: 'about', path: '/about' },
+  { key: 'contactUs', path: '/contact-us' },
+  { key: 'followUs', path: '/follow-us' },
 ]
 
 const menuData = [
-  { key: 'contactUs', label: '联系我们' },
-  { key: 'followUs', label: '关注我们' },
+  { key: 'contactUs', label: '联系我们', path: '/contact-us' },
+  { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
 const isAiDesignPage = computed(() => route.name === 'AiDesign')
@@ -79,7 +78,7 @@ const showComingSoon = () => {
         </div>
         <!-- 登录状态显示头像，未登录显示登录/注册按钮 -->
         <div v-if="isLoggedIn" class="user-avatar">
-          <img :src="userAvatar" alt="User Avatar" class="avatar-icon" />
+          <img src="@/assets/images/avatar_default.png" alt="User Avatar" class="avatar-icon" />
         </div>
         <div v-else class="auth-buttons">
           <span class="login-btn" @click="showComingSoon">{{ t('header.login') }}</span>
@@ -94,6 +93,17 @@ const showComingSoon = () => {
         <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" />
       </div>
 
+      <div class="lang-select-wrapper">
+        <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
+        <el-select v-model="locale" @change="handleLanguageChange" class="lang-select">
+          <template #suffix>
+            <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
+          </template>
+          <el-option v-for="option in languageOptions" :key="option.value" :label="option.label"
+            :value="option.value" />
+        </el-select>
+      </div>
+
       <nav class="nav-menu">
         <a v-for="item in menuData" :key="item.key" href="#" class="nav-item"
           :class="{ active: item.path && item.path === route.path }" @click.prevent="handleMenuClick(item)">
@@ -101,21 +111,19 @@ const showComingSoon = () => {
         </a>
       </nav>
 
-      <div class="nav-spacer" />
-
       <div class="nav-right nav-right--ai">
         <template v-if="isLoggedIn">
           <span class="ai-link">我的创作</span>
           <div class="ai-coin-pill">
-            <span class="ai-coin-icon" />
-            <span class="ai-coin-value">50</span>
-            <button class="ai-coin-recharge" type="button">充值</button>
+            <img src="@/assets/images/coin.png" alt="Coin" class="coin-icon" />
+            <span>50</span>
+            <el-button class="ai-coin-recharge" type="primary">充值</el-button>
           </div>
-          <span class="ai-icon-circle" />
+          <img src="@/assets/images/msg.png" alt="Coin" class="msg-icon" />
           <div class="user-avatar">
-            <img :src="userAvatar" alt="User Avatar" class="avatar-icon" />
+            <img src="@/assets/images/avatar_default.png" alt="User Avatar" class="avatar-icon" />
           </div>
-          <span class="ai-icon-dot">···</span>
+          <img src="@/assets/images/more.png" alt="More" class="more-icon" />
         </template>
         <template v-else>
           <button class="ai-login-btn" type="button" @click="showComingSoon">登录</button>
@@ -131,8 +139,7 @@ const showComingSoon = () => {
   top: 0;
   z-index: 100;
   padding: $spacing-md $spacing-xl;
-  background-color: $color-bg-dark;
-  backdrop-filter: blur(10px);
+  background-color: $color-bg-dark-second;
 }
 
 .nav-container {
@@ -178,12 +185,59 @@ const showComingSoon = () => {
   font-weight: $font-weight-medium;
 }
 
+.nav-container--ai {
+  .lang-select-wrapper {
+    margin-right: 37px;
+  }
+}
+
 .nav-right--ai {
-  gap: $spacing-lg;
+  gap: $spacing-2xl-sm;
+
+  .ai-link {
+    cursor: pointer;
+    font-size: $font-size-md;
+  }
+
+  .ai-coin-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-xs;
+    height: 24px;
+    padding-left: 6px;
+    border-radius: 9999px;
+    border: 1px solid $color-primary;
+    font-size: $font-size-md;
+    color: $color-primary;
+    background: rgba(150, 221, 255, 0.1);
+
+    .coin-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    .ai-coin-recharge {
+      height: 100%;
+      color: $color-text-white;
+      padding: 0 $spacing-sm;
+      border-radius: 0px 99px 99px 0px;
+      font-size: $font-size-xs;
+      cursor: pointer;
+    }
+  }
+
+  .msg-icon,
+  .more-icon {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+  }
 }
 
 .ai-login-btn {
-  padding: $spacing-sm $spacing-xl-sm;
+  width: 88px;
+  height: 32px;
   border-radius: 9999px;
   border: none;
   background-color: $color-bg-white;
@@ -191,57 +245,6 @@ const showComingSoon = () => {
   font-size: $font-size-md;
   font-weight: $font-weight-semibold;
   cursor: pointer;
-}
-
-.ai-link {
-  cursor: pointer;
-  font-size: $font-size-md;
-}
-
-.ai-coin-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: 4px $spacing-md;
-  border-radius: 9999px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(150, 221, 255, 0.6);
-  font-size: $font-size-sm;
-}
-
-.ai-coin-icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #17a0e1 0%, #70c5ed 50%, #96ddff 100%);
-}
-
-.ai-coin-value {
-  color: $color-text-white;
-}
-
-.ai-coin-recharge {
-  margin-left: $spacing-xs;
-  padding: 2px 10px;
-  border-radius: 9999px;
-  border: none;
-  background: rgba(150, 221, 255, 0.1);
-  color: $color-primary;
-  font-size: $font-size-xs;
-  cursor: pointer;
-}
-
-.ai-icon-circle {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid rgba(148, 163, 184, 0.7);
-}
-
-.ai-icon-dot {
-  font-size: $font-size-lg;
-  color: $color-text-white;
-  padding: 0 $spacing-xs;
 }
 
 .menu-toggle {
@@ -302,20 +305,22 @@ const showComingSoon = () => {
 
 .user-avatar {
   cursor: pointer;
-}
 
-.avatar-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
+  .avatar-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
 }
 
 .register-btn {
+  display: flex;
   background: $color-bg-white;
   border: none;
   color: $color-bg-dark;
-  padding: $spacing-sm $spacing-md;
+  width: 88px;
+  height: 32px;
   border-radius: 9999px;
   font-size: $font-size-md;
   font-weight: $font-weight-semibold;
