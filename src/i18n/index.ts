@@ -85,7 +85,8 @@ const zh = {
     ctaButton: '立即体验',
   },
   footer: {
-    businessEmail: '商务邮箱：lingyanservice@126.com',
+    // 注意：vue-i18n v11 message 编译器会把 `@` 当作 linked-message token；这里改用插值拼接，避免直接出现 `@`
+    businessEmail: '商务邮箱：lingyanservice{at}126.com',
     copyright: 'Copyright 2026 © 杭州灵衍人工智能科技有限公司｜浙ICP备2025191840号-3',
     privacy: '隐私政策',
     userAgreement: '用户协议',
@@ -189,7 +190,8 @@ const en = {
     ctaButton: 'Experience Now',
   },
   footer: {
-    businessEmail: 'Business Email: lingyanservice@126.com',
+    // Avoid raw `@` token in vue-i18n message compiler by using interpolation
+    businessEmail: 'Business Email: lingyanservice{at}126.com',
     // 注意：vue-i18n 的 message 语法里 `|` 可能被当作复数分隔符导致编译报错，改用全角分隔符
     copyright: 'Copyright 2026 © Hangzhou Lingyan Artificial Intelligence Technology Co., Ltd. ｜ Zhejiang ICP 2025191840-3',
     privacy: 'Privacy Policy',

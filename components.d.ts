@@ -12,6 +12,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
+    ElCarousel: typeof import('element-plus/es')['ElCarousel']
+    ElCarouselItem: typeof import('element-plus/es')['ElCarouselItem']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     FabricSection: typeof import('./src/sections/home/FabricSection.vue')['default']
@@ -21,7 +23,9 @@ declare module 'vue' {
     GallerySection: typeof import('./src/sections/home/GallerySection.vue')['default']
     Header: typeof import('./src/components/Header.vue')['default']
     HeroSection: typeof import('./src/sections/home/HeroSection.vue')['default']
+    MediaPlayer: typeof import('./src/components/MediaPlayer.vue')['default']
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
+    PaymentModal: typeof import('./src/components/PaymentModal.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatsSection: typeof import('./src/sections/home/StatsSection.vue')['default']

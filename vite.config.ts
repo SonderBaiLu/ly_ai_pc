@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
     },
   server: {
       port: 9004,
-      strictPort: true,
+      strictPort: false,
       proxy: {
         // 开发环境 API 代理：/api -> 线上域名（或 .env 配置）
         '/api': {

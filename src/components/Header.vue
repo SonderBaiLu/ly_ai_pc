@@ -27,6 +27,11 @@ const menuItems = [
   { key: 'followUs' },
 ]
 
+const menuData = [
+  { key: 'contactUs', label: '联系我们' },
+  { key: 'followUs', label: '关注我们' },
+]
+
 const isAiDesignPage = computed(() => route.name === 'AiDesign')
 
 const handleMenuClick = (item: { key: string; path?: string }) => {
@@ -47,7 +52,7 @@ const showComingSoon = () => {
 </script>
 
 <template>
-  <header :class="['header', { 'header--ai': isAiDesignPage }]">
+  <header class="header">
     <!-- 首页等默认导航 -->
     <div v-if="!isAiDesignPage" class="nav-container">
       <div class="logo">
@@ -89,6 +94,13 @@ const showComingSoon = () => {
         <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" />
       </div>
 
+      <nav class="nav-menu">
+        <a v-for="item in menuData" :key="item.key" href="#" class="nav-item"
+          :class="{ active: item.path && item.path === route.path }" @click.prevent="handleMenuClick(item)">
+          {{ t(`header.${item.key}`) }}
+        </a>
+      </nav>
+
       <div class="nav-spacer" />
 
       <div class="nav-right nav-right--ai">
@@ -123,10 +135,6 @@ const showComingSoon = () => {
   backdrop-filter: blur(10px);
 }
 
-.header--ai {
-  border-bottom: 1px solid rgba(150, 221, 255, 0.4);
-}
-
 .nav-container {
   display: flex;
   align-items: center;
@@ -139,12 +147,6 @@ const showComingSoon = () => {
       width: 107px;
       height: 43px;
     }
-  }
-}
-
-.nav-container--ai {
-  .nav-spacer {
-    flex: 1;
   }
 }
 
