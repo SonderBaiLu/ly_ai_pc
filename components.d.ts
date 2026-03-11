@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    D: typeof import('./src/components/d.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -21,10 +22,12 @@ declare module 'vue' {
     GallerySection: typeof import('./src/sections/home/GallerySection.vue')['default']
     Header: typeof import('./src/components/Header.vue')['default']
     HeroSection: typeof import('./src/sections/home/HeroSection.vue')['default']
+    LoginUser: typeof import('./src/components/LoginUser.vue')['default']
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatsSection: typeof import('./src/sections/home/StatsSection.vue')['default']
     TransformRow: typeof import('./src/sections/home/TransformRow.vue')['default']
+    UserLogin: typeof import('./src/components/UserLogin.vue')['default']
   }
 }

@@ -22,7 +22,7 @@
 ## 快速开始
 
 安装依赖：
-
+qi'yi
 ```bash
 npm install
 ```

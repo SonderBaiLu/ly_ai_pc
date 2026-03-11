@@ -85,7 +85,8 @@ const zh = {
     ctaButton: '立即体验',
   },
   footer: {
-    businessEmail: '商务邮箱：lingyanservice@126.com',
+    // 注意：vue-i18n v11 message 编译器会把 `@` 当作 linked-message token；这里改用插值拼接，避免直接出现 `@`
+    businessEmail: '商务邮箱：lingyanservice{at}126.com',
     copyright: 'Copyright 2026 © 杭州灵衍人工智能科技有限公司｜浙ICP备2025191840号-3',
     privacy: '隐私政策',
     userAgreement: '用户协议',
@@ -99,6 +100,16 @@ const zh = {
       fabricCreative: '面料创款',
       productTutorial: '产品教程',
     },
+  },
+  LoginPopUpPage: {
+    title: '灵衍AI',
+    mainTitle: '登录即享专属礼遇',
+    promoText: '新用户注册免费赠送',
+    promoValue: '50灵衍值',
+    simplifyDesign: '卸下设计繁琐，让每一份创意都能纯粹发光',
+    aiEmpowerment: '解锁AI设计全能力，守护你的每一份时尚热爱',
+    loginRewards: '登录有礼，解锁潮流面料+专属设计工具，不负初心',
+    backToEssence: '让设计回归本质，创作更轻松',
   },
 }
 
@@ -189,7 +200,8 @@ const en = {
     ctaButton: 'Experience Now',
   },
   footer: {
-    businessEmail: 'Business Email: lingyanservice@126.com',
+    // Avoid raw `@` token in vue-i18n message compiler by using interpolation
+    businessEmail: 'Business Email: lingyanservice{at}126.com',
     // 注意：vue-i18n 的 message 语法里 `|` 可能被当作复数分隔符导致编译报错，改用全角分隔符
     copyright: 'Copyright 2026 © Hangzhou Lingyan Artificial Intelligence Technology Co., Ltd. ｜ Zhejiang ICP 2025191840-3',
     privacy: 'Privacy Policy',
@@ -204,6 +216,16 @@ const en = {
       fabricCreative: 'Fabric Creation',
       productTutorial: 'Product Tutorial',
     },
+  },
+  LoginPopUpPage: {
+    title: 'English',
+    mainTitle: 'English',
+    promoText: 'English',
+    promoValue: 'English',
+    simplifyDesign: 'English，English',
+    aiEmpowerment: 'English，English',
+    loginRewards: 'English，English+English，English',
+    backToEssence: 'English，English',
   },
 }
 

@@ -21,7 +21,7 @@ const showComingSoon = () => {
           <div class="footer-logo">
             <img class="logo-icon" src="@/assets/images/logo2.png" alt="Logo" />
           </div>
-          <p class="footer-contact">{{ t('footer.businessEmail') }}</p>
+          <p class="footer-contact">{{ t('footer.businessEmail', { at: '@' }) }}</p>
           <div class="qrcode-box">
             <div class="qrcode-card">
               <img src="@/assets/images/wechat_code1.png" alt="微信二维码-小澍" class="qrcode-image" />

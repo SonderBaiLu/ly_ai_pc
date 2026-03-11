@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-
 const { t, locale } = useI18n()
 
 const languageOptions = [
@@ -24,14 +23,16 @@ const menuItems = [
   { key: 'contactUs' },
   { key: 'followUs' },
 ]
-
-const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
-}
+// 控制弹窗显示的变量
+const isLoginVisible = ref(false)
+// 修改点击事件函数
+const showLoginModal = () => {
+  isLoginVisible.value = true;
+};
+// 关闭弹窗的函数
+const closeLoginModal = () => {
+  isLoginVisible.value = false;
+};
 </script>
 
 <template>
@@ -63,12 +64,14 @@ const showComingSoon = () => {
           <img :src="userAvatar" alt="User Avatar" class="avatar-icon" />
         </div>
         <div v-else class="auth-buttons">
-          <span class="login-btn" @click="showComingSoon">{{ t('header.login') }}</span>
-          <span class="register-btn" @click="showComingSoon">{{ t('header.register') }}</span>
+          <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
+          <span class="register-btn" @click="showLoginModal">{{ t('header.register') }}</span>
         </div>
       </div>
     </div>
   </header>
+<!-- 登录弹窗 -->
+  <UserLogin v-if="isLoginVisible" @close="closeLoginModal" />
 </template>
 
 <style scoped lang="scss">
