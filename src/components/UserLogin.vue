@@ -159,6 +159,7 @@
               </div>
             </div>
 
+
             <div class="input-block">
               <label class="block-label">密码</label>
               <div class="input-wrapper" :class="{ 'has-error': formError }">
