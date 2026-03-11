@@ -3,11 +3,11 @@
     <div class="login-modal">
       <div class="left-panel">
         <div class="brand-logo">
-<!--          TODO: 目前logo图标中包含文字，导致中英文切换 要修改图片增加服务器压力 考虑是否更换文字 重新设计log图标-->
+          <!--          TODO: 目前logo图标中包含文字，导致中英文切换 要修改图片增加服务器压力 考虑是否更换文字 重新设计log图标-->
           <span class="logo-icon"><img src="/src/assets/images/LoginPop-Up/灵衍AIlog.png" alt=""/></span>
-<!--
-          <span class="logo-text">{{ t('LoginPopUpPage.title') || '灵衍AI' }}</span>
--->
+          <!--
+                    <span class="logo-text">{{ t('LoginPopUpPage.title') || '灵衍AI' }}</span>
+          -->
         </div>
 
         <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') || '登录即享专属礼遇' }}</h1>
@@ -26,7 +26,7 @@
           </li>
           <li>
             <span class="icon">
-              <img  src="/src/assets/images/LoginPop-Up/Clothes.png" alt=""/>
+              <img src="/src/assets/images/LoginPop-Up/Clothes.png" alt=""/>
             </span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') || '解锁AI设计全能力，守护你的每一份时尚热爱' }}</span>
           </li>
@@ -48,7 +48,10 @@
       <div class="right-panel">
         <button class="close-btn" @click="handleClose">✕</button>
 
-        <div class="account-type-switch">
+        <div
+            class="account-type-switch"
+            :class="accountType"
+        >
           <div
               class="switch-item"
               :class="{ active: accountType === 'personal' }"
@@ -63,7 +66,10 @@
           </div>
         </div>
 
-        <div v-if="accountType === 'personal'" class="login-method-tabs">
+        <div v-if="accountType === 'personal'"
+             class="login-method-tabs"
+             :class="loginMethod"
+        >
           <div
               class="tab-item"
               :class="{ active: loginMethod === 'qrcode' }"
@@ -351,6 +357,7 @@ const handleTeamSubmit = () => {
     }
   }
 }
+
 /* --- 右侧面板 --- */
 .right-panel {
   width: 480px;
@@ -362,6 +369,8 @@ const handleTeamSubmit = () => {
   flex-direction: column;
   z-index: 1;
   position: relative;
+  /* 防止 padding 撑开盒子，保证面板总宽固定为 480px */
+  box-sizing: border-box;
 
   .close-btn {
     position: absolute;
@@ -387,6 +396,25 @@ const handleTeamSubmit = () => {
   padding: 4px;
   align-self: center;
   margin-bottom: 35px;
+  position: relative; /* 为背景滑块定位 */
+  z-index: 1;
+  &::before{
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(50% - 4px); /* 一半的宽度 */
+    height: calc(100% - 8px);
+    background: #4A85F6;
+    border-radius: 25px;
+    box-shadow: 0 4px 10px rgba(74, 133, 246, 0.2);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 平滑过渡曲线 */
+    z-index: -1;
+  }
+  /* 状态判断：如果是团队登录，滑块向右平移 100% 的自身宽度 */
+  &.team::before {
+    transform: translateX(100%);
+  }
 
   .switch-item {
     padding: 8px 30px;
@@ -394,12 +422,10 @@ const handleTeamSubmit = () => {
     font-size: 14px;
     color: #8E97A7;
     cursor: pointer;
-    transition: 0.3s;
+    transition: color 0.3s ease;
 
     &.active {
-      background: #4A85F6;
       color: #fff;
-      box-shadow: 0 4px 10px rgba(74, 133, 246, 0.2);
     }
   }
 }
@@ -411,33 +437,54 @@ const handleTeamSubmit = () => {
   gap: 60px;
   border-bottom: 1px solid #F0F0F0;
   margin-bottom: 30px;
-
+  position: relative;
+  &::after{
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    margin-left: -32px; /* 居中 (64px 宽度的字大 约占 64px, 一半是 32px) */
+    width: 64px;
+    height: 3px;
+    background: #3BB1FF;
+    border-radius: 2px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  /* 精确控制下划线的位置 (60px gap的一半是30，加上文字一半宽度32，所以平移62px) */
+  &.qrcode::after {
+    transform: translateX(-62px);
+  }
+  &.phone::after {
+    transform: translateX(62px);
+  }
   .tab-item {
     padding-bottom: 12px;
     font-size: 16px;
     color: #999;
     cursor: pointer;
-    position: relative;
-
+    transition: color 0.3s ease;
     &.active {
       color: #3BB1FF;
       font-weight: 600;
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background: #3BB1FF;
-        border-radius: 2px;
-      }
     }
   }
 }
-
 /* 内容区域 */
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px); /* 从下方微距滑入 */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qrcode-section,
+.form-section {
+  animation: formFadeIn 0.35s ease-out forwards;
+}
 .method-content {
   flex: 1;
   display: flex;
@@ -491,6 +538,8 @@ const handleTeamSubmit = () => {
 
 /* ====== 表单通用样式 ====== */
 .form-section {
+  width: 328px; /* 限制表单整体宽度328px */
+  margin: 0 auto; /* 让表单在右侧面板中水平居中 */
   .input-block {
     margin-bottom: 20px;
 
@@ -522,7 +571,7 @@ const handleTeamSubmit = () => {
         user-select: none;
 
         &:hover {
-          background-color: #E5E5E5; /* 鼠标悬浮北京变色 */
+          background-color: #E5E5E5; /* 鼠标悬浮背景变色 */
           color: #666;
         }
       }
@@ -557,7 +606,7 @@ const handleTeamSubmit = () => {
       align-items: center;
       border: 1px solid #E5E7EB;
       border-radius: 8px;
-      height: 48px;
+      height: 49px;
       padding: 0 16px;
       transition: 0.3s;
 
@@ -603,9 +652,9 @@ const handleTeamSubmit = () => {
 
   /* 特定输入框覆盖 */
   .phone-input-wrapper {
-    margin-bottom: 40px; /* 手机号的input和验证码input之间的间距 */
+    margin-bottom: 24px; /* 手机号的input和验证码input之间的间距 */
     .country-code {
-      color: #333;
+      color: #ADB3BD;
       font-weight: 500;
       font-size: 14px;
     }
@@ -688,7 +737,6 @@ const handleTeamSubmit = () => {
 
     a {
       color: #3BB1FF;
-      text-decoration: none;
     }
   }
 }
