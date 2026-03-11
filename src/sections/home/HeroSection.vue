@@ -1,3 +1,16 @@
+<template>
+  <section class="hero-section">
+    <div class="hero-container container">
+      <h1 class="hero-title">{{ t('hero.title') }}</h1>
+      <p class="hero-desc">{{ t('hero.description') }}</p>
+      <button class="start-btn" @click="showComingSoon">
+        {{ t('hero.button') }}
+        <img src="@/assets/images/star.png" alt="Arrow Right" class="btn-icon" />
+      </button>
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -12,19 +25,6 @@ const showComingSoon = () => {
   )
 }
 </script>
-
-<template>
-  <section class="hero-section">
-    <div class="hero-container container">
-      <h1 class="hero-title">{{ t('hero.title') }}</h1>
-      <p class="hero-desc">{{ t('hero.description') }}</p>
-      <button class="start-btn" @click="showComingSoon">
-        {{ t('hero.button') }}
-        <img src="@/assets/images/star.png" alt="Arrow Right" class="btn-icon" />
-      </button>
-    </div>
-  </section>
-</template>
 
 <style scoped lang="scss">
 .hero-section {

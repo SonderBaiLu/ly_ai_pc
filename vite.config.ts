@@ -12,11 +12,14 @@ export default defineConfig(({ mode }) => {
   const env = mode === 'production' ? prodEnv : devEnv
   const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || env.VITE_API_PROXY_TARGET
   const apiBaseUrl = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL
+  const appVersion = process.env.VITE_APP_VERSION || env.VITE_APP_VERSION
 
   return {
     define: {
       // 让业务代码里可以直接用 import.meta.env.VITE_API_BASE_URL
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
+      // 让业务代码里可以直接用 import.meta.env.VITE_APP_VERSION
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
     },
     plugins: [
       vue(),

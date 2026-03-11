@@ -106,6 +106,8 @@ npm run lint
 
 ## 常见问题（FAQ）
 
+- **ESLint 配置在哪**
+  - 本项目使用 ESLint v10（flat config），配置文件为根目录 `eslint.config.mjs`（不再使用 `.eslintrc.*`）。
 - **端口被占用**
   - 本项目 `strictPort: true`，端口 `9004` 被占用会直接启动失败；请释放端口或修改 `vite.config.ts` 的 `server.port`。
 - **接口请求失败 / 代理不生效**

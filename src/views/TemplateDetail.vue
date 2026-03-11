@@ -3,11 +3,8 @@
   <div class="template-detail-page">
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <div
-        ref="mediaContainerRef"
-        class="media-container"
-        :style="{ scrollBehavior: isInitialLoad ? 'auto' : 'smooth' }"
-      >
+      <div ref="mediaContainerRef" class="media-container"
+        :style="{ scrollBehavior: isInitialLoad ? 'auto' : 'smooth' }">
         <!--左侧返回按钮  -->
         <el-button size="large" class="back-button" @click="handleBack">
           <el-icon :size="20">
@@ -16,28 +13,14 @@
         </el-button>
         <!-- 左侧视频/图片展示区 - 可滚动显示多个模板 -->
         <div class="media-scroll-wrapper">
-          <div
-            v-for="(item, index) in relatedTemplates"
-            :key="item.id"
-            class="media-item"
-            :class="{ active: selectedThumbnail === index }"
-          >
+          <div v-for="(item, index) in relatedTemplates" :key="item.id" class="media-item"
+            :class="{ active: selectedThumbnail === index }">
             <div class="media-player flex-col-center" @click="handleImagePreview(index, item)">
               <!-- 媒体播放器 - 自动判断显示视频或图片 -->
-              <MediaPlayer
-                :ref="(el) => setMediaPlayerRef(el, index)"
-                :src="item.fileUrl"
-                :poster="item.imageUrl || item.imgUrl"
-                :autoplay="isVideoType(item) && selectedThumbnail === index"
-                :loop="true"
-                :controls="isVideoType(item)"
-                :muted="true"
-                :minimal-controls="true"
-                :image-only="isImageType(item)"
-                object-fit="contain"
-                poster-fit="contain"
-                class="video-player"
-              />
+              <MediaPlayer :ref="(el) => setMediaPlayerRef(el, index)" :src="item.fileUrl"
+                :poster="item.imageUrl || item.imgUrl" :autoplay="isVideoType(item) && selectedThumbnail === index"
+                :loop="true" :controls="isVideoType(item)" :muted="true" :minimal-controls="true"
+                :image-only="isImageType(item)" object-fit="contain" poster-fit="contain" class="video-player" />
             </div>
             <div class="content-notice">
               内容由AI生成，禁止利用功能从事违法活动，请合理规范地使用生成内容
@@ -52,14 +35,9 @@
         <div class="info-actions">
           <!-- 我的资产：显示多个操作图标 -->
           <template v-if="pageTypeRef === 'assets'">
-            <el-dropdown
-              trigger="click"
-              placement="bottom-end"
-              popper-class="template-detail-download-popper"
-              :hide-on-click="false"
-              @command="(cmd: string) => handleDownloadCommand(cmd)"
-              @visible-change="handleDownloadMenuVisible"
-            >
+            <el-dropdown trigger="click" placement="bottom-end" popper-class="template-detail-download-popper"
+              :hide-on-click="false" @command="(cmd: string) => handleDownloadCommand(cmd)"
+              @visible-change="handleDownloadMenuVisible">
               <div class="btn-icon-wrapper" @click.stop>
                 <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
                   <Loading />
@@ -75,17 +53,9 @@
                     </div>
                   </el-dropdown-item>
                   <el-dropdown-item command="toggle-watermark" class="watermark-toggle-item">
-                    <div
-                      class="menu-item-content"
-                      @click.stop="handleWatermarkToggleChange(!removeWatermarkEnabled)"
-                    >
-                      <el-switch
-                        v-model="removeWatermarkEnabled"
-                        active-color="#8f50ea"
-                        inactive-color="#201B26"
-                        @click.stop
-                        @change="handleWatermarkToggleChange"
-                      />
+                    <div class="menu-item-content" @click.stop="handleWatermarkToggleChange(!removeWatermarkEnabled)">
+                      <el-switch v-model="removeWatermarkEnabled" active-color="#8f50ea" inactive-color="#201B26"
+                        @click.stop @change="handleWatermarkToggleChange" />
                       <span>去除水印</span>
                       <img :src="images.vip" alt="VIP" class="vip-icon" />
                     </div>
@@ -93,26 +63,22 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <img
-              :src="templateDetail?.isCollect === 1 ? images.collected : images.collect"
-              class="btn-icon"
-              alt=""
-              @click="handleAssetsCollect"
-            />
-            <el-dropdown
-              trigger="click"
-              popper-class="template-detail-more-popper"
-              @command="handleMoreCommand"
-            >
+            <img :src="templateDetail?.isCollect === 1 ? images.collected : images.collect" class="btn-icon" alt=""
+              @click="handleAssetsCollect" />
+            <el-dropdown trigger="click" popper-class="template-detail-more-popper" @command="handleMoreCommand">
               <img :src="images.more" class="btn-icon" alt="" />
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="report">
-                    <el-icon><Bell /></el-icon>
+                    <el-icon>
+                      <Bell />
+                    </el-icon>
                     <span>反馈</span>
                   </el-dropdown-item>
                   <el-dropdown-item command="delete">
-                    <el-icon><Delete /></el-icon>
+                    <el-icon>
+                      <Delete />
+                    </el-icon>
                     <span>删除</span>
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -121,12 +87,8 @@
           </template>
           <!-- 其他模块：只显示喜欢按钮 -->
           <template v-else>
-            <img
-              :src="templateDetail?.isLike === 1 ? images.like : images.dislike"
-              class="btn-icon"
-              alt=""
-              @click="handleLikeToggle"
-            />
+            <img :src="templateDetail?.isLike === 1 ? images.like : images.dislike" class="btn-icon" alt=""
+              @click="handleLikeToggle" />
           </template>
         </div>
 
@@ -144,10 +106,8 @@
             <!-- AI图片-商品展示 6 -->
             <img v-if="requestParams.productItemUrl" :src="requestParams.productItemUrl" />
             <!-- AI图片-穿搭调整-模特图 5 -->
-            <img
-              v-if="templateDetail?.type == 5 && requestParams.flatSceneImageUrl"
-              :src="requestParams.flatSceneImageUrl"
-            />
+            <img v-if="templateDetail?.type == 5 && requestParams.flatSceneImageUrl"
+              :src="requestParams.flatSceneImageUrl" />
 
             <!-- 万物穿戴-单视角/多视角 -->
             <img v-if="requestParams.itemViewOneUrl" :src="requestParams.itemViewOneUrl" />
@@ -156,10 +116,7 @@
             <!-- 换模特换背景/只换模特/只换背景 -->
             <img v-if="requestParams.clothesSceneUrl" :src="requestParams.clothesSceneUrl" />
             <!-- 只换模特 -->
-            <img
-              v-if="requestParams.clothesSceneUrlModel"
-              :src="requestParams.clothesSceneUrlModel"
-            />
+            <img v-if="requestParams.clothesSceneUrlModel" :src="requestParams.clothesSceneUrlModel" />
             <!-- 只换背景 -->
             <img v-if="requestParams.clothesSceneUrlBg" :src="requestParams.clothesSceneUrlBg" />
 
@@ -205,14 +162,12 @@
           </template>
 
           <!-- AI图片-穿搭调整 => 连体衣/上下装 创意模板库:热门穿搭-连体衣/上下装 -->
-          <template
-            v-if="
-              requestParams &&
-              (templateDetail?.type == 5 ||
-                templateDetail?.type == 27 ||
-                templateDetail?.type == 28)
-            "
-          >
+          <template v-if="
+            requestParams &&
+            (templateDetail?.type == 5 ||
+              templateDetail?.type == 27 ||
+              templateDetail?.type == 28)
+          ">
             <h5 v-if="outfitAdjustmentTitle" class="section-title">
               {{ outfitAdjustmentTitle }}
             </h5>
@@ -236,17 +191,15 @@
           <!-- AI试衣-挂拍图19 模特非必填 -->
 
           <!-- 模特 -->
-          <template
-            v-if="
-              requestParams &&
-              (templateDetail?.type == 12 ||
-                templateDetail?.type == 13 ||
-                (templateDetail?.type == 17 && requestParams.modelImageUrl) ||
-                (templateDetail?.type == 18 && requestParams.modelImageUrl) ||
-                (templateDetail?.type == 19 && requestParams.modelImageUrl) ||
-                (templateDetail?.type == 20 && requestParams.modelImageUrl))
-            "
-          >
+          <template v-if="
+            requestParams &&
+            (templateDetail?.type == 12 ||
+              templateDetail?.type == 13 ||
+              (templateDetail?.type == 17 && requestParams.modelImageUrl) ||
+              (templateDetail?.type == 18 && requestParams.modelImageUrl) ||
+              (templateDetail?.type == 19 && requestParams.modelImageUrl) ||
+              (templateDetail?.type == 20 && requestParams.modelImageUrl))
+          ">
             <h5 class="section-title">模特</h5>
             <div class="video-thumb-row">
               <img v-if="requestParams.modelImageUrl" :src="requestParams.modelImageUrl" />
@@ -264,44 +217,36 @@
           </template>
 
           <!-- 模特场景 -->
-          <template
-            v-if="
-              requestParams &&
-              (templateDetail?.type == 28 ||
-                templateDetail?.type == 27 ||
-                templateDetail?.type == 23 ||
-                templateDetail?.type == 24 ||
-                templateDetail?.type == 22 ||
-                templateDetail?.type == 20 ||
-                templateDetail?.type == 19 ||
-                (templateDetail?.type == 18 && requestParams.sceneImageUrl) ||
-                (templateDetail?.type == 17 && requestParams.sceneImageUrl) ||
-                templateDetail?.type == 14 ||
-                templateDetail?.type == 12)
-            "
-          >
+          <template v-if="
+            requestParams &&
+            (templateDetail?.type == 28 ||
+              templateDetail?.type == 27 ||
+              templateDetail?.type == 23 ||
+              templateDetail?.type == 24 ||
+              templateDetail?.type == 22 ||
+              templateDetail?.type == 20 ||
+              templateDetail?.type == 19 ||
+              (templateDetail?.type == 18 && requestParams.sceneImageUrl) ||
+              (templateDetail?.type == 17 && requestParams.sceneImageUrl) ||
+              templateDetail?.type == 14 ||
+              templateDetail?.type == 12)
+          ">
             <h5 class="section-title">
               {{ templateDetail?.type == 28 || templateDetail?.type == 27 ? '模特场景' : '场景' }}
             </h5>
             <div class="video-thumb-row">
-              <img
-                v-for="item in requestParams.modelSceneUrl ||
+              <img v-for="item in requestParams.modelSceneUrl ||
                 requestParams.modelSceneUrlBg ||
                 requestParams.flatSceneImageUrl ||
                 (templateDetail?.type == 24
                   ? requestParams?.sceneImageUrl.slice(0, 1)
                   : requestParams?.sceneImageUrl) ||
-                requestParams?.multipleModels"
-                :key="item"
-                :src="item"
-              />
+                requestParams?.multipleModels" :key="item" :src="item" />
             </div>
           </template>
 
           <!-- AI试衣-自定义标签参数 -->
-          <template
-            v-if="requestParams && (templateDetail?.type == 15 || templateDetail?.type == 16)"
-          >
+          <template v-if="requestParams && (templateDetail?.type == 15 || templateDetail?.type == 16)">
             <div class="video-thumb-row">
               <el-button v-if="requestParams.gender" type="primary" class="btn" size="small">
                 {{ requestParams.gender }}
@@ -310,10 +255,7 @@
                 {{ requestParams.age }}
               </el-button>
               <el-button v-if="requestParams.skinToneCode" type="primary" class="btn" size="small">
-                <text
-                  class="skin-tone-code"
-                  :style="{ backgroundColor: requestParams.skinToneCode }"
-                ></text>
+                <text class="skin-tone-code" :style="{ backgroundColor: requestParams.skinToneCode }"></text>
               </el-button>
               <el-button v-if="requestParams.bodyType" type="primary" class="btn" size="small">
                 {{ requestParams.bodyType }}
@@ -328,17 +270,11 @@
           </template>
 
           <!-- 创意描述 -->
-          <div
-            v-if="templateDetail?.type != 10 && templateDetail?.type != 2 && creativeDescription"
-            class="creative-description"
-          >
+          <div v-if="templateDetail?.type != 10 && templateDetail?.type != 2 && creativeDescription"
+            class="creative-description">
             <div class="description-header">
               <h5 class="section-label">创意描述</h5>
-              <el-icon
-                v-if="creativeDescription"
-                class="copy-icon"
-                @click="copyDescription(creativeDescription)"
-              >
+              <el-icon v-if="creativeDescription" class="copy-icon" @click="copyDescription(creativeDescription)">
                 <CopyDocument />
               </el-icon>
             </div>
@@ -368,24 +304,17 @@
           <template v-if="requestParams?.promptsListTitles && templateDetail?.type == 10">
             <h5 class="section-title">参考动作</h5>
             <div class="video-thumb-row">
-              <el-button
-                v-for="item in requestParams.promptsListTitles"
-                :key="item"
-                type="primary"
-                class="btn"
-              >
+              <el-button v-for="item in requestParams.promptsListTitles" :key="item" type="primary" class="btn">
                 {{ item }}
               </el-button>
             </div>
           </template>
 
           <!-- AI图片-视角选择/模特姿势库 -->
-          <template
-            v-if="
-              (templateDetail?.type == 2 || templateDetail?.type == 3) &&
-              requestParams?.poseChooseImg
-            "
-          >
+          <template v-if="
+            (templateDetail?.type == 2 || templateDetail?.type == 3) &&
+            requestParams?.poseChooseImg
+          ">
             <h5 v-if="templateDetail?.type == 2" class="section-title">
               {{ requestParams?.poseChooseKey == 'view_angle' ? '视角选择' : '模特姿势库' }}
             </h5>
@@ -403,17 +332,14 @@
             </div>
           </template>
 
-          <div
-            v-if="
-              requestParams &&
-              (requestParams.algorithmName ||
-                requestParams.duration ||
-                requestParams.resolution ||
-                requestParams.aspectRatio ||
-                requestParams.quality)
-            "
-            class="tag-row"
-          >
+          <div v-if="
+            requestParams &&
+            (requestParams.algorithmName ||
+              requestParams.duration ||
+              requestParams.resolution ||
+              requestParams.aspectRatio ||
+              requestParams.quality)
+          " class="tag-row">
             <span v-if="requestParams.algorithmName" class="tag">
               {{ requestParams.algorithmName }}
             </span>
@@ -442,24 +368,16 @@
             <div v-if="wearAccessoriesImages.length > 0">
               <div class="section-title">穿戴饰物</div>
               <div class="video-thumb-row">
-                <img
-                  v-for="(item, index) in wearAccessoriesImages"
-                  :key="item.id || index"
-                  :src="item.imgUrl"
-                  :alt="getImageSetLabel(item.closeType)"
-                />
+                <img v-for="(item, index) in wearAccessoriesImages" :key="item.id || index" :src="item.imgUrl"
+                  :alt="getImageSetLabel(item.closeType)" />
               </div>
             </div>
             <!-- 穿戴参考（materialLibraryType: 1） -->
             <div v-if="wearReferenceImages.length > 0">
               <div class="section-title">穿戴参考</div>
               <div class="video-thumb-row">
-                <img
-                  v-for="(item, index) in wearReferenceImages"
-                  :key="item.id || index"
-                  :src="item.materialImgUrl || item.imgUrl"
-                  alt="穿戴参考"
-                />
+                <img v-for="(item, index) in wearReferenceImages" :key="item.id || index"
+                  :src="item.materialImgUrl || item.imgUrl" alt="穿戴参考" />
               </div>
             </div>
           </template>
@@ -470,24 +388,16 @@
             <div v-if="outfitImages.length > 0">
               <div class="section-title">热门穿搭</div>
               <div class="video-thumb-row">
-                <img
-                  v-for="(item, index) in outfitImages"
-                  :key="item.id || index"
-                  :src="item.imgUrl"
-                  :alt="getImageSetLabel(item.closeType)"
-                />
+                <img v-for="(item, index) in outfitImages" :key="item.id || index" :src="item.imgUrl"
+                  :alt="getImageSetLabel(item.closeType)" />
               </div>
             </div>
             <!-- 穿搭参考/模特场景（materialLibraryType: 0） -->
             <div v-if="sceneReferenceImages.length > 0">
               <div class="section-title">模特场景</div>
               <div class="video-thumb-row">
-                <img
-                  v-for="(item, index) in sceneReferenceImages.slice(0, 1)"
-                  :key="item.id || index"
-                  :src="item.materialImgUrl || item.imgUrl"
-                  alt="模特场景"
-                />
+                <img v-for="(item, index) in sceneReferenceImages.slice(0, 1)" :key="item.id || index"
+                  :src="item.materialImgUrl || item.imgUrl" alt="模特场景" />
               </div>
             </div>
           </template>
@@ -563,11 +473,7 @@
                 <!-- 品牌水印对所有用户可见，但仅会员可用；按钮右上角显示会员标识 -->
                 <div class="vip-feature-btn">
                   <el-button size="large" type="primary" @click="handleBrandWatermark">
-                    <img
-                      :src="images.brandWatermark"
-                      alt=""
-                      class="action-icon brand-watermark-icon"
-                    />
+                    <img :src="images.brandWatermark" alt="" class="action-icon brand-watermark-icon" />
                     品牌水印
                   </el-button>
                   <img :src="images.vip3" alt="VIP" class="vip-badge" />
@@ -579,11 +485,7 @@
               <div class="section-title">编辑</div>
               <div class="vip-feature-btn">
                 <el-button size="large" type="primary" @click="handleBrandWatermark">
-                  <img
-                    :src="images.brandWatermark"
-                    alt=""
-                    class="action-icon brand-watermark-icon"
-                  />
+                  <img :src="images.brandWatermark" alt="" class="action-icon brand-watermark-icon" />
                   品牌水印
                 </el-button>
                 <img :src="images.vip3" alt="VIP" class="vip-badge" />
@@ -595,69 +497,35 @@
     </div>
 
     <!-- 编辑图片弹窗 -->
-    <EditImageModal
-      v-model="showEditModal"
-      :image-url="templateDetail?.imageUrl"
-      :original-description="templateDetail?.description || templateDetail?.prompt"
-      @confirm="handleEditConfirm"
-    />
+    <EditImageModal v-model="showEditModal" :image-url="templateDetail?.imageUrl"
+      :original-description="templateDetail?.description || templateDetail?.prompt" @confirm="handleEditConfirm" />
 
     <!-- 反馈弹窗 -->
-    <FeedbackModal
-      v-if="templateDetail"
-      v-model="showFeedbackModal"
-      :user-id="userStore.userInfo?.userId"
-      :task-id="templateDetail?.taskId"
-      :task-result-id="templateDetail?.id"
-      @success="handleFeedbackSuccess"
-    />
+    <FeedbackModal v-if="templateDetail" v-model="showFeedbackModal" :user-id="userStore.userInfo?.userId"
+      :task-id="templateDetail?.taskId" :task-result-id="templateDetail?.id" @success="handleFeedbackSuccess" />
 
     <!-- 会员购买弹窗 -->
-    <MembershipModal
-      :show="showCoinInsufficient"
-      :error-type="coinErrorType"
-      :is-vip="isUserVip"
-      @close="handleCoinInsufficientClose"
-      @success="handleMembershipPurchaseSuccess"
-    />
+    <MembershipModal :show="showCoinInsufficient" :error-type="coinErrorType" :is-vip="isUserVip"
+      @close="handleCoinInsufficientClose" @success="handleMembershipPurchaseSuccess" />
 
     <!-- 责任声明弹窗 -->
-    <WatermarkDisclaimerModal
-      v-model="showWatermarkDisclaimer"
-      @confirm="handleWatermarkDisclaimerConfirm"
-      @cancel="handleWatermarkDisclaimerCancel"
-      @no-remind-change="handleWatermarkDisclaimerNoRemindChange"
-    />
+    <WatermarkDisclaimerModal v-model="showWatermarkDisclaimer" @confirm="handleWatermarkDisclaimerConfirm"
+      @cancel="handleWatermarkDisclaimerCancel" @no-remind-change="handleWatermarkDisclaimerNoRemindChange" />
 
     <!-- 品牌水印弹窗 -->
-    <BrandWatermarkModal
-      v-model="showBrandWatermarkModal"
-      :task-result-id="templateDetail?.id"
+    <BrandWatermarkModal v-model="showBrandWatermarkModal" :task-result-id="templateDetail?.id"
       :no-watermark-url="templateDetail?.noWatermarkUrl || ''"
-      :image-url="templateDetail?.imageUrl || templateDetail?.imgUrl || ''"
-      :file-url="templateDetail?.fileUrl || ''"
-      :file-type="isVideoType(templateDetail) ? 2 : 1"
-      @close="handleBrandWatermarkClose"
-    />
+      :image-url="templateDetail?.imageUrl || templateDetail?.imgUrl || ''" :file-url="templateDetail?.fileUrl || ''"
+      :file-type="isVideoType(templateDetail) ? 2 : 1" @close="handleBrandWatermarkClose" />
 
     <!-- 图片预览 - 使用 Element Plus ImageViewer -->
-    <el-image-viewer
-      v-if="showImagePreview"
-      :url-list="previewImageList"
-      :initial-index="previewInitialIndex"
-      :hide-on-click-modal="true"
-      @close="handlePreviewClose"
-    />
+    <el-image-viewer v-if="showImagePreview" :url-list="previewImageList" :initial-index="previewInitialIndex"
+      :hide-on-click-modal="true" @close="handlePreviewClose" />
     <!-- 右侧缩略图列表 -->
     <div class="thumbnail-sidebar">
       <div ref="thumbnailList" class="thumbnail-list">
-        <div
-          v-for="(item, index) in relatedTemplates"
-          :key="item.id"
-          class="thumbnail-item"
-          :class="{ active: selectedThumbnail === index }"
-          @click="selectThumbnail(index, item)"
-        >
+        <div v-for="(item, index) in relatedTemplates" :key="item.id" class="thumbnail-item"
+          :class="{ active: selectedThumbnail === index }" @click="selectThumbnail(index, item)">
           <div class="thumbnail-image">
             <img :src="item.lessenImg || item.imgUrl || item.imageUrl" :alt="item.title" />
           </div>
@@ -1867,13 +1735,13 @@ const ensureNoWatermarkUrlForAsset = async (asset: any): Promise<string | null> 
       if (fetchedNoWatermarkUrl) {
         // 更新内存中的数据
         if (templateDetail.value) {
-          ;(templateDetail.value as any).noWatermarkUrl = fetchedNoWatermarkUrl
+          ; (templateDetail.value as any).noWatermarkUrl = fetchedNoWatermarkUrl
         }
         if (
           selectedThumbnail.value >= 0 &&
           selectedThumbnail.value < relatedTemplates.value.length
         ) {
-          ;(relatedTemplates.value[selectedThumbnail.value] as any).noWatermarkUrl =
+          ; (relatedTemplates.value[selectedThumbnail.value] as any).noWatermarkUrl =
             fetchedNoWatermarkUrl
         }
         return fetchedNoWatermarkUrl
@@ -2491,10 +2359,10 @@ onMounted(async () => {
         templateDetail.value = {} as CreativeTemplate
       }
       if (collectId && templateDetail.value) {
-        ;(templateDetail.value as any).collectId = collectId
+        ; (templateDetail.value as any).collectId = collectId
       }
       if (isCollect !== undefined && templateDetail.value) {
-        ;(templateDetail.value as any).isCollect = Number(isCollect)
+        ; (templateDetail.value as any).isCollect = Number(isCollect)
       }
     }
   }
@@ -2517,7 +2385,7 @@ onMounted(async () => {
     })
 
     // 先找到当前项目在列表中的位置（在设置列表之前）
-    let foundIndex = -1
+    let foundIndex: number
 
     if (cachedListData.currentIndex !== undefined && cachedListData.currentIndex >= 0) {
       // 优先使用缓存的索引（最准确）
@@ -2912,6 +2780,7 @@ onUnmounted(() => {
           cursor: pointer;
         }
       }
+
       // 标题
       .section-title,
       .section-label {
@@ -2919,12 +2788,15 @@ onUnmounted(() => {
         color: var(--text-third);
         font-weight: normal;
       }
+
       .section-title {
         margin-bottom: var(--spacing-s);
       }
+
       .copy-icon {
         cursor: pointer;
       }
+
       .video-thumb-row {
         display: flex;
         align-items: center;
@@ -2941,12 +2813,10 @@ onUnmounted(() => {
 
         .btn {
           margin: 0 5px 5px 0;
-          background: linear-gradient(
-            90deg,
-            rgba(204, 166, 244, 1) 0%,
-            rgba(192, 126, 255, 1) 53%,
-            rgba(204, 166, 244, 1) 99%
-          );
+          background: linear-gradient(90deg,
+              rgba(204, 166, 244, 1) 0%,
+              rgba(192, 126, 255, 1) 53%,
+              rgba(204, 166, 244, 1) 99%);
 
           .skin-tone-code {
             width: 34px;
@@ -2986,6 +2856,7 @@ onUnmounted(() => {
         padding: 0 var(--spacing-md);
       }
     }
+
     .tag-row {
       display: flex;
       align-items: center;
@@ -3003,6 +2874,7 @@ onUnmounted(() => {
         border: 1px solid rgba(216, 180, 254, 0.3);
       }
     }
+
     .use-count {
       font-size: 8px;
       color: var(--text-tag);
@@ -3015,10 +2887,12 @@ onUnmounted(() => {
     flex-direction: column;
     gap: var(--spacing-lg);
     margin-top: auto;
+
     .action-item {
       width: 100%;
       display: flex;
       flex-direction: column;
+
       .action-icon {
         height: 19px;
         width: auto;

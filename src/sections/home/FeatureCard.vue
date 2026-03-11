@@ -1,14 +1,3 @@
-<script setup lang="ts">
-interface Props {
-  title: string
-  tag: string
-  description: string
-  image: string
-}
-
-defineProps<Props>()
-</script>
-
 <template>
   <div class="feature-card">
     <div class="card-header">
@@ -26,6 +15,17 @@ defineProps<Props>()
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+interface Props {
+  title: string
+  tag: string
+  description: string
+  image: string
+}
+
+defineProps<Props>()
+</script>
 
 <style scoped lang="scss">
 .feature-card {

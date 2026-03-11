@@ -1,3 +1,37 @@
+<template>
+  <section class="design-section">
+    <div class="design-container container">
+      <div class="design-header">
+        <div class="design-title-section">
+          <h2 class="design-title">{{ t('designMatrix.title') }}</h2>
+          <p class="design-subtitle">{{ t('designMatrix.subtitle') }}</p>
+        </div>
+        <div class="design-tags">
+          <span v-for="(tag, index) in tags.slice(0, -1)" :key="index"
+            class="design-tag" :class="{ active: index === activeTagIndex }" @click="activeTagIndex = index">
+            {{ tag }}
+          </span>
+          <button class="design-tag design-tag-cta" type="button">
+            {{ tags[tags.length - 1] }}
+          </button>
+        </div>
+      </div>
+      <div class="design-grid">
+        <div v-for="(design, index) in currentDesigns" :key="index" class="design-item">
+          <img :src="design" :alt="`Design ${index + 1}`" class="design-image" />
+        </div>
+      </div>
+    </div>
+    <div class="cta-section">
+      <h3 class="cta-title">{{ t('designMatrix.ctaTitle') }}</h3>
+      <p class="cta-subtitle">{{ t('designMatrix.ctaSubtitle') }}</p>
+      <button class="cta-btn" @click="showComingSoon">
+        {{ t('designMatrix.ctaButton') }}
+      </button>
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -69,40 +103,6 @@ const showComingSoon = () => {
 
 const tags = computed(() => (tm('designMatrix.tags') as string[]) || [])
 </script>
-
-<template>
-  <section class="design-section">
-    <div class="design-container container">
-      <div class="design-header">
-        <div class="design-title-section">
-          <h2 class="design-title">{{ t('designMatrix.title') }}</h2>
-          <p class="design-subtitle">{{ t('designMatrix.subtitle') }}</p>
-        </div>
-        <div class="design-tags">
-          <span v-for="(tag, index) in tags.slice(0, -1)" :key="index"
-            class="design-tag" :class="{ active: index === activeTagIndex }" @click="activeTagIndex = index">
-            {{ tag }}
-          </span>
-          <button class="design-tag design-tag-cta" type="button">
-            {{ tags[tags.length - 1] }}
-          </button>
-        </div>
-      </div>
-      <div class="design-grid">
-        <div v-for="(design, index) in currentDesigns" :key="index" class="design-item">
-          <img :src="design" :alt="`Design ${index + 1}`" class="design-image" />
-        </div>
-      </div>
-    </div>
-    <div class="cta-section">
-      <h3 class="cta-title">{{ t('designMatrix.ctaTitle') }}</h3>
-      <p class="cta-subtitle">{{ t('designMatrix.ctaSubtitle') }}</p>
-      <button class="cta-btn" @click="showComingSoon">
-        {{ t('designMatrix.ctaButton') }}
-      </button>
-    </div>
-  </section>
-</template>
 
 <style scoped lang="scss">
 .design-section {

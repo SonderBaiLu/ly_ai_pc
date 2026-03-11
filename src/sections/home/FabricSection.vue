@@ -1,42 +1,3 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-import fabric1 from '@/assets/images/home/fabric1.png'
-import fabric2 from '@/assets/images/home/fabric2.png'
-import fabric3 from '@/assets/images/home/fabric3.png'
-import fabric4 from '@/assets/images/home/fabric4.png'
-import fabric5 from '@/assets/images/home/fabric5.png'
-import fabric6 from '@/assets/images/home/fabric6.png'
-import fabric7 from '@/assets/images/home/fabric7.png'
-
-const { t, tm, locale } = useI18n()
-
-const fabricImage = fabric1
-const modelImage = fabric2
-
-const thumbnails = [
-  fabric1,
-  fabric2,
-  fabric3,
-  fabric4,
-  fabric5,
-  fabric6,
-  fabric7,
-]
-
-const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
-}
-
-const steps = computed(() => (tm('fabricSection.steps') as string[]) || [])
-const stepDescriptions = computed(() => (tm('fabricSection.stepDescriptions') as string[]) || [])
-</script>
-
 <template>
   <section class="fabric-section">
     <div class="fabric-container container">
@@ -124,6 +85,45 @@ const stepDescriptions = computed(() => (tm('fabricSection.stepDescriptions') as
     </div>
   </section>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import fabric1 from '@/assets/images/home/fabric1.png'
+import fabric2 from '@/assets/images/home/fabric2.png'
+import fabric3 from '@/assets/images/home/fabric3.png'
+import fabric4 from '@/assets/images/home/fabric4.png'
+import fabric5 from '@/assets/images/home/fabric5.png'
+import fabric6 from '@/assets/images/home/fabric6.png'
+import fabric7 from '@/assets/images/home/fabric7.png'
+
+const { t, tm, locale } = useI18n()
+
+const fabricImage = fabric1
+const modelImage = fabric2
+
+const thumbnails = [
+  fabric1,
+  fabric2,
+  fabric3,
+  fabric4,
+  fabric5,
+  fabric6,
+  fabric7,
+]
+
+const showComingSoon = () => {
+  ElMessage.info(
+    locale.value === 'zh'
+      ? '功能暂未开放，敬请期待'
+      : 'This feature is not available yet. Stay tuned.'
+  )
+}
+
+const steps = computed(() => (tm('fabricSection.steps') as string[]) || [])
+const stepDescriptions = computed(() => (tm('fabricSection.stepDescriptions') as string[]) || [])
+</script>
 
 <style scoped lang="scss">
 .fabric-section {

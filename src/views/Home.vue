@@ -1,9 +1,5 @@
-<script setup lang="ts">
-import homeBg from '@/assets/images/home_bg.png'
-</script>
-
 <template>
-  <div class="home" :style="{ backgroundImage: `url(${homeBg})` }">
+  <div class="home" :style="{ backgroundImage: `url(${images.homeBg})` }">
     <Header />
 
     <main class="main-content">
@@ -19,5 +15,9 @@ import homeBg from '@/assets/images/home_bg.png'
     <Footer />
   </div>
 </template>
+
+<script setup lang="ts">
+import { images } from '@/assets'
+</script>
 
 <style scoped lang="scss"></style>

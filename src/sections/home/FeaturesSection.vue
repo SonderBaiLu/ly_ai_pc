@@ -1,3 +1,28 @@
+<template>
+  <section class="features-section">
+    <div class="features-container container">
+      <div class="tabs-container">
+        <el-radio-group v-model="activeTab" size="default">
+          <el-radio-button v-for="(tab, index) in tabs" :key="index" :value="index" :border="false">
+            {{ tab }}
+          </el-radio-button>
+        </el-radio-group>
+      </div>
+      <div v-if="activeTab === 0" class="cards-grid">
+        <FeatureCard :title="t('features.feature1Title')" :tag="t('features.feature1Tag')"
+          :description="t('features.feature1Desc')" :image="coat1" />
+        <FeatureCard :title="t('features.feature2Title')" :tag="t('features.feature2Tag')"
+          :description="t('features.feature2Desc')" :image="coat2" />
+        <FeatureCard :title="t('features.feature3Title')" :tag="t('features.feature3Tag')"
+          :description="t('features.feature3Desc')" :image="coat3" />
+      </div>
+
+      <TransformRow v-else-if="activeTab === 1" :title="tabs[1]" :cards="sketchToRealCards" />
+      <TransformRow v-else :title="tabs[2]" :cards="realToSketchCards" />
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { ElRadioGroup, ElRadioButton } from 'element-plus'
 import { computed } from 'vue'
@@ -38,35 +63,6 @@ const realToSketchCards = computed(() => [
 ])
 </script>
 
-<template>
-  <section class="features-section">
-    <div class="features-container container">
-      <div class="tabs-container">
-        <el-radio-group v-model="activeTab" size="default">
-          <el-radio-button v-for="(tab, index) in tabs" :key="index" :value="index"
-            :border="false">
-            {{ tab }}
-          </el-radio-button>
-        </el-radio-group>
-      </div>
-      <div v-if="activeTab === 0" class="cards-grid">
-        <FeatureCard :title="t('features.feature1Title')"
-          :tag="t('features.feature1Tag')"
-          :description="t('features.feature1Desc')" :image="coat1" />
-        <FeatureCard :title="t('features.feature2Title')"
-          :tag="t('features.feature2Tag')"
-          :description="t('features.feature2Desc')" :image="coat2" />
-        <FeatureCard :title="t('features.feature3Title')"
-          :tag="t('features.feature3Tag')"
-          :description="t('features.feature3Desc')" :image="coat3" />
-      </div>
-
-      <TransformRow v-else-if="activeTab === 1" :title="tabs[1]" :cards="sketchToRealCards" />
-      <TransformRow v-else :title="tabs[2]" :cards="realToSketchCards" />
-    </div>
-  </section>
-</template>
-
 <style scoped lang="scss">
 .features-section {
   padding: calc($spacing-2xl - 4px) 0 104px;
@@ -75,26 +71,26 @@ const realToSketchCards = computed(() => [
   overflow: hidden;
   background: $color-bg-dark;
 
-.features-container {
-.tabs-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: $spacing-3xl;
-}
+  .features-container {
+    .tabs-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: $spacing-3xl;
+    }
 
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-xl;
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: $spacing-xl;
+    }
   }
-}
 
-@media (max-width: 1024px) {
+  @media (max-width: 1024px) {
     .features-container {
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   }
 }
 </style>

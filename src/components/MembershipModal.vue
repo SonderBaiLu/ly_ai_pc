@@ -1,0 +1,1282 @@
+<template>
+  <el-dialog v-model="dialogVisible" :title="modalTitle" width="1200px" :close-on-click-modal="false" :show-close="true"
+    append-to-body class="membership-modal-dialog" @close="handleClose">
+    <!-- 提示信息 -->
+    <div v-if="modalConfig.content" class="modal-tip">
+      {{ modalConfig.content }}
+    </div>
+
+    <!-- 会员套餐选择区域 -->
+    <div class="membership-section">
+      <div class="section-header">
+        <el-tabs v-model="activeTab" class="membership-tabs">
+          <el-tab-pane v-for="tab in membershipTabs" :key="tab.key" :label="tab.name" :name="tab.key" />
+        </el-tabs>
+      </div>
+
+      <!-- 会员内容 -->
+      <template v-if="activeTab === 'membership'">
+        <!-- 会员卡片网格 -->
+        <div class="membership-cards-grid">
+          <!-- 循环渲染会员卡片 -->
+          <div v-for="(plan, index) in membershipPlansFromApi" :key="plan.id" class="membership-card"
+            :class="`theme-${index}`">
+            <div class="card-header">
+              <h3 class="card-title title">{{ getVipName(plan) }}</h3>
+              <div class="price-section">
+                <span class="price">¥{{ plan.itemPrice }}</span>
+                <span class="price-unit">{{ getPriceUnit(plan) }}</span>
+                <!-- 显示原价（删除线） -->
+                <span v-if="getOriginalPrice(plan, index)" class="original-price">
+                  {{ getOriginalPrice(plan, index) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <el-button class="purchase-button" :disabled="isFreePlan(plan)" type="primary"
+                @click="handlePurchaseAction(plan)">
+                {{ getPurchaseButtonText(plan) }}
+              </el-button>
+
+              <!-- 潮币信息卡片 -->
+              <div v-if="plan.itemDescList && plan.itemDescList.length > 0" class="coin-info-card">
+                <div class="coin-content">
+                  <div v-for="(desc, descIdx) in (plan.itemDescList || []).slice(-2)" :key="descIdx"
+                    :class="descIdx === 0 ? 'coin-amount' : 'coin-detail'">
+                    {{ desc }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-features">
+              <div v-for="(right, idx) in plan.vipRightsList" :key="idx" class="feature-item">
+                <img v-if="index === 0" :src="images.right" class="feature-icon" alt="" />
+                <img v-if="index === 1" :src="images.check1" class="feature-icon" alt="" />
+                <img v-if="index === 2" :src="images.check2" class="feature-icon" alt="" />
+                <img v-if="index === 3" :src="images.check3" class="feature-icon" alt="" />
+                <span>{{ right.rightName }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 潮币值页面 -->
+      <template v-else-if="activeTab === 'tidecoins'">
+        <!-- 温馨提示 -->
+        <div class="tidecoins-notice">
+          温馨提示：
+          <span class="notice-text">
+            潮币值不可兑换会员，不可转赠与提现；充值后有效期为{{
+              selectedPlan?.effectDate || '2'
+            }}年，不支持退换或反向兑换成人民币。
+          </span>
+          <span class="rules-link" @click="() => navigateToAgreement('COIN_RULES_DESCRIPTION')">
+            潮币值规则
+          </span>
+        </div>
+
+        <!-- 潮币套餐网格 -->
+        <div class="tidecoins-grid">
+          <div v-for="plan in tideCoinsPlans" :key="plan.id" class="tidecoin-card"
+            :class="{ selected: (plan as any).isSelected }" @click="selectTideCoin(plan)">
+            <!-- 上半部分：暗色背景 -->
+            <div class="tidecoin-top">
+              <div class="tidecoin-amount">
+                <img class="flame-icon" :src="images.logoMini" alt="" srcset="" />
+                <span class="amount">{{ plan.waveCoin }}</span>
+              </div>
+            </div>
+
+            <!-- 下半部分：更深背景 -->
+            <div class="tidecoin-bottom">
+              <div class="tidecoin-price">¥ {{ plan.waveCoinPrice }}</div>
+              <el-button class="tidecoin-button" type="primary" @click.stop="handlePurchaseAction(plan)">
+                立即购买
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </el-dialog>
+
+  <!-- 支付弹窗 -->
+  <PaymentModal v-model="showPayDialog" :title="payDialogTitle" :initial-amount="initialPayAmount"
+    :create-payment-order="handleCreatePaymentOrder" :purchase-type="purchaseType" @close="handlePayDialogClose"
+    @success="handlePaymentSuccess" />
+</template>
+
+<script setup lang="ts">
+import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import { membershipApi } from '@/api/membership'
+import { paymentApi } from '@/api/payment'
+import { images } from '@/assets'
+import { useRouter } from 'vue-router'
+
+// Props
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false,
+  },
+  // 兼容旧接口：使用 show prop（如果提供了则使用它，否则使用 modelValue）
+  show: {
+    type: Boolean,
+    default: undefined,
+  },
+  // 错误类型：coin_deficiency(潮币不足) | up_vip(需要升级VIP)
+  errorType: {
+    type: String,
+    default: 'coin_deficiency',
+  },
+  // 用户是否是VIP（可以是布尔值或数字）
+  isVip: {
+    type: [Boolean, Number],
+    default: undefined,
+  },
+  // 自定义标题（如果提供，则优先使用自定义标题）
+  customTitle: {
+    type: String,
+    default: '',
+  },
+})
+
+// Emits
+const emit = defineEmits(['update:modelValue', 'close', 'success'])
+
+const router = useRouter()
+
+// 用户信息
+const userStore = useUserStore()
+const userInfo = computed(() => userStore.userInfo)
+
+// 会员套餐标签
+// - 默认：显示「会员」+「潮币值」两个tab
+// - 当 errorType === 'up_vip'（例如非会员点击生成数量多张触发升级会员）时：
+//   只展示「会员」tab，隐藏「潮币值」和购买潮币相关入口
+const membershipTabs = computed(() => {
+  const baseTabs = [{ key: 'membership', name: '会员' }]
+  if (props.errorType === 'up_vip') {
+    return baseTabs
+  }
+  return [...baseTabs, { key: 'tidecoins', name: '潮币值' }]
+})
+
+const activeTab = ref('membership')
+
+// 会员套餐数据（从API获取）
+type VipItem = {
+  id: string | number
+  itemName: string
+  itemPrice: number | string
+  itemDescList?: string[]
+  itemDesc?: string
+  vipRightsList?: Array<{ rightName: string; imgUrl?: string }>
+  itemUnit?: string | number
+  priceUnit?: string
+  tag?: string
+  [key: string]: any
+}
+
+const membershipPlansFromApi = ref<VipItem[]>([])
+
+// 潮币值套餐数据（从API加载）
+const tideCoinsPlans = ref<any[]>([])
+
+// 选中的套餐
+const selectedPlan = ref<any>(null)
+
+// === 支付弹窗相关状态 ===
+const showPayDialog = ref(false)
+const payDialogTitle = ref('')
+const purchaseType = ref<'membership' | 'coin'>('membership') // 购买类型：会员或潮币
+const currentSelectedPlan = ref<any>(null) // 当前选择的套餐
+const initialPayAmount = ref(0) // 初始支付金额
+
+// 加载会员套餐数据
+const loadMembershipPlans = async () => {
+  try {
+    const res = await membershipApi.vipInfoList({
+      vipType: 0,
+      code: 'COMMON_PROBLEM',
+    })
+
+    if (res.resp_code === 0 && res.datas) {
+      const { vipItemList } = res.datas
+      const plans = vipItemList || []
+
+      // 前端补充免费版套餐（后端暂无返回）
+      const hasFree = plans.some((p: any) => p.itemName === '免费版' || p.id === 'free')
+      const freePlan: VipItem = {
+        id: 'free',
+        itemName: '免费版',
+        itemPrice: 0,
+        vipRightsList: [{ rightName: '每月赠送50潮币', imgUrl: images.vipPrivilege }],
+        itemUnit: -1,
+        tag: 'free',
+        itemDesc: '每月赠送50潮币',
+      }
+
+      membershipPlansFromApi.value = hasFree ? plans : [freePlan, ...plans]
+    } else {
+      ElMessage.error(res.resp_msg || '获取会员套餐失败')
+    }
+  } catch (error) {
+    console.error('加载会员套餐失败:', error)
+    ElMessage.error('加载会员套餐失败')
+  }
+}
+
+// 加载潮币套餐数据
+const loadTideCoinPlans = async () => {
+  try {
+    const res = await membershipApi.waveCoinList({})
+    if (res.resp_code === 0 && res.datas) {
+      tideCoinsPlans.value = res.datas
+    } else {
+      ElMessage.error(res.resp_msg || '获取潮币套餐失败')
+    }
+  } catch (error) {
+    console.error('加载潮币套餐失败:', error)
+    ElMessage.error('加载潮币套餐失败')
+  }
+}
+
+// 弹窗显示状态（优先使用 show prop，兼容旧接口）
+const dialogVisible = computed(() => {
+  if (props.show !== undefined) {
+    return props.show
+  }
+  return props.modelValue
+})
+
+// 监听显示状态变化
+watch(
+  () => (props.show !== undefined ? props.show : props.modelValue),
+  (newVal) => {
+    if (newVal) {
+      // 弹窗打开时执行
+      // 根据错误类型设置默认标签页
+      // 如果是潮币不足，默认选中潮币购买模块
+      if (props.errorType === 'coin_deficiency') {
+        activeTab.value = 'tidecoins'
+      } else if (props.errorType === 'up_vip') {
+        // 如果需要升级VIP，默认选中会员模块
+        activeTab.value = 'membership'
+      } else {
+        // 其他情况，根据用户类型设置
+        if (props.isVip === true || props.isVip === 1) {
+          activeTab.value = 'tidecoins'
+        } else {
+          activeTab.value = 'membership'
+        }
+      }
+      loadMembershipPlans()
+      loadTideCoinPlans()
+    } else {
+      // 弹窗关闭时重置状态
+      showPayDialog.value = false
+      selectedPlan.value = null
+      currentSelectedPlan.value = null
+      // 重置所有套餐的选中状态
+      membershipPlansFromApi.value.forEach((p: any) => (p.isSelected = false))
+      tideCoinsPlans.value.forEach((p: any) => (p.isSelected = false))
+    }
+  },
+  { immediate: true }
+)
+
+// 选择潮币值
+const selectTideCoin = (plan: any) => {
+  // 取消所有选择
+  tideCoinsPlans.value.forEach((p) => (p.isSelected = false))
+  // 选择当前项
+  plan.isSelected = true
+  selectedPlan.value = plan
+}
+
+// 创建支付订单的函数（供 PaymentModal 调用）
+const handleCreatePaymentOrder = async () => {
+  if (!userInfo.value) {
+    ElMessage.warning('请先登录后再购买')
+    router.push('/login')
+    throw new Error('用户未登录')
+  }
+
+  const targetPlan = currentSelectedPlan.value
+  if (!targetPlan) {
+    throw new Error('未选择套餐')
+  }
+
+  // 判断是潮币购买还是会员购买
+  const isCoinPurchase = purchaseType.value === 'coin' || !!targetPlan.coinCode
+
+  // 根据购买类型构建不同的支付参数
+  const payload: any = {
+    userId: userInfo.value.userId || userInfo.value.logicId || userInfo.value.phone,
+    paymentType: 0, // 0-支付宝
+    orderType: isCoinPurchase ? 1 : 0, // 订单类型：0-开通会员 1-购买潮币
+    itemCode: isCoinPurchase ? targetPlan.itemCode || targetPlan.coinCode : targetPlan.itemCode,
+    itemId: targetPlan.id,
+    platformType: 0, // 默认PC端
+    currencyType: 1, // 默认人民币
+  }
+
+  const res = await paymentApi.createPaymentOrder(payload)
+  if (res.resp_code !== 0 || !res.datas) {
+    throw new Error(res.resp_msg || '创建支付订单失败')
+  }
+
+  return res.datas as any
+}
+
+// 支付弹窗关闭回调
+const handlePayDialogClose = () => {
+  showPayDialog.value = false
+}
+
+// 支付成功回调
+const handlePaymentSuccess = async () => {
+  showPayDialog.value = false
+
+  // 支付成功后刷新用户信息（更新是否为会员、剩余权益、潮币等）
+  try {
+    const mobile = userInfo.value?.mobile || userInfo.value?.phone
+    if (mobile) {
+      await userStore.getUserInfo(mobile)
+    }
+  } catch (error) {
+    console.error('支付成功后刷新用户信息失败:', error)
+  }
+
+  // 通知父组件（用于继续无水印下载等后续流程）
+  emit('success')
+}
+
+// 处理购买（会员或潮币）
+const handlePurchaseAction = (plan: any) => {
+  if (isFreePlan(plan)) return
+
+  // 记录当前选择的套餐
+  selectedPlan.value = plan
+  currentSelectedPlan.value = plan
+
+  // 判断是潮币购买还是会员购买
+  const isCoinPurchase = !!plan.coinCode
+
+  // 设置购买类型和标题
+  if (isCoinPurchase) {
+    purchaseType.value = 'coin'
+    payDialogTitle.value = '潮币充值'
+  } else {
+    purchaseType.value = 'membership'
+    payDialogTitle.value = getVipName(plan) || '会员购买'
+  }
+
+  // 设置初始支付金额（在创建订单前显示）
+  // 潮币套餐使用 waveCoinPrice，会员套餐使用 itemPrice
+  const price = isCoinPurchase
+    ? typeof plan.waveCoinPrice === 'string'
+      ? parseFloat(plan.waveCoinPrice)
+      : plan.waveCoinPrice
+    : typeof plan.itemPrice === 'string'
+      ? parseFloat(plan.itemPrice)
+      : plan.itemPrice
+  initialPayAmount.value = price || 0
+
+  showPayDialog.value = true
+}
+
+// 价格单位
+const getPriceUnit = (plan: any) => {
+  if (plan.itemUnit === 0) return '/月'
+  if (plan.itemUnit === 1) return '/季'
+  if (plan.itemUnit === 2) return '/年'
+  return '/年'
+}
+
+// 会员名字
+const getVipName = (plan: any) => {
+  if (plan.itemUnit === -1) return '免费版'
+  if (plan.itemUnit === 0) return '月度会员'
+  if (plan.itemUnit === 1) return '季度会员'
+  if (plan.itemUnit === 2) return '年度会员'
+  return '会员版'
+}
+
+// 跳转到协议页面
+const navigateToAgreement = (agreementType: string) => {
+  router.push({
+    path: '/agreement',
+    query: { type: agreementType },
+  })
+}
+
+// 原价文案
+const getOriginalPrice = (plan: any, index: number) => {
+  if (index <= 0) return ''
+  if (index === 2) return '¥894'
+  if (index === 3) return '¥3576'
+  return ''
+}
+
+// 判断是否免费版
+const isFreePlan = (plan: any) => plan?.id === 'free' || plan?.itemName === '免费版'
+
+// 判断是否是当前套餐
+const isCurrentPlan = (plan: any) => {
+  const userEffectUnit = userInfo.value?.effectUnit
+  const isVip = userInfo.value?.isVip === 1
+
+  if (isFreePlan(plan)) {
+    return !isVip || userEffectUnit === -1
+  }
+
+  if (!isVip) {
+    return false
+  }
+
+  if (userEffectUnit === -1) {
+    return false
+  }
+
+  const planItemUnit = plan?.itemUnit
+  return userEffectUnit === planItemUnit
+}
+
+// 获取购买按钮文案
+const getPurchaseButtonText = (plan: any) => {
+  const userEffectUnit = userInfo.value?.effectUnit
+
+  if (isFreePlan(plan)) {
+    if (userEffectUnit === -1) {
+      return '当前套餐'
+    }
+    return '免费套餐'
+  }
+
+  if (isCurrentPlan(plan)) {
+    return '继续购买'
+  }
+
+  return '立即购买'
+}
+
+// 弹窗标题和提示内容
+const modalConfig = computed(() => {
+  // 如果提供了自定义标题，优先使用自定义标题
+  if (props.customTitle) {
+    // 根据自定义标题判断内容
+    if (props.customTitle === '会员购买') {
+      return {
+        title: '会员购买',
+        content: '选择适合您的会员套餐，享受更多权益',
+        buttonText: '订阅',
+        action: 'subscribe',
+      }
+    }
+    // 其他自定义标题的情况，返回默认配置但使用自定义标题
+    return {
+      title: props.customTitle,
+      content: modalConfigWithoutCustom.value.content,
+      buttonText: modalConfigWithoutCustom.value.buttonText,
+      action: modalConfigWithoutCustom.value.action,
+    }
+  }
+
+  // 如果没有自定义标题，使用原有逻辑
+  return modalConfigWithoutCustom.value
+})
+
+// 弹窗配置（不包含自定义标题的逻辑）
+const modalConfigWithoutCustom = computed(() => {
+  // 如果没有错误类型（主动购买），显示"会员购买"
+  if (!props.errorType || props.errorType === '') {
+    return {
+      title: '会员购买',
+      content: '选择适合您的会员套餐，享受更多权益',
+      buttonText: '订阅',
+      action: 'subscribe',
+    }
+  }
+
+  // 如果不是会员
+  if (!props.isVip) {
+    // 场景一：明确是“潮币不足”（例如生成时提示先充值潮币）
+    if (props.errorType === 'coin_deficiency') {
+      return {
+        title: '潮币不足',
+        content: '您当前潮币不足，开通会员可获得潮币，继续生成还能享受更多会员权益。',
+        buttonText: '订阅',
+        action: 'subscribe',
+      }
+    }
+
+    // 场景二：仅需要开通会员（例如去除水印、提升权益），不需要提示“潮币不足”
+    // 统一文案为「会员购买」
+    return {
+      title: '会员购买',
+      content: '选择适合您的会员套餐，享受更多权益',
+      buttonText: '订阅',
+      action: 'subscribe',
+    }
+  }
+
+  // 如果是会员且错误类型是潮币不足
+  if (props.isVip && props.errorType === 'coin_deficiency') {
+    return {
+      title: '潮币不足',
+      content: '您当前潮币不足，请充值潮币后继续生成',
+      buttonText: '充值',
+      action: 'recharge',
+    }
+  }
+
+  // 如果是会员且需要升级/续费
+  if (props.isVip && props.errorType === 'up_vip') {
+    return {
+      title: '会员权益不足',
+      content: '您的会员权益不足，续费会员后继续生成',
+      buttonText: '会员续费',
+      action: 'renewVip',
+    }
+  }
+
+  // 默认配置
+  return {
+    title: '会员购买',
+    content: '选择适合您的会员套餐，享受更多权益',
+    buttonText: '订阅',
+    action: 'subscribe',
+  }
+})
+
+// 弹窗标题（兼容旧接口）
+const modalTitle = computed(() => {
+  return modalConfig.value.title
+})
+
+const handleClose = () => {
+  // 弹窗关闭时重置状态
+  showPayDialog.value = false
+  selectedPlan.value = null
+  currentSelectedPlan.value = null
+  initialPayAmount.value = 0
+  // 重置所有套餐的选中状态
+  membershipPlansFromApi.value.forEach((p: any) => (p.isSelected = false))
+  tideCoinsPlans.value.forEach((p: any) => (p.isSelected = false))
+
+  if (props.show !== undefined) {
+    // 如果使用 show prop，需要通过 emit 通知父组件关闭
+    emit('close')
+  } else {
+    // 如果使用 modelValue，直接更新
+    emit('update:modelValue', false)
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+// 弹窗响应式适配
+:deep(.membership-modal-dialog) {
+  // 弹窗包装器和居中样式已在全局样式中设置，无需重复
+
+  .el-dialog {
+    width: 1200px;
+    max-width: 90vw;
+    max-height: 90vh; // 限制弹窗最大高度
+    margin: 0 auto; // 确保水平居中
+
+    // 小屏幕优化
+    @media (max-width: 768px) {
+      width: 95vw !important;
+      max-width: 95vw !important;
+    }
+
+    @media (max-width: 480px) {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      max-height: 100vh !important;
+    }
+  }
+
+  // 弹窗头部固定，不滚动
+  .el-dialog__header {
+    flex-shrink: 0;
+  }
+
+  // 弹窗内容区域可滚动
+  .el-dialog__body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    min-height: 0; // 重要：允许 flex 子元素缩小
+
+    // 小屏幕优化
+    @media (max-width: 768px) {
+      padding: 15px;
+    }
+
+    @media (max-width: 480px) {
+      padding: 10px;
+    }
+  }
+
+  // 弹窗底部固定，不滚动
+  .el-dialog__footer {
+    flex-shrink: 0;
+  }
+}
+
+// 提示信息样式
+.modal-tip {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: rgba(143, 80, 234, 0.1);
+  border: 1px solid rgba(143, 80, 234, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 480px) {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 6px;
+  }
+}
+
+.section-header {
+  .membership-tabs {
+    :deep(.el-tabs__item) {
+      color: var(--text-secondary);
+      font-size: 16px;
+      height: 48px;
+      line-height: 48px;
+      border: none;
+      background: transparent;
+      transition: all 0.3s ease;
+
+      @media (max-width: 768px) {
+        font-size: 14px;
+        height: 44px;
+        line-height: 44px;
+        padding: 0 12px;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 13px;
+        height: 40px;
+        line-height: 40px;
+        padding: 0 10px;
+      }
+
+      &:hover {
+        color: var(--text-primary);
+      }
+
+      &.is-active {
+        color: var(--primary-color);
+        font-weight: 600;
+      }
+    }
+
+    :deep(.el-tabs__active-bar) {
+      background: linear-gradient(135deg, var(--primary-color), #a67ce8);
+      height: 3px;
+
+      @media (max-width: 480px) {
+        height: 2px;
+      }
+    }
+
+    :deep(.el-tabs__content) {
+      display: none;
+    }
+  }
+}
+
+// 会员卡片网格
+.membership-cards-grid {
+  // 默认网格布局（大屏幕，能显示4个）
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 60px;
+  overflow: visible; // 确保右上角标签不被裁剪
+
+  // 小屏幕优化：减少左右内边距，让更多内容可见
+  @media (max-width: 1400px) {
+    padding: 50px 40px 60px;
+  }
+
+  @media (max-width: 1200px) {
+    padding: 40px 20px 60px;
+    gap: 16px;
+    grid-template-columns: repeat(2, 1fr); // 中等屏幕改为2列
+  }
+
+  @media (max-width: 1024px) {
+    padding: 30px 10px 60px;
+    gap: 16px;
+    grid-template-columns: repeat(2, 1fr); // 平板改为2列
+  }
+
+  @media (max-width: 768px) {
+    padding: 20px 5px 60px;
+    gap: 12px;
+    grid-template-columns: 1fr; // 小屏幕改为1列
+  }
+
+  @media (max-width: 480px) {
+    padding: 15px 0 40px;
+    gap: 12px;
+  }
+}
+
+// 会员卡片
+.membership-card {
+  background-color: rgba(255, 255, 255, 0.01);
+  border-radius: 16px;
+  padding: 26px 20px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    background: var(--gradient-active);
+  }
+
+  // 小屏幕优化
+  @media (max-width: 768px) {
+    padding: 20px 15px;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 16px 12px;
+    border-radius: 10px;
+  }
+
+  .card-header {
+    padding: 0 6px;
+    position: relative;
+    overflow: visible; // 确保右上角标签不被裁剪
+
+    @media (max-width: 480px) {
+      padding: 0 4px;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 0;
+
+      @media (max-width: 768px) {
+        font-size: 18px;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 16px;
+      }
+    }
+
+    .price-section {
+      margin: 23px 0 26px;
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-sm);
+
+      @media (max-width: 768px) {
+        margin: 18px 0 20px;
+      }
+
+      @media (max-width: 480px) {
+        margin: 15px 0 18px;
+        flex-wrap: wrap;
+      }
+
+      .price {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        line-height: 1;
+
+        @media (max-width: 768px) {
+          font-size: 26px;
+        }
+
+        @media (max-width: 480px) {
+          font-size: 24px;
+        }
+      }
+
+      .price-unit {
+        font-size: var(--font-md);
+        color: var(--text-hui);
+
+        @media (max-width: 480px) {
+          font-size: var(--font-sm);
+        }
+      }
+
+      .original-price {
+        font-size: 15px;
+        color: var(--text-hui);
+        text-decoration: line-through;
+
+        @media (max-width: 480px) {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+
+  .card-body {
+    margin-bottom: 24px;
+
+    @media (max-width: 768px) {
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+      margin-bottom: 16px;
+    }
+
+    .purchase-button {
+      width: 100%;
+      height: 50px;
+      border-radius: 12px;
+      font-size: var(--font-lg) !important;
+      font-weight: 600;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: none !important;
+      box-shadow: none !important;
+
+      @media (max-width: 768px) {
+        height: 44px;
+        font-size: var(--font-md) !important;
+        border-radius: 10px;
+      }
+
+      @media (max-width: 480px) {
+        height: 40px;
+        font-size: var(--font-sm) !important;
+        border-radius: 8px;
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+      }
+
+      &:hover,
+      &:focus,
+      &:focus-visible,
+      &:active {
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+
+    // 潮币信息卡片
+    .coin-info-card {
+      margin-top: 17px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      gap: 12px;
+
+      @media (max-width: 768px) {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 10px;
+      }
+
+      @media (max-width: 480px) {
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        gap: 8px;
+      }
+
+      .coin-icon {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        margin-top: 2px;
+
+        @media (max-width: 480px) {
+          width: 28px;
+          height: 28px;
+        }
+      }
+
+      .coin-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        @media (max-width: 480px) {
+          gap: 4px;
+        }
+
+        .coin-amount {
+          font-size: 14px;
+          font-weight: 600;
+
+          @media (max-width: 768px) {
+            font-size: 13px;
+          }
+
+          @media (max-width: 480px) {
+            font-size: 12px;
+          }
+        }
+
+        .coin-detail {
+          font-size: 10px;
+
+          @media (max-width: 480px) {
+            font-size: 9px;
+          }
+        }
+      }
+    }
+  }
+
+  .card-features {
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      font-size: var(--font-sm);
+      color: #d1d5db;
+
+      @media (max-width: 768px) {
+        padding: 6px 0;
+        gap: 6px;
+      }
+
+      @media (max-width: 480px) {
+        padding: 5px 0;
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      .feature-icon {
+        width: 15px;
+        height: 15px;
+        object-fit: contain;
+        flex-shrink: 0;
+
+        @media (max-width: 480px) {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+  }
+
+  // 主题0 - 免费版（灰色调，禁用状态）
+  &.theme-0 {
+    border-color: rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background: none;
+    }
+
+    .purchase-button {
+      background-color: rgba(255, 255, 255, 0.04) !important;
+      color: var(--text-hui) !important;
+      border: none !important;
+      cursor: not-allowed !important;
+    }
+  }
+
+  // 主题1 - 月度会员（紫色调）
+  &.theme-1 {
+    border: 1px solid rgba(216, 180, 254, 1);
+
+    &:hover {
+      background: linear-gradient(180deg, rgba(46, 16, 101, 1) 0%, rgba(2, 6, 23, 1) 100%);
+    }
+
+    .title {
+      color: #c7b4ec !important;
+    }
+
+    .purchase-button {
+      background: linear-gradient(90deg,
+          rgba(204, 166, 244, 1) 0%,
+          rgba(192, 126, 255, 1) 53%,
+          rgba(204, 166, 244, 1) 99%) !important;
+    }
+
+    // 潮币信息卡片
+    .coin-info-card {
+      background-color: rgba(192, 132, 252, 0.04);
+      border: 1px solid rgba(192, 132, 252, 0.08);
+
+      .coin-content {
+        .coin-amount {
+          color: #e9d5ff;
+        }
+
+        .coin-detail {
+          color: rgba(233, 213, 255, 0.24);
+        }
+      }
+    }
+  }
+
+  // 主题2 - 季度会员（蓝绿色调，推荐）
+  &.theme-2 {
+    border: 1px solid rgba(80, 199, 253, 0.5);
+
+    &:hover {
+      background: linear-gradient(180deg, rgba(0, 66, 102, 1) 0%, rgba(2, 6, 23, 1) 100%);
+    }
+
+    .card-header::before {
+      content: '9.5折';
+      position: absolute;
+      top: -36px;
+      right: -13px;
+      z-index: 10; // 确保标签在最上层
+      background: linear-gradient(90deg,
+          rgba(145, 213, 243, 1) 0%,
+          rgba(79, 179, 250, 1) 47%,
+          rgba(142, 204, 232, 1) 100%);
+      color: var(--text-primary);
+      padding: 4px 16px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .title {
+      color: #50c7fd !important;
+    }
+
+    .purchase-button {
+      background: linear-gradient(90deg,
+          rgba(130, 209, 246, 1) 0%,
+          rgba(41, 171, 244, 1) 50%,
+          rgba(80, 199, 253, 1) 99%) !important;
+    }
+
+    .coin-info-card {
+      background-color: rgba(80, 199, 253, 0.04);
+      border: 1px solid rgba(197, 239, 244, 0.08);
+
+      .coin-content {
+        .coin-amount {
+          color: #c5eff4;
+        }
+
+        .coin-detail {
+          color: rgba(197, 239, 244, 0.24);
+        }
+      }
+    }
+  }
+
+  // 主题3 - 年度会员（金黄色调）
+  &.theme-3 {
+    border: 1px solid rgba(196, 170, 117, 0.5);
+
+    &:hover {
+      background: linear-gradient(180deg, rgba(56, 50, 36, 1) 4%, rgba(2, 6, 23, 1) 100%);
+    }
+
+    .card-header::before {
+      content: '8.5折';
+      position: absolute;
+      top: -36px;
+      right: -13px;
+      z-index: 10; // 确保标签在最上层
+      background: linear-gradient(90deg,
+          rgba(244, 232, 190, 1) 0%,
+          rgba(196, 170, 117, 1) 47%,
+          rgba(244, 232, 190, 1) 100%);
+      color: var(--text-primary);
+      padding: 4px 16px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .title {
+      color: #c4aa75 !important;
+    }
+
+    .purchase-button {
+      background: linear-gradient(90deg,
+          rgba(244, 232, 190, 1) 0%,
+          rgba(196, 170, 117, 1) 50%,
+          rgba(244, 232, 190, 1) 99%);
+    }
+
+    .coin-info-card {
+      background-color: rgba(196, 170, 117, 0.04);
+      border: 1px solid rgba(196, 170, 117, 0.08);
+
+      .coin-content {
+        .coin-amount {
+          color: #f4e8be;
+        }
+
+        .coin-detail {
+          color: rgba(244, 232, 190, 0.24);
+        }
+      }
+    }
+  }
+}
+
+// 潮币值页面样式
+.tidecoins-notice {
+  padding: 30px 0 40px;
+  text-align: center;
+  color: rgba(209, 213, 219, 1);
+  font-size: 13px;
+
+  .notice-text {
+    color: rgba(156, 163, 175, 1);
+    font-size: 13px;
+  }
+
+  .rules-link {
+    color: var(--primary-color);
+    cursor: pointer;
+  }
+}
+
+.tidecoins-grid {
+  display: grid;
+  // 使用 auto-fit 和 minmax，确保卡片固定大小，放不下时自动换行
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+  padding: 0 60px 60px;
+
+  // 响应式设计
+  @media (max-width: 1600px) {
+    padding: 0 40px 60px;
+    gap: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  @media (max-width: 1024px) {
+    padding: 0 20px 60px;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  @media (max-width: 600px) {
+    padding: 0 10px 60px;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+.tidecoin-card {
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%; // 确保卡片占满网格单元格
+  min-width: 0; // 防止内容溢出
+
+  &.selected {
+    border-color: var(--primary-color);
+  }
+
+  // 上半部分
+  .tidecoin-top {
+    background: var(--bg-btn) url('@/assets/images/logo_hui.png') no-repeat right 4px top 17px;
+    background-size: 144px 162px;
+    padding: 20px;
+    position: relative;
+    height: 132px;
+
+    .tidecoin-amount {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .flame-icon {
+        width: 40px;
+        height: 40px;
+        margin-top: 5px;
+      }
+
+      .amount {
+        font-size: 36px;
+        font-weight: bold;
+        color: var(--text-primary);
+      }
+    }
+  }
+
+  // 下半部分
+  .tidecoin-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-secondary);
+    padding: 15px 35px;
+
+    .tidecoin-price {
+      font-size: var(--font-xxxl);
+      color: var(--text-primary);
+    }
+
+    .tidecoin-button {
+      width: 102px;
+      height: 40px;
+      border-radius: 20px;
+      background: linear-gradient(90deg,
+          rgba(204, 166, 244, 1) 0%,
+          rgba(192, 126, 255, 1) 53%,
+          rgba(204, 166, 244, 1) 99%);
+      border: none !important;
+      box-shadow: none !important;
+
+      &:hover,
+      &:focus,
+      &:focus-visible,
+      &:active {
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+  }
+}
+</style>

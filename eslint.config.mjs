@@ -22,8 +22,12 @@ export default [
       globals: {
         window: 'readonly',
         localStorage: 'readonly',
+        console: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
       },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -52,6 +56,15 @@ export default [
       'no-undef': 'off',
       // 业务里允许快速用 any（后续再逐步收紧）
       '@typescript-eslint/no-explicit-any': 'off',
+      // 允许以 _ 开头的占位变量（常见于事件回调占位）
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   // Plain TS/JS
@@ -62,8 +75,12 @@ export default [
       globals: {
         window: 'readonly',
         localStorage: 'readonly',
+        console: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
       },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -80,6 +97,14 @@ export default [
       'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
       'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   // Node-side config files

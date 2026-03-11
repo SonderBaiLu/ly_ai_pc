@@ -1,3 +1,20 @@
+<template>
+  <section class="model-section">
+    <div class="model-container">
+      <h2 class="model-title">{{ t('modelSection.title') }}</h2>
+      <p class="model-subtitle">{{ t('modelSection.subtitle') }}</p>
+
+      <div class="model-scroller">
+        <div class="model-track">
+          <div class="model-item" v-for="(model, index) in doubledModels" :key="index">
+            <img :src="model.src" :alt="'Model ' + (index + 1)" class="model-image" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import model1 from '@/assets/images/home/model1.png'
@@ -38,23 +55,6 @@ const models = [
 
 const doubledModels = [...models, ...models]
 </script>
-
-<template>
-  <section class="model-section">
-    <div class="model-container">
-      <h2 class="model-title">{{ t('modelSection.title') }}</h2>
-      <p class="model-subtitle">{{ t('modelSection.subtitle') }}</p>
-
-      <div class="model-scroller">
-        <div class="model-track">
-          <div class="model-item" v-for="(model, index) in doubledModels" :key="index">
-            <img :src="model.src" :alt="'Model ' + (index + 1)" class="model-image" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-</template>
 
 <style scoped lang="scss">
 .model-section {

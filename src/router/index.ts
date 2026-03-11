@@ -12,6 +12,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/AiDesign.vue'),
   },
   {
+    path: '/ai-fashion',
+    name: 'AiFashionStudio',
+    component: () => import('../views/AiFashionStudio/index.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue'),

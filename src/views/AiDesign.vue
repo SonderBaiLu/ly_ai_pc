@@ -1,35 +1,5 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import homeBg from '@/assets/images/home_bg.png'
-import aiDesign1 from '@/assets/images/ai_design1.png'
-import aiDesign2 from '@/assets/images/ai_design2.png'
-import aiDesign3 from '@/assets/images/ai_design3.png'
-
-const activeTab = ref<'design' | 'fabric'>('design')
-const { t } = useI18n()
-
-const designCards = [
-  {
-    img: aiDesign1,
-    titleKey: 'aiDesign.cards.design.title',
-    descKey: 'aiDesign.cards.design.desc',
-  },
-  {
-    img: aiDesign2,
-    titleKey: 'aiDesign.cards.sketchToReal.title',
-    descKey: 'aiDesign.cards.sketchToReal.desc',
-  },
-  {
-    img: aiDesign3,
-    titleKey: 'aiDesign.cards.realToSketch.title',
-    descKey: 'aiDesign.cards.realToSketch.desc',
-  },
-]
-</script>
-
 <template>
-  <div class="ai-design" :style="{ backgroundImage: `url(${homeBg})` }">
+  <div class="ai-design" :style="{ backgroundImage: `url(${images.homeBg})` }">
     <Header />
 
     <main class="ai-main">
@@ -55,9 +25,10 @@ const designCards = [
           </button>
         </div>
 
-        <!-- 服装设计卡片 -->
+        <!-- 服装设计卡片：点击跳转到工作台对应模块 -->
         <div v-if="activeTab === 'design'" class="card-row">
-          <div v-for="card in designCards" :key="card.titleKey" class="feature-card">
+          <div v-for="card in designCards" :key="card.titleKey" class="feature-card" role="button" tabindex="0"
+            @click="() => goToStudio(card.mode)">
             <div class="card-image">
               <img :src="card.img" alt="" />
             </div>
@@ -72,9 +43,9 @@ const designCards = [
           </div>
         </div>
 
-        <!-- AI 面料卡片 -->
+        <!-- AI 面料卡片：点击跳转到面料创拍模块 -->
         <div v-else class="card-row card-row--single">
-          <div class="feature-card">
+          <div class="feature-card" role="button" tabindex="0" @click="() => goToStudio('fabricCreative')">
             <div class="card-image">
               <img src="@/assets/images/ai_design4.png" alt="" />
             </div>
@@ -92,6 +63,48 @@ const designCards = [
     </main>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { images } from '@/assets'
+
+type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
+
+const activeTab = ref<'design' | 'fabric'>('design')
+const { t } = useI18n()
+const router = useRouter()
+
+const designCards: Array<{
+  img: string
+  titleKey: string
+  descKey: string
+  mode: StudioMode
+}> = [
+    {
+      img: images.aiDesign1,
+      titleKey: 'aiDesign.cards.design.title',
+      descKey: 'aiDesign.cards.design.desc',
+      mode: 'aiFashion',
+    },
+    {
+      img: images.aiDesign2,
+      titleKey: 'aiDesign.cards.sketchToReal.title',
+      descKey: 'aiDesign.cards.sketchToReal.desc',
+      mode: 'sketchToReal',
+    },
+    {
+      img: images.aiDesign3,
+      titleKey: 'aiDesign.cards.realToSketch.title',
+      descKey: 'aiDesign.cards.realToSketch.desc',
+      mode: 'realToSketch',
+    },
+  ]
+
+const goToStudio = (mode: StudioMode) => {
+  router.push({ name: 'AiFashionStudio', query: { mode } })
+}
+</script>
 
 <style scoped lang="scss">
 .ai-design {

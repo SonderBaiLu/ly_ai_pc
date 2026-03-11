@@ -1,16 +1,3 @@
-<script setup lang="ts">
-interface CardItem {
-  title: string
-  leftImg: string
-  rightImg: string
-}
-
-defineProps<{
-  title: string
-  cards: CardItem[]
-}>()
-</script>
-
 <template>
   <div class="transform-block">
     <div class="transform-grid">
@@ -35,6 +22,19 @@ defineProps<{
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+interface CardItem {
+  title: string
+  leftImg: string
+  rightImg: string
+}
+
+defineProps<{
+  title: string
+  cards: CardItem[]
+}>()
+</script>
 
 <style scoped lang="scss">
 .transform-block {

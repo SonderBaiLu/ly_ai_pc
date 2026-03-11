@@ -1,5 +1,3 @@
-<script setup lang="ts"></script>
-
 <template>
   <div class="not-found">
     <div class="card">
@@ -9,6 +7,8 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts"></script>
 
 <style scoped lang="scss">
 .not-found {

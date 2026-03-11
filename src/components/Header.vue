@@ -31,7 +31,7 @@ const menuData = [
   { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
-const isAiDesignPage = computed(() => route.name === 'AiDesign')
+const isAiDesignPage = computed(() => route.name === 'AiDesign' || route.name === 'AiFashionStudio')
 
 const handleMenuClick = (item: { key: string; path?: string }) => {
   if (item.path) {
@@ -55,7 +55,7 @@ const showComingSoon = () => {
     <!-- 首页等默认导航 -->
     <div v-if="!isAiDesignPage" class="nav-container">
       <div class="logo">
-        <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" />
+        <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" @click="router.push('/')">
       </div>
 
       <nav class="nav-menu">
@@ -90,7 +90,7 @@ const showComingSoon = () => {
     <!-- AI 服装设计页面导航：登录前/登录后样式与首页不同 -->
     <div v-else class="nav-container nav-container--ai">
       <div class="logo">
-        <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" />
+        <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" @click="router.push('/')">
       </div>
 
       <div class="lang-select-wrapper">
@@ -153,6 +153,7 @@ const showComingSoon = () => {
     .logo-icon {
       width: 107px;
       height: 43px;
+      cursor: pointer;
     }
   }
 }
@@ -316,6 +317,8 @@ const showComingSoon = () => {
 
 .register-btn {
   display: flex;
+  align-items: center;
+  justify-content: center;
   background: $color-bg-white;
   border: none;
   color: $color-bg-dark;

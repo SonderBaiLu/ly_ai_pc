@@ -1,5 +1,5 @@
-import api from './index'
 import type { ApiResponse } from '@/types'
+import request from '@/utils/request'
 
 // 支付相关类型定义（根据后端支付中心接口）
 export interface PaymentOrderData {
@@ -59,14 +59,14 @@ export const paymentApi = {
    * 创建支付订单（统一下单）
    */
   createPaymentOrder: (data: PaymentOrderData): Promise<ApiResponse<PaymentOrderResponse>> =>
-    api.post('/api-order-payment/payment/create', data),
+    request.post('/api-order-payment/payment/create', data),
 
   /**
    * 查询支付宝订单详情
    * @param orderNo 支付订单号
    */
   queryAlipayOrder: (orderNo: string): Promise<ApiResponse<AlipayQueryResult>> =>
-    api.get('/api-order-payment/payment/order/query', { params: { orderNo } }),
+    request.get('/api-order-payment/payment/order/query', { params: { orderNo } }),
 }
 
 export default paymentApi

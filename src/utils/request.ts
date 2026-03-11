@@ -1,9 +1,89 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import { ElMessage } from 'element-plus'
+
+type OSType = 'iOS' | 'Android' | 'HarmonyOS' | 'Web' | 'WeChatMini'
 
 // 防重复处理标志（参考主流应用的处理方式）
 let isHandlingAuthExpired = false
 let authExpiredTimer: ReturnType<typeof setTimeout> | null = null
+
+const APP_CODE = 'ly_ai'
+const DEVICE_ID_STORAGE_KEY = 'deviceId'
+const LOCALE_STORAGE_KEY = 'locale'
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+const formatDateYYYYMMDD = (d: Date) =>
+  `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`
+
+// 生成 32 位 uuid（无分隔符）
+const uuid32 = () =>
+  (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`)
+    .replace(/-/g, '')
+    .slice(0, 32)
+    .padEnd(32, '0')
+
+const getOrCreateDeviceId = () => {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_STORAGE_KEY)
+    if (existing) return existing
+    const next = uuid32()
+    localStorage.setItem(DEVICE_ID_STORAGE_KEY, next)
+    return next
+  } catch {
+    return uuid32()
+  }
+}
+
+const detectOsType = (): OSType => {
+  const nav = globalThis.navigator
+  if (!nav) return 'Web'
+  const ua = nav.userAgent || ''
+  // 微信小程序：Web 端一般拿不到，这里仅做兜底
+  if (ua.includes('miniProgram') || ua.includes('MiniProgram')) return 'WeChatMini'
+  if (/HarmonyOS/i.test(ua)) return 'HarmonyOS'
+  if (/Android/i.test(ua)) return 'Android'
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS'
+  return 'Web'
+}
+
+const getAppLanguage = () => {
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
+    if (stored === 'en') return 'en'
+    // 兼容前端常用写法：zh / zh-chs
+    if (stored === 'zh' || stored === 'zh-chs') return 'zh-chs'
+  } catch {
+    // ignore
+  }
+  return 'zh-chs'
+}
+
+const getAppVersion = () => {
+  // 预留：如有配置 VITE_APP_VERSION，可直接透传
+  return (import.meta.env.VITE_APP_VERSION as string) || (import.meta.env.VITE_APP_BUILD_VERSION as string) || ''
+}
+
+const buildSystemHeader = (token: string | null) => {
+  const now = new Date()
+  const osType = detectOsType()
+  const requestIdPrefix = osType === 'Android' ? 'A' : osType === 'iOS' ? 'I' : 'W'
+
+  return {
+    requestId: `${requestIdPrefix}${formatDateYYYYMMDD(now)}${uuid32()}`, // 例：W20240313...(32位UUID)
+    appVersion: getAppVersion(),
+    osType,
+    osVersion: globalThis.navigator ? globalThis.navigator.userAgent : '',
+    deviceModel: globalThis.navigator || '',
+    deviceId: getOrCreateDeviceId(),
+    appLanguage: getAppLanguage(), // en / zh-chs
+    timestamp: Date.now(), // 毫秒时间戳
+    clientIp: '', // Web 端无法可靠获取，后端可从请求源 IP 获取
+    appCode: APP_CODE,
+    token: token || '',
+  }
+}
 
 /**
  * 获取 API Base URL
@@ -45,6 +125,12 @@ request.interceptors.request.use(
       config.headers['Content-Type'] = 'application/json;charset=UTF-8'
     }
 
+    // === 请求头公共参数（system）===
+    // 后端一般要求是 JSON 字符串，避免对象被隐式转成 [object Object]
+    if (config.headers) {
+      config.headers.system = JSON.stringify(buildSystemHeader(token))
+    }
+
     return config
   },
   (error) => Promise.reject(error)
@@ -77,21 +163,30 @@ request.interceptors.response.use(
   (response: AxiosResponse) => {
     const data = response.data
 
-    // 兼容后端常见的业务包裹：检测 token 过期（参考 lykj_cts_pc 的逻辑）
-    if (data && typeof data === 'object' && 'resp_code' in data) {
-      const tokenExpired =
-        (data as any).resp_code === -1 ||
-        ((data as any).resp_code === 1 && (data as any).resp_msg === 'Not Authenticated') ||
-        (typeof (data as any).resp_msg === 'string' && (data as any).resp_msg.includes('invalid_token'))
+    // === 新版统一返回结构 ===
+    // { code: '0000'|'0102'|..., success: boolean, msg: string, data: any, extend?: any }
+    if (data && typeof data === 'object' && 'code' in data) {
+      const code = String((data as any).code ?? '')
+      const msg = String((data as any).msg ?? '')
 
-      if (tokenExpired) {
-        handleAuthExpired()
-        const authError: any = new Error('Not Authenticated')
-        authError.__AUTH_EXPIRED__ = true
-        return Promise.reject(authError)
+      // 成功：0000
+      if (code !== '0000') {
+        // 102：需要登录 -> 先按需求弹“暂未开放”（后续再替换为登录弹窗）
+        if (code === '102' || code === '0102') {
+          ElMessage.warning('暂未开放')
+          const authError: any = new Error(msg || 'Need Login')
+          authError.__AUTH_REQUIRED__ = true
+          authError.code = code
+          return Promise.reject(authError)
+        }
+
+        // 其他：统一弹 msg
+        ElMessage.error(msg || '请求失败')
+        const bizError: any = new Error(msg || 'Request Failed')
+        bizError.code = code
+        return Promise.reject(bizError)
       }
     }
-
     return data
   },
   (error) => {
