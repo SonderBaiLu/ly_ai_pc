@@ -1,18 +1,3 @@
-<script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-
-const { t, locale } = useI18n()
-
-const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
-}
-</script>
-
 <template>
   <footer class="footer">
     <div class="footer-container container">
@@ -81,6 +66,21 @@ const showComingSoon = () => {
     </div>
   </footer>
 </template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+
+const { t, locale } = useI18n()
+
+const showComingSoon = () => {
+  ElMessage.info(
+    locale.value === 'zh'
+      ? '功能暂未开放，敬请期待'
+      : 'This feature is not available yet. Stay tuned.'
+  )
+}
+</script>
 
 <style scoped lang="scss">
 .footer {

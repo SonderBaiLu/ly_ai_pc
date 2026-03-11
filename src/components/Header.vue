@@ -1,67 +1,3 @@
-<script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-const { t, locale } = useI18n()
-const router = useRouter()
-const route = useRoute()
-
-const languageOptions = [
-  { label: '简体中文', value: 'zh' },
-  { label: 'English', value: 'en' },
-]
-
-const handleLanguageChange = (value: string) => {
-  locale.value = value as 'zh' | 'en'
-}
-
-// 模拟登录状态
-const isLoggedIn = ref(false)
-
-const menuItems = [
-  { key: 'aiDesign', path: '/ai-design' },
-  { key: 'fabricCreative', path: '/fabric-creative' },
-  { key: 'about', path: '/about' },
-  { key: 'contactUs', path: '/contact-us' },
-  { key: 'followUs', path: '/follow-us' },
-]
-<<<<<<< HEAD
-
-const menuData = [
-  { key: 'contactUs', label: '联系我们', path: '/contact-us' },
-  { key: 'followUs', label: '关注我们', path: '/follow-us' },
-]
-
-const isAiDesignPage = computed(() => route.name === 'AiDesign' || route.name === 'AiFashionStudio')
-
-const handleMenuClick = (item: { key: string; path?: string }) => {
-  if (item.path) {
-    router.push(item.path)
-    return
-  }
-  showComingSoon()
-}
-
-const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
-}
-=======
-// 控制弹窗显示的变量
-const isLoginVisible = ref(false)
-// 修改点击事件函数
-const showLoginModal = () => {
-  isLoginVisible.value = true;
-};
-// 关闭弹窗的函数
-const closeLoginModal = () => {
-  isLoginVisible.value = false;
-};
->>>>>>> 4f9363eeebe038035c8485afa7b0b10fb6e2b3ed
-</script>
-
 <template>
   <header class="header">
     <!-- 首页等默认导航 -->
@@ -138,14 +74,82 @@ const closeLoginModal = () => {
           <img src="@/assets/images/more.png" alt="More" class="more-icon" />
         </template>
         <template v-else>
-          <button class="ai-login-btn" type="button" @click="showComingSoon">登录</button>
+          <button class="ai-login-btn" type="button" @click="showLoginModal">登录</button>
         </template>
       </div>
     </div>
   </header>
-<!-- 登录弹窗 -->
+  <!-- 登录弹窗 -->
   <UserLogin v-if="isLoginVisible" @close="closeLoginModal" />
 </template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import UserLogin from '@/components/UserLogin.vue'
+
+const { t, locale } = useI18n()
+const router = useRouter()
+const route = useRoute()
+
+const languageOptions = [
+  { label: '简体中文', value: 'zh' },
+  { label: 'English', value: 'en' },
+]
+
+const handleLanguageChange = (value: string) => {
+  locale.value = value as 'zh' | 'en'
+}
+
+// 模拟登录状态
+const isLoggedIn = ref(false)
+
+const menuItems = [
+  { key: 'aiDesign', path: '/ai-design' },
+  { key: 'fabricCreative', path: '/fabric-creative' },
+  { key: 'about', path: '/about' },
+  { key: 'contactUs', path: '/contact-us' },
+  { key: 'followUs', path: '/follow-us' },
+]
+
+const menuData = [
+  { key: 'contactUs', label: '联系我们', path: '/contact-us' },
+  { key: 'followUs', label: '关注我们', path: '/follow-us' },
+]
+
+const isAiDesignPage = computed(() => route.name === 'AiDesign' || route.name === 'AiFashionStudio')
+
+const handleMenuClick = (item: { key: string; path?: string }) => {
+  if (item.path) {
+    router.push(item.path)
+    return
+  }
+  showComingSoon()
+}
+
+const showComingSoon = () => {
+  ElMessage.info(
+    locale.value === 'zh'
+      ? '功能暂未开放，敬请期待'
+      : 'This feature is not available yet. Stay tuned.'
+  )
+}
+
+// 控制弹窗显示的变量
+const isLoginVisible = ref(false)
+
+// 打开登录弹窗
+const showLoginModal = () => {
+  isLoginVisible.value = true
+}
+
+// 关闭登录弹窗
+const closeLoginModal = () => {
+  isLoginVisible.value = false
+}
+</script>
 
 <style scoped lang="scss">
 .header {
