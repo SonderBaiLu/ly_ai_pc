@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    D: typeof import('./src/components/d.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -43,6 +44,7 @@ declare module 'vue' {
     InfiniteScrollLoader: typeof import('./src/components/InfiniteScrollLoader.vue')['default']
     InspirationValueModal: typeof import('./src/components/InspirationValueModal.vue')['default']
     LazyImage: typeof import('./src/components/LazyImage.vue')['default']
+    LoginUser: typeof import('./src/components/LoginUser.vue')['default']
     MainImageDisplay: typeof import('./src/components/MainImageDisplay.vue')['default']
     MediaPlayer: typeof import('./src/components/MediaPlayer.vue')['default']
     MembershipModal: typeof import('./src/components/MembershipModal.vue')['default']
@@ -56,9 +58,11 @@ declare module 'vue' {
     SubscriptionManageModal: typeof import('./src/components/SubscriptionManageModal.vue')['default']
     ThumbnailGallery: typeof import('./src/components/ThumbnailGallery.vue')['default']
     TransformRow: typeof import('./src/sections/home/TransformRow.vue')['default']
+    UserLogin: typeof import('./src/components/UserLogin.vue')['default']
     WriteOffModal: typeof import('./src/components/WriteOffModal.vue')['default']
   }
   export interface GlobalDirectives {
+    UserLogin: typeof import('./src/components/UserLogin.vue')['default']
     vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }

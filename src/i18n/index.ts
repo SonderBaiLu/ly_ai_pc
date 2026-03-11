@@ -126,6 +126,16 @@ const zh = {
       productTutorial: '产品教程',
     },
   },
+  LoginPopUpPage: {
+    title: '灵衍AI',
+    mainTitle: '登录即享专属礼遇',
+    promoText: '新用户注册免费赠送',
+    promoValue: '50灵衍值',
+    simplifyDesign: '卸下设计繁琐，让每一份创意都能纯粹发光',
+    aiEmpowerment: '解锁AI设计全能力，守护你的每一份时尚热爱',
+    loginRewards: '登录有礼，解锁潮流面料+专属设计工具，不负初心',
+    backToEssence: '让设计回归本质，创作更轻松',
+  },
 }
 
 const en = {
@@ -255,6 +265,16 @@ const en = {
       fabricCreative: 'Fabric Creation',
       productTutorial: 'Product Tutorial',
     },
+  },
+  LoginPopUpPage: {
+    title: 'English',
+    mainTitle: 'English',
+    promoText: 'English',
+    promoValue: 'English',
+    simplifyDesign: 'English，English',
+    aiEmpowerment: 'English，English',
+    loginRewards: 'English，English+English，English',
+    backToEssence: 'English，English',
   },
 }
 

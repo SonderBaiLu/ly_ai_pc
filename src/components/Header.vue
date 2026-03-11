@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-
 const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
@@ -25,6 +24,7 @@ const menuItems = [
   { key: 'contactUs', path: '/contact-us' },
   { key: 'followUs', path: '/follow-us' },
 ]
+<<<<<<< HEAD
 
 const menuData = [
   { key: 'contactUs', label: '联系我们', path: '/contact-us' },
@@ -48,6 +48,18 @@ const showComingSoon = () => {
       : 'This feature is not available yet. Stay tuned.'
   )
 }
+=======
+// 控制弹窗显示的变量
+const isLoginVisible = ref(false)
+// 修改点击事件函数
+const showLoginModal = () => {
+  isLoginVisible.value = true;
+};
+// 关闭弹窗的函数
+const closeLoginModal = () => {
+  isLoginVisible.value = false;
+};
+>>>>>>> 4f9363eeebe038035c8485afa7b0b10fb6e2b3ed
 </script>
 
 <template>
@@ -81,8 +93,8 @@ const showComingSoon = () => {
           <img src="@/assets/images/avatar_default.png" alt="User Avatar" class="avatar-icon" />
         </div>
         <div v-else class="auth-buttons">
-          <span class="login-btn" @click="showComingSoon">{{ t('header.login') }}</span>
-          <span class="register-btn" @click="showComingSoon">{{ t('header.register') }}</span>
+          <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
+          <span class="register-btn" @click="showLoginModal">{{ t('header.register') }}</span>
         </div>
       </div>
     </div>
@@ -131,6 +143,8 @@ const showComingSoon = () => {
       </div>
     </div>
   </header>
+<!-- 登录弹窗 -->
+  <UserLogin v-if="isLoginVisible" @close="closeLoginModal" />
 </template>
 
 <style scoped lang="scss">
