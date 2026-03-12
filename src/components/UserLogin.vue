@@ -4,7 +4,7 @@
       <div class="left-panel">
         <div class="brand-logo">
           <!--          TODO: 目前logo图标中包含文字，导致中英文切换 要修改图片增加服务器压力 考虑是否更换文字 重新设计log图标-->
-          <span class="logo-icon"><img src="/src/assets/images/LoginPop-Up/灵衍AIlog.png" alt=""/></span>
+          <span class="logo-icon"><img src="/src/assets/images/LoginPop-Up/灵衍AIlog.png" alt="" /></span>
           <!--
                     <span class="logo-text">{{ t('LoginPopUpPage.title') || '灵衍AI' }}</span>
           -->
@@ -20,25 +20,25 @@
         <ul class="feature-list">
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Layered.png" alt=""/>
+              <img src="/src/assets/images/LoginPop-Up/Layered.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.simplifyDesign') || '卸下设计繁琐，让每一份创意都能纯粹发光' }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Clothes.png" alt=""/>
+              <img src="/src/assets/images/LoginPop-Up/Clothes.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') || '解锁AI设计全能力，守护你的每一份时尚热爱' }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Shopping_cart.png" alt=""/>
+              <img src="/src/assets/images/LoginPop-Up/Shopping_cart.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.loginRewards') || '登录有礼，解锁潮流面料+专属设计工具，不负初心' }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Pen.png" alt=""/>
+              <img src="/src/assets/images/LoginPop-Up/Pen.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.backToEssence') || '让设计回归本质，创作更轻松' }}</span>
           </li>
@@ -48,39 +48,18 @@
       <div class="right-panel">
         <button class="close-btn" @click="handleClose">✕</button>
 
-        <div
-            class="account-type-switch"
-            :class="accountType"
-        >
-          <div
-              class="switch-item"
-              :class="{ active: accountType === 'personal' }"
-              @click="accountType = 'personal'"
-          >个人登录
+        <div class="account-type-switch" :class="accountType">
+          <div class="switch-item" :class="{ active: accountType === 'personal' }" @click="accountType = 'personal'">
+            个人登录
           </div>
-          <div
-              class="switch-item"
-              :class="{ active: accountType === 'team' }"
-              @click="accountType = 'team'"
-          >团队登录
+          <div class="switch-item" :class="{ active: accountType === 'team' }" @click="accountType = 'team'">团队登录
           </div>
         </div>
 
-        <div v-if="accountType === 'personal'"
-             class="login-method-tabs"
-             :class="loginMethod"
-        >
-          <div
-              class="tab-item"
-              :class="{ active: loginMethod === 'qrcode' }"
-              @click="loginMethod = 'qrcode'"
-          >扫码登录
+        <div v-if="accountType === 'personal'" class="login-method-tabs" :class="loginMethod">
+          <div class="tab-item" :class="{ active: loginMethod === 'qrcode' }" @click="loginMethod = 'qrcode'">扫码登录
           </div>
-          <div
-              class="tab-item"
-              :class="{ active: loginMethod === 'phone' }"
-              @click="loginMethod = 'phone'"
-          >手机登录
+          <div class="tab-item" :class="{ active: loginMethod === 'phone' }" @click="loginMethod = 'phone'">手机登录
           </div>
         </div>
 
@@ -109,7 +88,7 @@
               <div class="input-wrapper phone-input-wrapper">
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
-                <input type="text" v-model="formData.phone" placeholder="请输入手机号"/>
+                <input type="text" v-model="formData.phone" placeholder="请输入手机号" />
               </div>
             </div>
 
@@ -119,7 +98,7 @@
                 <div class="mode-switch-btn" @click="phoneLoginType = 'password'">密码登录</div>
               </div>
               <div class="input-wrapper code-input-wrapper">
-                <input type="text" v-model="formData.code" placeholder="请输入验证码"/>
+                <input type="text" v-model="formData.code" placeholder="请输入验证码" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone">获取验证码</button>
               </div>
             </div>
@@ -134,13 +113,16 @@
                 </div>
               </div>
               <div class="input-wrapper">
-                <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
-                       placeholder="请输入密码"/>
+                <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password" placeholder="请输入密码" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <svg v-if="showPersonalPwd" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor"
-                                                                                               d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-                  <svg v-else viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor"
-                                                                               d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                  <svg v-if="showPersonalPwd" viewBox="0 0 24 24" width="18" height="18">
+                    <path fill="currentColor"
+                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" width="18" height="18">
+                    <path fill="currentColor"
+                      d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
+                  </svg>
                 </span>
               </div>
             </div>
@@ -155,20 +137,23 @@
             <div class="input-block">
               <label class="block-label">账号名</label>
               <div class="input-wrapper">
-                <input type="text" v-model="formData.teamAccount" placeholder="请输入账号名"/>
+                <input type="text" v-model="formData.teamAccount" placeholder="请输入账号名" />
               </div>
             </div>
 
             <div class="input-block">
               <label class="block-label">密码</label>
               <div class="input-wrapper" :class="{ 'has-error': formError }">
-                <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
-                       placeholder="请输入密码"/>
+                <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword" placeholder="请输入密码" />
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
-                  <svg v-if="showTeamPwd" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor"
-                                                                                           d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-                  <svg v-else viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor"
-                                                                               d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                  <svg v-if="showTeamPwd" viewBox="0 0 24 24" width="18" height="18">
+                    <path fill="currentColor"
+                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" width="18" height="18">
+                    <path fill="currentColor"
+                      d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
+                  </svg>
                 </span>
               </div>
               <div v-if="formError" class="error-text">密码错误，还剩余5次机会，请重新输入</div>
@@ -190,10 +175,10 @@
 </template>
 
 <script setup lang="ts">
-import {ref, reactive} from 'vue';
-import {useI18n} from "vue-i18n";
+import { ref, reactive } from 'vue';
+import { useI18n } from "vue-i18n";
 
-const {t} = useI18n();
+const { t } = useI18n();
 const emit = defineEmits(['close']);
 
 // 基础状态
@@ -269,9 +254,10 @@ const handleTeamSubmit = () => {
 
 /* --- 左侧面板 --- */
 .left-panel {
+  /*  */
   width: 592px;
   min-height: 627px;
-  background: linear-gradient(180deg, #4435FF 0%, #7641F0 100%);
+  background: linear-gradient(135deg, rgba(30, 58, 138, 1) 14.6%, rgba(109, 40, 217, 1) 85.4%);
   border-radius: 24px;
 
   /* 关键修改：移除统一的 padding，仅保留顶部初始距离，并开启 box-sizing */
@@ -292,6 +278,11 @@ const handleTeamSubmit = () => {
     /* 关键修改：精准定位 Logo (对应图4、图2) */
     margin-left: 29px;
     margin-bottom: 69px;
+
+    .logo-icon {
+      width: 136px;
+      height: 54px;
+    }
   }
 
   .main-title {
@@ -396,21 +387,26 @@ const handleTeamSubmit = () => {
   padding: 4px;
   align-self: center;
   margin-bottom: 35px;
-  position: relative; /* 为背景滑块定位 */
+  position: relative;
+  /* 为背景滑块定位 */
   z-index: 1;
-  &::before{
+
+  &::before {
     content: '';
     position: absolute;
     top: 4px;
     left: 4px;
-    width: calc(50% - 4px); /* 一半的宽度 */
+    width: calc(50% - 4px);
+    /* 一半的宽度 */
     height: calc(100% - 8px);
     background: #4A85F6;
     border-radius: 25px;
     box-shadow: 0 4px 10px rgba(74, 133, 246, 0.2);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 平滑过渡曲线 */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* 平滑过渡曲线 */
     z-index: -1;
   }
+
   /* 状态判断：如果是团队登录，滑块向右平移 100% 的自身宽度 */
   &.team::before {
     transform: translateX(100%);
@@ -438,43 +434,52 @@ const handleTeamSubmit = () => {
   border-bottom: 1px solid #F0F0F0;
   margin-bottom: 30px;
   position: relative;
-  &::after{
+
+  &::after {
     content: '';
     position: absolute;
     bottom: -1px;
     left: 50%;
-    margin-left: -32px; /* 居中 (64px 宽度的字大 约占 64px, 一半是 32px) */
+    margin-left: -32px;
+    /* 居中 (64px 宽度的字大 约占 64px, 一半是 32px) */
     width: 64px;
     height: 3px;
     background: #3BB1FF;
     border-radius: 2px;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
   /* 精确控制下划线的位置 (60px gap的一半是30，加上文字一半宽度32，所以平移62px) */
   &.qrcode::after {
     transform: translateX(-62px);
   }
+
   &.phone::after {
     transform: translateX(62px);
   }
+
   .tab-item {
     padding-bottom: 12px;
     font-size: 16px;
     color: #999;
     cursor: pointer;
     transition: color 0.3s ease;
+
     &.active {
       color: #3BB1FF;
       font-weight: 600;
     }
   }
 }
+
 /* 内容区域 */
 @keyframes formFadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px); /* 从下方微距滑入 */
+    transform: translateY(4px);
+    /* 从下方微距滑入 */
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -485,6 +490,7 @@ const handleTeamSubmit = () => {
 .form-section {
   animation: formFadeIn 0.35s ease-out forwards;
 }
+
 .method-content {
   flex: 1;
   display: flex;
@@ -538,8 +544,11 @@ const handleTeamSubmit = () => {
 
 /* ====== 表单通用样式 ====== */
 .form-section {
-  width: 328px; /* 限制表单整体宽度328px */
-  margin: 0 auto; /* 让表单在右侧面板中水平居中 */
+  width: 328px;
+  /* 限制表单整体宽度328px */
+  margin: 0 auto;
+
+  /* 让表单在右侧面板中水平居中 */
   .input-block {
     margin-bottom: 20px;
 
@@ -566,12 +575,14 @@ const handleTeamSubmit = () => {
         background-color: #F2F2F2;
         padding: 4px 10px;
         border-radius: 4px;
-        cursor: pointer; /* 鼠标悬停时显示为小爪子 */
+        cursor: pointer;
+        /* 鼠标悬停时显示为小爪子 */
         transition: all 0.3s;
         user-select: none;
 
         &:hover {
-          background-color: #E5E5E5; /* 鼠标悬浮背景变色 */
+          background-color: #E5E5E5;
+          /* 鼠标悬浮背景变色 */
           color: #666;
         }
       }
@@ -652,7 +663,9 @@ const handleTeamSubmit = () => {
 
   /* 特定输入框覆盖 */
   .phone-input-wrapper {
-    margin-bottom: 24px; /* 手机号的input和验证码input之间的间距 */
+    margin-bottom: 24px;
+
+    /* 手机号的input和验证码input之间的间距 */
     .country-code {
       color: #ADB3BD;
       font-weight: 500;

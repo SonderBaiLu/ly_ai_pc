@@ -7,8 +7,8 @@
           <p class="design-subtitle">{{ t('designMatrix.subtitle') }}</p>
         </div>
         <div class="design-tags">
-          <span v-for="(tag, index) in tags.slice(0, -1)" :key="index"
-            class="design-tag" :class="{ active: index === activeTagIndex }" @click="activeTagIndex = index">
+          <span v-for="(tag, index) in tags.slice(0, -1)" :key="index" class="design-tag"
+            :class="{ active: index === activeTagIndex }" @click="activeTagIndex = index">
             {{ tag }}
           </span>
           <button class="design-tag design-tag-cta" type="button">
@@ -153,6 +153,11 @@ const tags = computed(() => (tm('designMatrix.tags') as string[]) || [])
             background-color: transparent;
             border: 1px solid rgba(184, 222, 240, 1);
             color: $color-primary-light;
+
+            &:hover {
+              background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+              color: $color-text-white;
+            }
           }
         }
       }

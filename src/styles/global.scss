@@ -56,6 +56,13 @@ body {
 
 // Element Plus Select 组件暗黑主题样式
 .el-select {
+  .el-select__wrapper {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: #ffffff;
+  }
+
   .el-tooltip__trigger {
     padding: 0;
     border: none !important;

@@ -11,6 +11,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ContactModal: typeof import('./src/components/ContactModal.vue')['default']
+    CreativeDescription: typeof import('./src/components/CreativeDescription.vue')['default']
     D: typeof import('./src/components/d.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']
@@ -59,6 +61,7 @@ declare module 'vue' {
     ThumbnailGallery: typeof import('./src/components/ThumbnailGallery.vue')['default']
     TransformRow: typeof import('./src/sections/home/TransformRow.vue')['default']
     UserLogin: typeof import('./src/components/UserLogin.vue')['default']
+    WatermarkDisclaimerModal: typeof import('./src/components/WatermarkDisclaimerModal.vue')['default']
     WriteOffModal: typeof import('./src/components/WriteOffModal.vue')['default']
   }
   export interface GlobalDirectives {
