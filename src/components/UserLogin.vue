@@ -24,7 +24,7 @@
         <ul class="feature-list">
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/Layered.png" alt="" />
+              <img src="/src/assets/images/login_popup/layered.png" alt="" />
             </span>
             <span>
               {{ t('LoginPopUpPage.simplifyDesign') || '卸下设计繁琐，让每一份创意都能纯粹发光' }}
@@ -32,7 +32,7 @@
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/Clothes.png" alt="" />
+              <img src="/src/assets/images/login_popup/clothes.png" alt="" />
             </span>
             <span>
               {{ t('LoginPopUpPage.aiEmpowerment') || '解锁AI设计全能力，守护你的每一份时尚热爱' }}
@@ -40,7 +40,7 @@
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/Shopping_cart.png" alt="" />
+              <img src="/src/assets/images/login_popup/shopping.png" alt="" />
             </span>
             <span>
               {{
@@ -50,7 +50,7 @@
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/Pen.png" alt="" />
+              <img src="/src/assets/images/login_popup/pen.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.backToEssence') || '让设计回归本质，创作更轻松' }}</span>
           </li>
