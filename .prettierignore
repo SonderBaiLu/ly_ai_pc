@@ -1,5 +1,11 @@
-node_modules
-dist
+# 屏蔽安装的依赖包
+node_modules/
+# Vite 构建产物
+dist/
+# 部分项目会生成的临时构建目录
+*.build/
+*.dist/
+
 dist-ssr
 *.local
 

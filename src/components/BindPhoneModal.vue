@@ -2,38 +2,37 @@
   <div class="modal-overlay">
     <div class="modal-content">
       <button class="close-btn" @click="closeModal">
-        <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M14 2L2 14M2 2L14 14" stroke="#999999" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
+
       <div class="header">
         <h2>绑定手机</h2>
         <p class="subtitle">首次登陆将通过短信验证码绑定手机</p>
       </div>
+
       <div class="form-area">
         <div class="form-group">
           <label>手机号</label>
-          <div class="input-wrapper">
+          <div class="input-wrapper" :class="{ 'has-error': phoneErr }">
             <span class="prefix">+86</span>
             <div class="divider"></div>
             <input
+                v-model="phone"
                 type="tel"
                 placeholder="请输入手机号"
                 maxlength="11"
             />
           </div>
+          <span class="error-text">{{ phoneErr }}</span>
         </div>
+
         <div class="form-group">
           <label>短信验证码</label>
-          <div class="input-wrapper code-wrapper">
+          <div class="input-wrapper code-wrapper" :class="{ 'has-error': codeErr }">
             <input
-                v-model="formData.code"
+                v-model="code"
                 type="text"
                 placeholder="请输入验证码"
                 maxlength="6"
@@ -47,72 +46,67 @@
               {{ countText }}
             </button>
           </div>
+          <span class="error-text">{{ codeErr }}</span>
         </div>
       </div>
-      <button
-          class="submit-btn"
-          @click="handleSubmit">绑定
-      </button>
+
+      <button class="submit-btn" @click="onSubmit">绑定</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
-
-// --- Props & Emits ---
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: true
+import { ref, computed } from 'vue';
+import { useForm, useField } from "vee-validate"; // 记得导入 useField
+import { codeLoginSchema } from "@/utils/validationSchemas.ts";
+//表单验证初始化
+const { handleSubmit, validateField } = useForm({
+  validationSchema: codeLoginSchema,
+  // 初始值可以写在这里
+  initialValues: {
+    phone: '',
+    code: '',
   }
 });
+// 字段绑定
+// 使用 useField 替代你原来的 reactive formData
+const { value: phone, errorMessage: phoneErr } = useField<string>('phone');
+const { value: code, errorMessage: codeErr } = useField<string>('code');
 
+// 提交
+const onSubmit = handleSubmit((values) => {
+  console.log('校验通过！提交给后端的数据:', values);
+  // API 请求
+});
 const emit = defineEmits(['update:visible', 'submit']);
 
-// --- 表单数据 ---
-const formData = reactive({
-  phone: '',
-  code: ''
-});
-
-// --- 验证码倒计时逻辑 ---
+// --- 4. 验证码倒计时逻辑 ---
 const isCounting = ref(false);
 const countdown = ref(60);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const countText = computed(() => {
-  return isCounting.value ? `${countdown.value}s后获取` : '获取验证码';
-});
+const countText = computed(() => isCounting.value ? `${countdown.value}s后获取` : '获取验证码');
 
-const handleGetCode = () => {
-  // 校验手机号是否填写
-  // 开启倒计时
+const handleGetCode = async () => {
+  // 【关键点】获取验证码前，只触发手机号的单独校验
+  const { valid } = await validateField('phone');
+
+  if (!valid) return; // 如果手机号校验没通过，不往下走
+
+  // 开始倒计时
   isCounting.value = true;
   countdown.value = 60;
   timer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
-      clearInterval(timer as ReturnType<typeof setInterval>);
+      clearInterval(timer!);
       isCounting.value = false;
     }
   }, 1000);
 };
 
-// --- 提交表单 ---
-const handleSubmit = () => {
-  if (!formData.phone || !formData.code) {
-    alert('请完整填写手机号和验证码');
-    return;
-  }
-  // 触发父组件事件，将数据传出
-  emit('submit', { ...formData });
-};
-
-// --- 关闭弹窗 ---
 const closeModal = () => {
   emit('update:visible', false);
-  // 清理定时器
   if (timer) clearInterval(timer);
 };
 </script>
@@ -127,6 +121,7 @@ $border-color: #dcdcdc;
 $input-bg: transparent;
 $btn-gray: #3a3a40;
 $transition: all 0.2s ease-in-out;
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -183,12 +178,12 @@ $transition: all 0.2s ease-in-out;
 
     .form-area {
       flex: 1;
-
       .form-group {
-        margin-bottom: 24px;
+        position: relative;
+        margin-bottom: 28px;
 
         label {
-          display: block; /* 确保每个表单组占满宽度 */
+          display: block;
           font-size: 13px;
           color: $text-secondary;
           margin-bottom: 8px;
@@ -205,11 +200,11 @@ $transition: all 0.2s ease-in-out;
           transition: $transition;
 
           &:focus-within {
-            border-color: $text-main
+            border-color: $text-main;
           }
 
-          &:focus-within {
-            border-color: $text-main;
+          &.has-error {
+            border-color: #ff4d4f; // 校验失败变红
           }
 
           input {
@@ -224,6 +219,7 @@ $transition: all 0.2s ease-in-out;
               color: #b3b3b3;
             }
           }
+
           .prefix {
             font-size: 15px;
             color: $text-muted;
@@ -262,6 +258,14 @@ $transition: all 0.2s ease-in-out;
             }
           }
         }
+
+        .error-text {
+          position: absolute;
+          bottom: -20px;
+          left: 0;
+          font-size: 12px;
+          color: #ff4d4f;
+        }
       }
     }
 
@@ -276,13 +280,14 @@ $transition: all 0.2s ease-in-out;
       border-radius: 8px;
       cursor: pointer;
       margin-bottom: 10px;
-      transition: opacity 0.2s; // 按钮点击效果
+      transition: opacity 0.2s;
+
       &:hover {
         opacity: 0.85;
       }
 
       &:active {
-        transform: scale(0.99); // 点击缩放效果
+        transform: scale(0.99);
       }
     }
   }
