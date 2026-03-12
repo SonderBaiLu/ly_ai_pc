@@ -11,6 +11,14 @@ const routes: RouteRecordRaw[] = [
     name: 'NotFound',
     component: () => import('../views/NotFound.vue'),
   },
+// --------------下面全是测试路由 -------------------------------------------------------------------
+    {
+      path: '/bin',
+      name: 'BindPhoneModal',
+      component: () => import('@/components/BindPhoneModal.vue'),
+    },
+// --------------上面全是测试路由 -------------------------------------------------------------------
+
 ]
 
 const router = createRouter({

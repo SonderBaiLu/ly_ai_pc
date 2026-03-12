@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BindPhoneModal: typeof import('./src/components/BindPhoneModal.vue')['default']
     D: typeof import('./src/components/d.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
     ElOption: typeof import('element-plus/es')['ElOption']
