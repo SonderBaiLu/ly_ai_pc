@@ -285,11 +285,7 @@
       password: formData.teamPassword,
     })
     // 模拟验证失败
-    if (formData.teamPassword !== '123456') {
-      formError.value = true
-    } else {
-      formError.value = false
-    }
+    formError.value = formData.teamPassword !== '123456';
   }
 </script>
 
@@ -452,10 +448,9 @@
       background: #4a85f6;
       border-radius: 25px;
       box-shadow: 0 4px 10px rgba(74, 133, 246, 0.2);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 平滑过渡曲线 */
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: -1;
     }
-    /* 状态判断：如果是团队登录，滑块向右平移 100% 的自身宽度 */
     &.team::before {
       transform: translateX(100%);
     }

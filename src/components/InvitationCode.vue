@@ -10,7 +10,7 @@
       <h2 class="title">Hi~欢迎填写灵衍AI邀请码</h2>
       <div class="input-group">
         <div class="icon-wrapper">
-          <img src="@/assets/images/login_popup/semi_design_emi_icons_link.png" alt="邀请码图标" width="22" height="22">
+          <img src="../assets/images/login_popup/link.png" alt="邀请码图标" width="22" height="22">
         </div>
         <div class="divider"></div>
         <input

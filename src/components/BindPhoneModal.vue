@@ -111,6 +111,7 @@ const closeModal = () => {
 </script>
 
 <style scoped lang="scss">
+@use "sass:color";
 // 定义 SCSS 变量
 $primary-black: #000000;
 $text-main: #1a1a1a;
@@ -248,7 +249,7 @@ $transition: all 0.2s ease-in-out;
             transition: $transition;
 
             &:hover:not(.is-disabled) {
-              background-color: lighten($btn-gray, 10%);
+              background-color: color.adjust($btn-gray, $lightness: 10%);
             }
 
             &.is-disabled {
