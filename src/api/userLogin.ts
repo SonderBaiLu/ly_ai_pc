@@ -1,18 +1,16 @@
 import request from '@/utils/request'
+import type { ApiResponse } from '@/types'
 
-// 定义接口返回的类型
-interface SmsCodeResponse {
-  success: boolean
-  data: string
-  extend: any
-  msg: string
-  code: string
-}
-
-// 获取验证码的 API 函数
-export const getSmsCodeApi = (mobile: string) => {
-  return request.get<any, SmsCodeResponse>('/api/v1/login/send/smsCode', {
-    // GET 请求使用 params，axios 会自动拼接到 URL 后: ?mobile=xxx
+// 获取验证码
+export const getSmsCodeApi = (mobile: number) => {
+  return request.get('/v1/login/send/smsCode', {
     params: { mobile },
-  })
+  }) as unknown as Promise<ApiResponse<string>>
 }
+
+// 短信验证码登录（手机号 + 验证码）
+// 后端字段为 mobile / verifyCode
+export const loginBySmsCodeApi = (payload: { mobile: string; verifyCode: string }) => {
+  return request.post('/v1/login/loginBySmsCode', payload) as unknown as Promise<ApiResponse<any>>
+}
+

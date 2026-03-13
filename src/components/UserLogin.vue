@@ -106,7 +106,8 @@
               <div class="input-wrapper phone-input-wrapper">
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
-                <input type="text" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')" />
+                <input type="tel" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')"
+                  maxlength="11" @input="handlePhoneInput" />
               </div>
             </div>
 
@@ -122,75 +123,80 @@
               <div class="input-wrapper code-input-wrapper">
                 <input type="text" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
-                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone">
-                  {{ t('LoginPopUpPage.getVerificationCode') }}
+                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
+                  {{
+                    isCounting
+                      ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
+                      : t('LoginPopUpPage.getVerificationCode')
+                  }}
                 </button>
               </div>
             </div>
 
             <div v-if="phoneLoginType === 'password'" class="input-block">
               <div class="label-row">
-                <label class="block-label">密码</label>
+                <label class="block-label">
+                  {{ t('LoginPopUpPage.passwordLabel') }}
+                </label>
                 <div class="link-group">
                   <a href="#" class="action-link" @click.prevent="phoneLoginType = 'code'">
-                    验证码登录
+                    {{ t('LoginPopUpPage.codeLogin') }}
                   </a>
                   <span class="link-divider"></span>
-                  <a href="#" class="action-link">忘记密码?</a>
+                  <a href="#" class="action-link">
+                    {{ t('LoginPopUpPage.forgotPassword') }}
+                  </a>
                 </div>
               </div>
               <div class="input-wrapper">
-                <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password" placeholder="请输入密码" />
+                <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
+                  :placeholder="t('LoginPopUpPage.passwordPlaceholder')" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <svg v-if="showPersonalPwd" viewBox="0 0 24 24" width="18" height="18">
-                    <path fill="currentColor"
-                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" width="18" height="18">
-                    <path fill="currentColor"
-                      d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
-                  </svg>
+                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
             </div>
 
             <div class="invite-link-wrap">
-              <a href="#" class="invite-link">填写邀请码注册</a>
+              <a href="#" class="invite-link">
+                {{ t('LoginPopUpPage.inviteFill') }}
+              </a>
             </div>
-            <button class="submit-btn" @click="handleSubmit">登录/注册</button>
+            <button class="submit-btn" @click="handleSubmit">
+              {{ t('LoginPopUpPage.loginOrRegister') }}
+            </button>
           </div>
 
           <!-- 团队登录 -->
           <div v-if="accountType === 'team'" class="form-section team-form-section">
             <div class="input-block">
-              <label class="block-label">账号名</label>
+              <label class="block-label">
+                {{ t('LoginPopUpPage.teamAccountLabel') }}
+              </label>
               <div class="input-wrapper">
-                <input type="text" v-model="formData.teamAccount" placeholder="请输入账号名" />
+                <input type="text" v-model="formData.teamAccount"
+                  :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')" />
               </div>
             </div>
 
             <div class="input-block">
-              <label class="block-label">密码</label>
+              <label class="block-label">
+                {{ t('LoginPopUpPage.teamPasswordLabel') }}
+              </label>
               <div class="input-wrapper" :class="{ 'has-error': formError }">
-                <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword" placeholder="请输入密码" />
+                <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
+                  :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" />
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
-                  <svg v-if="showTeamPwd" viewBox="0 0 24 24" width="18" height="18">
-                    <path fill="currentColor"
-                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" width="18" height="18">
-                    <path fill="currentColor"
-                      d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
-                  </svg>
+                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
               <div v-if="formError" class="error-text">
-                密码错误，还剩余5次机会，请重新输入
+                {{ t('LoginPopUpPage.teamPasswordError') }}
               </div>
             </div>
 
             <button class="submit-btn team-submit-btn" @click="handleTeamSubmit">
-              登录
+              {{ t('LoginPopUpPage.teamLoginButton') }}
             </button>
           </div>
         </div>
@@ -209,8 +215,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { images } from '@/assets'
+import { loginBySmsCodeApi, getSmsCodeApi } from '@/api/userLogin'
 
 const { t } = useI18n()
 const emit = defineEmits(['close'])
@@ -236,21 +244,97 @@ const formData = reactive({
   teamPassword: '',
 })
 
-const GetSmSCode = () => {
-  ElMessage.success(formData.phone)
+// 限制手机号只允许数字且最长 11 位
+const handlePhoneInput = () => {
+  formData.phone = formData.phone.replace(/\D/g, '').slice(0, 11)
+}
+
+// 短信验证码倒计时
+const isCounting = ref(false)
+const countdown = ref(120)
+let smsTimer: ReturnType<typeof setInterval> | null = null
+
+// 获取短信验证码
+const GetSmSCode = async () => {
+  if (!formData.phone) {
+    ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
+    return
+  }
+  try {
+    // 后端入参为 number，这里做一次安全转换
+    const mobile = Number(formData.phone)
+    if (!Number.isInteger(mobile)) {
+      ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
+      return
+    }
+    const res = await getSmsCodeApi(mobile)
+    // 拦截器里已对 code !== '0000' 做了 reject，这里拿到的就是成功结果
+    if (String((res as any).code) === '0000') {
+      ElMessage.success(t('LoginPopUpPage.smsCodeSent') || '验证码已发送')
+      // 启动 120s 倒计时
+      isCounting.value = true
+      countdown.value = 120
+      if (smsTimer) clearInterval(smsTimer)
+      smsTimer = setInterval(() => {
+        countdown.value -= 1
+        if (countdown.value <= 0) {
+          if (smsTimer) {
+            clearInterval(smsTimer)
+            smsTimer = null
+          }
+          isCounting.value = false
+        }
+      }, 1000)
+    }
+  } catch (e) {
+    // 统一错误在 request 拦截器里处理，这里不再重复提示
+    console.error('getSmsCode error', e)
+  }
 }
 
 const handleClose = () => {
   emit('close')
 }
 
-const handleSubmit = () => {
-  console.log('个人登录提交:', {
-    phone: formData.phone,
-    code: formData.code,
-    password: formData.password,
-    type: phoneLoginType.value,
-  })
+const handleSubmit = async () => {
+  if (!formData.phone) {
+    ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
+    return
+  }
+
+  // 仅在“验证码登录”模式下调用短信登录接口
+  if (phoneLoginType.value === 'code') {
+    if (!formData.code) {
+      ElMessage.warning(t('LoginPopUpPage.enterTheVerificationCode'))
+      return
+    }
+
+    try {
+      const res = await loginBySmsCodeApi({
+        mobile: formData.phone,
+        verifyCode: formData.code,
+      })
+      // 按约定：成功 code === '0000' 已在拦截器校验，这里只处理业务数据
+      const token = (res.data as any)?.token
+      const userInfo = (res.data as any)?.userInfo
+      if (token) {
+        localStorage.setItem('token', token)
+      }
+      if (userInfo) {
+        localStorage.setItem('userInfo', JSON.stringify(userInfo))
+      }
+      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+      emit('close')
+      return
+    } catch (e) {
+      console.error('loginBySmsCode error', e)
+      // 错误提示已由拦截器处理
+      return
+    }
+  }
+
+  // TODO: 密码登录逻辑后续接入 /api/login/loginByPassword
+  ElMessage.info('密码登录接口待接入')
 }
 
 const handleTeamSubmit = () => {
@@ -261,6 +345,13 @@ const handleTeamSubmit = () => {
   // 模拟验证失败
   formError.value = formData.teamPassword !== '123456'
 }
+
+onUnmounted(() => {
+  if (smsTimer) {
+    clearInterval(smsTimer)
+    smsTimer = null
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -680,6 +771,12 @@ const handleTeamSubmit = () => {
         cursor: pointer;
         display: flex;
         align-items: center;
+
+        .eye-img {
+          width: 24px;
+          height: 24px;
+          display: block;
+        }
 
         &:hover {
           color: #666;

@@ -50,6 +50,8 @@ export const images = {
 
   // E
   editWhite: new URL('./images/edit_white.png', import.meta.url).href,
+  eye: new URL('./images/login_popup/eye.png', import.meta.url).href,
+  eyeClose: new URL('./images/login_popup/eye_close.png', import.meta.url).href,
 
   // F
   fabricActive: new URL('./images/fabric_active.png', import.meta.url).href,

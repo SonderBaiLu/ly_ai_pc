@@ -8,24 +8,24 @@
       </button>
 
       <div class="header">
-        <h2>绑定手机</h2>
-        <p class="subtitle">首次登陆将通过短信验证码绑定手机</p>
+        <h2>{{ t('bindPhoneModal.title') }}</h2>
+        <p class="subtitle">{{ t('bindPhoneModal.subtitle') }}</p>
       </div>
       <div class="form-area">
         <div class="form-group">
-          <label>手机号</label>
+          <label>{{ t('bindPhoneModal.phoneLabel') }}</label>
           <div class="input-wrapper" :class="{ 'has-error': phoneErr }">
             <span class="prefix">+86</span>
             <div class="divider"></div>
-            <input v-model="phone" type="tel" placeholder="请输入手机号" maxlength="11" />
+            <input v-model="phone" type="tel" :placeholder="t('bindPhoneModal.phonePlaceholder')" maxlength="11" />
           </div>
           <span class="error-text">{{ phoneErr }}</span>
         </div>
 
         <div class="form-group">
-          <label>短信验证码</label>
+          <label>{{ t('bindPhoneModal.codeLabel') }}</label>
           <div class="input-wrapper code-wrapper" :class="{ 'has-error': codeErr }">
-            <input v-model="code" type="text" placeholder="请输入验证码" maxlength="6" />
+            <input v-model="code" type="text" :placeholder="t('bindPhoneModal.codePlaceholder')" maxlength="6" />
             <button class="get-code-btn" :class="{ disabled: isCounting }" :disabled="isCounting"
               @click="handleGetCode">
               {{ countText }}
@@ -35,15 +35,20 @@
         </div>
       </div>
 
-      <button class="submit-btn" @click="onSubmit">绑定</button>
+      <button class="submit-btn" @click="onSubmit">
+        {{ t('bindPhoneModal.bind') }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useForm, useField } from "vee-validate"; // 记得导入 useField
 import { codeLoginSchema } from "@/utils/validationSchemas.ts";
+
+const { t } = useI18n();
 //表单验证初始化
 const { handleSubmit, validateField } = useForm({
   validationSchema: codeLoginSchema,
@@ -67,10 +72,14 @@ const emit = defineEmits(['update:visible', 'submit']);
 
 // --- 4. 验证码倒计时逻辑 ---
 const isCounting = ref(false);
-const countdown = ref(60);
+const countdown = ref(120);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const countText = computed(() => isCounting.value ? `${countdown.value}s后获取` : '获取验证码');
+const countText = computed(() =>
+  isCounting.value
+    ? t('bindPhoneModal.countdown', { seconds: countdown.value })
+    : t('bindPhoneModal.getCode')
+);
 
 const handleGetCode = async () => {
   // 【关键点】获取验证码前，只触发手机号的单独校验
@@ -78,9 +87,9 @@ const handleGetCode = async () => {
 
   if (!valid) return; // 如果手机号校验没通过，不往下走
 
-  // 开始倒计时
+  // 开始倒计时（120s）
   isCounting.value = true;
-  countdown.value = 60;
+  countdown.value = 120;
   timer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
