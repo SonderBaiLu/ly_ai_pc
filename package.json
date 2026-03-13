@@ -11,9 +11,10 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix"
   },
   "dependencies": {
-    "axios": "^1.13.5",
     "@ctrl/tinycolor": "3.4.1",
+    "axios": "^1.13.5",
     "element-plus": "^2.13.2",
+    "jszip": "^3.10.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
     "vue-i18n": "^11.2.8",

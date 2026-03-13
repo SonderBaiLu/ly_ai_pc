@@ -16,15 +16,26 @@ body {
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
+    NotoSans-bold,
     'Segoe UI',
     Roboto,
     -regular,
     Inter-medium,
+    AlibabaPuHui-regular,
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    'Helvetica Neue',
+    Arial,
     sans-serif;
   line-height: 1.5;
   color: $color-text-white;
   background-color: $color-bg-dark;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
 
 // Element Plus 暗黑主题全局配置 + 项目蓝色主题
 :root {
@@ -96,6 +107,24 @@ body {
   }
 }
 
+// ===================== Dialog 全局暗色主题样式 =====================
+.el-overlay-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.el-dialog {
+  padding: 0;
+  // Element Plus 默认会有 margin-top: 15vh；这里改成真正居中
+  margin: 0 !important;
+  border-radius: $border-radius-2xl;
+  background-color: $color-bg-dark-secondary;
+  font-size: $font-size-md;
+  font-family: -regular;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 /* 全局主题按钮样式：覆盖 Element Plus primary 按钮 */
 .el-button--primary {
   background: radial-gradient(0.5% 0.5% at 50% 50%,
@@ -122,6 +151,39 @@ body {
 .el-carousel__indicators--outside .el-carousel__indicator.is-active button {
   background: $color-primary;
   border-color: transparent;
+}
+
+// ===================== 自定义轻提示（ElMessage）=====================
+// 上传失败提示：居中黑底 + failFace 图标
+.el-message.my-toast-fail-face {
+  top: 50% !important;
+  transform: translateY(-50%) translateX(-50%) !important;
+  border-radius: 8px;
+  background-color: $color-bg-dark-secondary !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding: 19px 40px;
+
+  .el-message__icon {
+    display: none !important;
+  }
+
+  .el-message__content {
+    color: $color-primary !important;
+  }
+
+  .my-toast-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: $font-size-md;
+  }
+
+  .my-toast-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex: 0 0 auto;
+  }
 }
 
 /* 全屏宽度样式类 */

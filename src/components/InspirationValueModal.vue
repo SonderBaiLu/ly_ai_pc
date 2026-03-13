@@ -199,10 +199,11 @@ const loadCoinRecords = async () => {
     }
 
     const response = await membershipApi.getCoinRecordList(params)
-    if (response.resp_code === 0 && response.datas) {
+    if (response.code === '0000' && response.data) {
       // 直接使用接口返回的数据
-      transactions.value = response.datas.records || []
-      pagination.value.total = response.datas.total || 0
+      const data: any = response.data
+      transactions.value = data.records || []
+      pagination.value.total = data.total || 0
     }
   } catch (error) {
     console.error('加载潮币记录失败:', error)

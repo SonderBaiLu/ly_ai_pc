@@ -192,8 +192,9 @@ const loadRecords = async (isRefresh = false) => {
       current: pageParams.value.current,
       size: pageParams.value.size,
     })
-    if (res.resp_code === 0 && res.datas) {
-      let { vipSubscribeVO, orderVoPage } = res.datas
+    if (res.code === '0000' && res.data) {
+      const data: any = res.data
+      let { vipSubscribeVO, orderVoPage } = data
 
       // 只在首次加载或刷新时更新订阅信息
       if (isRefresh) {

@@ -61,7 +61,8 @@
 
       <div class="nav-right nav-right--ai">
         <template v-if="isLoggedIn">
-          <span class="ai-link">我的创作</span>
+          <span class="ai-link" role="button" tabindex="0" @click="router.push('/my-creations')"
+            @keydown.enter="router.push('/my-creations')">我的创作</span>
           <div class="ai-coin-pill">
             <img src="@/assets/images/coin.png" alt="Coin" class="coin-icon" />
             <span>50</span>
@@ -89,6 +90,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import UserLogin from '@/components/UserLogin.vue'
+import { useModalStore } from '@/stores/modal'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -119,7 +121,9 @@ const menuData = [
   { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
-const isAiDesignPage = computed(() => route.name === 'AiDesign' || route.name === 'AiFashionStudio')
+const isAiDesignPage = computed(
+  () => route.name === 'AiDesign' || route.name === 'AiFashionStudio' || route.name === 'MyCreations'
+)
 
 const handleMenuClick = (item: { key: string; path?: string }) => {
   if (item.path) {
@@ -137,17 +141,19 @@ const showComingSoon = () => {
   )
 }
 
-// 控制弹窗显示的变量
-const isLoginVisible = ref(false)
+const modalStore = useModalStore()
+
+// 控制弹窗显示的变量（全局）
+const isLoginVisible = computed(() => modalStore.showLoginModal)
 
 // 打开登录弹窗
 const showLoginModal = () => {
-  isLoginVisible.value = true
+  modalStore.openLoginModal()
 }
 
 // 关闭登录弹窗
 const closeLoginModal = () => {
-  isLoginVisible.value = false
+  modalStore.closeLoginModal()
 }
 </script>
 
@@ -156,7 +162,7 @@ const closeLoginModal = () => {
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: $spacing-md $spacing-xl;
+  padding: 12px 25px;
   background-color: $color-bg-dark-second;
 }
 
@@ -202,6 +208,15 @@ const closeLoginModal = () => {
   color: $color-text-white;
   font-size: $font-size-md;
   font-weight: $font-weight-medium;
+}
+
+.ai-link {
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.9);
+  }
 }
 
 .nav-container--ai {

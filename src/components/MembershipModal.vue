@@ -205,8 +205,8 @@ const loadMembershipPlans = async () => {
       code: 'COMMON_PROBLEM',
     })
 
-    if (res.resp_code === 0 && res.datas) {
-      const { vipItemList } = res.datas
+    if (res.code === '0000' && res.data) {
+      const { vipItemList } = res.data as any
       const plans = vipItemList || []
 
       // 前端补充免费版套餐（后端暂无返回）
@@ -223,7 +223,7 @@ const loadMembershipPlans = async () => {
 
       membershipPlansFromApi.value = hasFree ? plans : [freePlan, ...plans]
     } else {
-      ElMessage.error(res.resp_msg || '获取会员套餐失败')
+      ElMessage.error(res.msg || '获取会员套餐失败')
     }
   } catch (error) {
     console.error('加载会员套餐失败:', error)
@@ -235,10 +235,10 @@ const loadMembershipPlans = async () => {
 const loadTideCoinPlans = async () => {
   try {
     const res = await membershipApi.waveCoinList({})
-    if (res.resp_code === 0 && res.datas) {
-      tideCoinsPlans.value = res.datas
+    if (res.code === '0000' && res.data) {
+      tideCoinsPlans.value = res.data as any
     } else {
-      ElMessage.error(res.resp_msg || '获取潮币套餐失败')
+      ElMessage.error(res.msg || '获取潮币套餐失败')
     }
   } catch (error) {
     console.error('加载潮币套餐失败:', error)
@@ -327,11 +327,11 @@ const handleCreatePaymentOrder = async () => {
   }
 
   const res = await paymentApi.createPaymentOrder(payload)
-  if (res.resp_code !== 0 || !res.datas) {
-    throw new Error(res.resp_msg || '创建支付订单失败')
+  if (res.code !== '0000' || !res.data) {
+    throw new Error(res.msg || '创建支付订单失败')
   }
 
-  return res.datas as any
+  return res.data as any
 }
 
 // 支付弹窗关闭回调

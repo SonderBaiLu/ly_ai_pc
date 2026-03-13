@@ -1,85 +1,67 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    :title="''"
-    width="600px"
-    :close-on-click-modal="true"
-    :close-on-press-escape="true"
-    :show-close="false"
-    class="personal-settings-modal"
-    @close="handleClose"
-  >
+  <el-dialog v-model="dialogVisible" :title="''" width="600px" :close-on-click-modal="true"
+    :close-on-press-escape="true" :show-close="false" class="personal-settings-modal" @close="handleClose">
     <div class="modal-header">
-      <div class="header-title">账号设置</div>
+      <div class="header-title">{{ t('personalSettings.title') }}</div>
       <div class="header-close" @click="handleClose">
-        <img :src="images.close3" alt="" srcset="" />
+        <img :src="images.closeDialog" alt="" srcset="" />
       </div>
     </div>
 
     <!-- 基本信息部分 -->
     <div class="section-header">
-      <span class="section-title">基本信息</span>
+      <span class="section-title">{{ t('personalSettings.basicInfo') }}</span>
       <el-button class="write-off-btn" type="default" size="small" @click="goToWriteOff">
-        去注销
+        {{ t('personalSettings.writeOff') }}
       </el-button>
     </div>
 
     <!-- 头像 -->
     <div class="form-item form-avatar">
-      <div class="form-label">头像</div>
+      <div class="form-label">{{ t('personalSettings.avatar') }}</div>
       <div class="avatar-wrapper" @click="handleAvatarClick">
-        <img :src="avatarSrc" alt="头像" class="avatar-image" />
+        <img :src="avatarSrc || images.avatar" alt="头像" class="avatar-image" />
         <div class="avatar-edit">
           <img :src="images.editWhite" alt="" />
         </div>
-        <input
-          ref="avatarInputRef"
-          type="file"
-          accept="image/*"
-          style="display: none"
-          @change="handleAvatarChange"
-        />
+        <input ref="avatarInputRef" type="file" accept="image/*" style="display: none" @change="handleAvatarChange" />
       </div>
     </div>
 
     <!-- 昵称 -->
     <div class="form-item">
-      <div class="form-label">昵称</div>
+      <div class="flex items-center justify-between">
+        <div class="form-label">{{ t('personalSettings.nickname') }}</div>
+        <el-button type="primary" size="small" class="password-edit-btn">
+          {{ t('personalSettings.changePassword') }}
+        </el-button>
+      </div>
       <div class="form-value">
-        <el-input
-          v-model="editingData.nickname"
-          :maxlength="20"
-          placeholder="请输入昵称"
-          class="nickname-input"
-          show-word-limit
-        />
+        <el-input v-model="editingData.nickname" :maxlength="20"
+          :placeholder="t('personalSettings.nicknamePlaceholder')" class="nickname-input" show-word-limit />
       </div>
     </div>
 
     <!-- 个人简介 -->
     <div class="form-item">
-      <div class="form-label">个人简介</div>
+      <div class="form-label">{{ t('personalSettings.introduction') }}</div>
       <div class="form-value description-textarea">
-        <textarea
-          id="textarea"
-          v-model="editingData.introduction"
-          name="textarea"
-          placeholder="请输入您的个人简介"
-          :maxlength="300"
-          class="description-input"
-          style="resize: none"
-        />
+        <textarea id="textarea" v-model="editingData.introduction" name="textarea"
+          :placeholder="t('personalSettings.introductionPlaceholder')" :maxlength="300" class="description-input"
+          style="resize: none" />
         <!-- 右侧字数统计和清空 -->
         <div class="flex-end">
           <div class="footer-right" @click="editingData.introduction = ''">
             <span class="char-count">{{ editingData.introduction.length }}/300</span>
-            <img class="clear-img" :src="images.clear2" alt="清空" />
+            <img class="clear-img" :src="images.clear" alt="清空" />
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <el-button type="primary" class="save-btn" @click="handleSave">保存</el-button>
+        <el-button type="primary" class="save-btn" @click="handleSave">
+          {{ t('personalSettings.save') }}
+        </el-button>
       </div>
     </div>
   </el-dialog>
@@ -87,19 +69,20 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useModalStore } from '@/stores/modal'
 import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
 import { images } from '@/assets'
-import { resolveAvatarUrl } from '@/utils/avatar'
 
 interface Props {
   modelValue: boolean
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   saved: []
@@ -122,7 +105,7 @@ const editingData = ref({
   introduction: '',
 })
 
-const avatarSrc = computed(() => resolveAvatarUrl(editingData.value.headImgUrl, images.avatar))
+const avatarSrc = computed(() => editingData.value.headImgUrl || images.avatar)
 
 // 监听弹窗打开，同步 Pinia 数据到编辑数据
 watch(
@@ -197,7 +180,7 @@ const handleSave = async () => {
     }
 
     const res = await userApi.updateUserInfo(updateData)
-    if (res.resp_code === 0) {
+    if (res.code === '0000') {
       ElMessage.success('保存成功')
       // 刷新用户信息
       if (userData.value.mobile) {
@@ -206,7 +189,7 @@ const handleSave = async () => {
       emit('saved')
       handleClose()
     } else {
-      ElMessage.error(res.resp_msg || '保存失败')
+      ElMessage.error(res.msg || '保存失败')
     }
   } catch (error) {
     console.error('保存失败:', error)
@@ -234,9 +217,10 @@ const handleClose = () => {
 
   .header-title {
     margin-bottom: 11px;
-    font-size: var(--font-4xl);
+    font-size: $font-size-2xl-lg;
     font-weight: bold;
-    color: var(--text-primary);
+    font-family: NotoSans-bold;
+    color: $color-text-white;
   }
 
   .header-close {
@@ -246,6 +230,7 @@ const handleClose = () => {
     width: 32px;
     height: 32px;
     cursor: pointer;
+
     img {
       width: 100%;
       height: 100%;
@@ -259,42 +244,78 @@ const handleClose = () => {
     margin-bottom: 25px;
 
     .section-title {
-      font-size: var(--font-xxl);
-      font-weight: 600;
-      color: var(--text-sidebar);
+      font-size: $font-size-xl;
+      color: $color-text-white;
     }
 
     .write-off-btn {
-      padding: 4px 16px !important;
-      background-color: rgba(63, 56, 71, 0.31) !important;
+      min-width: 91px !important;
+      height: 32px !important;
+      line-height: 32px !important;
+      border-radius: 5px;
+      background-color: rgba(184, 222, 240, 0.15);
+      border: 1px solid rgba(184, 222, 240, 1);
+      font-size: $font-size-base;
+      color: $color-text-white;
+      font-family: NotoSans-bold;
+      cursor: pointer;
+
+      &:hover {
+        color: $color-primary;
+      }
     }
   }
 
   .form-item {
-    margin-bottom: var(--spacing-xxl);
+    margin-bottom: $spacing-lg;
 
     .form-label {
-      color: rgba(209, 213, 219, 1);
-      font-size: var(--font-lg);
-      margin-bottom: var(--spacing-md);
+      color: $color-text-light;
+      font-size: $font-size-lg;
+      margin-bottom: $spacing-md;
     }
+
+    .password-edit-btn {
+      background: $color-primary-dark;
+    }
+
     .form-value {
-      border-radius: var(--spacing-sm);
-      background: var(--bg-card);
-      font-size: var(--font-lg);
+      border-radius: 8px 8px 8px 8px;
+      background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+
       :deep(.el-input__wrapper) {
         padding: 0 17px;
-      }
-      :deep(.el-input__count-inner) {
-        color: var(--text-primary) !important;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        outline: none;
 
-        &::placeholder {
-          color: var(--text-six) !important;
+        .el-input__inner {
+          color: $color-text-white !important;
+          font-size: $font-size-base;
+          font-family: NotoSans-bold;
+
+          &::placeholder,
+          &::-moz-placeholder {
+            color: $color-text-placeholder;
+          }
         }
       }
+
+      :deep(.el-input__count-inner) {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        outline: none;
+        color: $color-text-white !important;
+        font-size: $font-size-base;
+        font-family: NotoSans-bold;
+      }
     }
+
     .description-textarea {
       padding-bottom: 11px;
+
       .description-input {
         width: 100%;
         height: 91px;
@@ -302,9 +323,10 @@ const handleClose = () => {
         background: transparent;
         border: none;
         outline: none;
-        color: var(--text-primary);
+        color: $color-text-white !important;
+        font-size: $font-size-base;
+        font-family: NotoSans-bold;
         resize: none;
-        font-size: var(--font-lg);
         font-family: inherit;
 
         &:focus {
@@ -312,18 +334,20 @@ const handleClose = () => {
         }
 
         &::placeholder {
-          color: var(--text-six) !important;
+          color: $color-text-placeholder;
         }
       }
 
       .footer-right {
         display: flex;
         align-items: center;
-        gap: var(--spacing-xs);
         margin-right: 13px;
+        gap: $spacing-xs;
 
         .char-count {
-          font-size: var(--font-lg);
+          font-size: $font-size-base;
+          color: $color-text-white;
+          font-family: NotoSans-bold;
         }
 
         .clear-img {
@@ -361,12 +385,13 @@ const handleClose = () => {
         right: 0;
         width: 26px;
         height: 26px;
-        background: var(--primary-color);
+        background: $color-primary-dark;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
+
         img {
           width: 16px;
           height: 16px;
@@ -384,14 +409,11 @@ const handleClose = () => {
     .save-btn {
       width: 204px;
       height: 50px;
-      border-radius: 12px 12px 12px 12px;
-      background: linear-gradient(
-        90deg,
-        rgba(204, 166, 244, 1) 0%,
-        rgba(192, 126, 255, 1) 53%,
-        rgba(204, 166, 244, 1) 99%
-      );
-      font-size: var(--font-lg);
+      border-radius: $border-radius-lg;
+      background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+      font-size: $font-size-base;
+      color: $color-text-white;
+      font-family: NotoSans-regular;
     }
   }
 }
@@ -399,14 +421,13 @@ const handleClose = () => {
 
 <style lang="scss">
 .el-dialog.personal-settings-modal {
+
   .el-dialog__header {
     display: none;
   }
 
   .el-dialog__body {
-    background: #100520 100% !important;
-    border-radius: var(--radius-lg) !important;
-    padding: 45px var(--spacing-4xl) !important;
+    padding: 45px 48px 42px;
   }
 }
 </style>

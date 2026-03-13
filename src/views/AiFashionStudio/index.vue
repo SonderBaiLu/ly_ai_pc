@@ -181,6 +181,16 @@ onMounted(() => {
   if (mode && ['aiFashion', 'sketchToReal', 'realToSketch', 'fabricCreative'].includes(mode)) {
     leftMenu.value = mode
   }
+
+  // 详情页“重新生成/再次生成”跳转过来时，支持预填参考图
+  const refImageUrlFromQuery = route.query.refImageUrl
+  if (refImageUrlFromQuery) {
+    refImageUrl.value = String(refImageUrlFromQuery)
+  }
+  const taskResultIdFromQuery = route.query.taskResultId
+  if (taskResultIdFromQuery) {
+    refImageTaskResultId.value = String(taskResultIdFromQuery)
+  }
 })
 </script>
 

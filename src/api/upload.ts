@@ -1,18 +1,262 @@
+/* global File, FormData */
 import request from '@/utils/request'
+import type { ApiResponse } from '@/types'
+import { ElMessage } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 
+/**
+ * 文件上传配置
+ */
+interface UploadConfig {
+  showLoading?: boolean // 是否显示加载提示
+  loadingText?: string // 加载提示文本
+  showMessage?: boolean // 是否显示默认成功/失败消息（默认 true）
+}
+
+/**
+ * 上传响应数据
+ */
+interface UploadResponse {
+  name: string // 文件名
+  contentType: string // 文件类型
+  size: number // 文件大小（字节）
+  url: string // 文件访问URL
+  path: string // 服务器存储路径
+  createTime: string // 创建时间
+  source: string | null // 来源
+}
+
+/**
+ * 文件上传 API
+ */
 export const uploadApi = {
-  uploadFile(params: any) {
-    return request.post('/upload/file', params, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+  /**
+   * 上传图片
+   * @param file 文件对象
+   * @param config 上传配置
+   * @returns Promise<上传结果>
+   */
+  uploadImage: async (
+    file: File,
+    config?: UploadConfig
+  ): Promise<{ success: boolean; url?: string; message?: string }> => {
+    const {
+      // maxSize = 10 * 1024 * 1024, // 默认 10MB
+      // allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'],
+      showLoading = true,
+      loadingText = '图片上传中...',
+      showMessage = true,
+    } = config || {}
+
+    let loadingMsg: any = null
+
+    try {
+      // 显示加载提示
+      if (showLoading) {
+        loadingMsg = ElMessage({
+          message: loadingText,
+          duration: 0,
+          showClose: false,
+          customClass: 'upload-loading-message',
+          icon: h(Loading, { class: 'is-loading' }),
+        })
+      }
+
+      // 构建表单数据
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // 调用上传接口
+      const response: ApiResponse<UploadResponse> = await request.post(
+        '/api-file/files/upload',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      // 关闭加载提示
+      if (loadingMsg) {
+        loadingMsg.close()
+      }
+
+      const respData: any = (response as any).data
+      if (response.code === '0000' && respData?.url) {
+        // 上传成功，获取图片URL
+        if (showLoading && showMessage) {
+          ElMessage.success('图片上传成功')
+        }
+        return { success: true, url: respData.url }
+      } else {
+        const msg = (response as any).msg || '图片上传失败'
+        if (showMessage) ElMessage.error(msg)
+        return { success: false, message: msg || '上传失败' }
+      }
+    } catch (error) {
+      // 关闭加载提示
+      if (loadingMsg) {
+        loadingMsg.close()
+      }
+
+      console.error('图片上传失败:', error)
+      if (showMessage) ElMessage.error('网络开小差了，请稍后重试')
+      return { success: false, message: '网络错误' }
+    }
   },
-  // 兼容旧调用
-  uploadImage(params: any) {
-    return request.post('/upload/image', params, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+
+  /**
+   * 上传多张图片
+   * @param files 文件数组
+   * @param config 上传配置
+   * @returns Promise<上传结果数组>
+   */
+  uploadImages: async (
+    files: File[],
+    config?: UploadConfig
+  ): Promise<Array<{ success: boolean; url?: string; message?: string }>> => {
+    const uploadPromises = files.map((file) => uploadApi.uploadImage(file, config))
+    return Promise.all(uploadPromises)
+  },
+
+  /**
+   * 上传视频
+   * @param file 文件对象
+   * @param config 上传配置
+   * @returns Promise<上传结果>
+   */
+  uploadVideo: async (
+    file: File,
+    config?: UploadConfig
+  ): Promise<{ success: boolean; url?: string; message?: string }> => {
+    const { showLoading = true, loadingText = '视频上传中...', showMessage = true } = config || {}
+
+    let loadingMsg: any = null
+
+    try {
+      // 显示加载提示
+      if (showLoading) {
+        loadingMsg = ElMessage({
+          message: loadingText,
+          duration: 0,
+          showClose: false,
+          customClass: 'upload-loading-message',
+          icon: h(Loading, { class: 'is-loading' }),
+        })
+      }
+
+      // 构建表单数据
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // 调用上传接口
+      const response: ApiResponse<UploadResponse> = await request.post(
+        '/api-file/files/upload',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      // 关闭加载提示
+      if (loadingMsg) {
+        loadingMsg.close()
+      }
+
+      const respData: any = (response as any).data
+      if (response.code === '0000' && respData?.url) {
+        if (showLoading && showMessage) {
+          ElMessage.success('视频上传成功')
+        }
+        return { success: true, url: respData.url }
+      } else {
+        const msg = (response as any).msg || '视频上传失败'
+        if (showMessage) ElMessage.error(msg)
+        return { success: false, message: msg || '上传失败' }
+      }
+    } catch (error) {
+      // 关闭加载提示
+      if (loadingMsg) {
+        loadingMsg.close()
+      }
+
+      console.error('视频上传失败:', error)
+      if (showMessage) ElMessage.error('网络开小差了，请稍后重试')
+      return { success: false, message: '网络错误' }
+    }
+  },
+
+  /**
+   * 通用文件上传
+   * @param file 文件对象
+   * @param config 上传配置
+   * @returns Promise<上传结果>
+   */
+  uploadFile: async (
+    file: File,
+    config?: UploadConfig
+  ): Promise<{ success: boolean; url?: string; message?: string }> => {
+    const { showLoading = true, loadingText = '文件上传中...', showMessage = true } = config || {}
+
+    let loadingMsg: any = null
+
+    try {
+      // 显示加载提示
+      if (showLoading) {
+        loadingMsg = ElMessage({
+          message: loadingText,
+          duration: 0,
+          showClose: false,
+          customClass: 'upload-loading-message',
+          icon: h(Loading, { class: 'is-loading' }),
+        })
+      }
+
+      // 构建表单数据
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // 调用上传接口
+      const response: ApiResponse<UploadResponse> = await request.post(
+        '/api-file/files/upload',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      // 关闭加载提示
+      if (loadingMsg) {
+        loadingMsg.close()
+      }
+
+      const respData: any = (response as any).data
+      if (response.code === '0000' && respData?.url) {
+        if (showLoading && showMessage) {
+          ElMessage.success('文件上传成功')
+        }
+        return { success: true, url: respData.url }
+      } else {
+        const msg = (response as any).msg || '文件上传失败'
+        if (showMessage) ElMessage.error(msg)
+        return { success: false, message: msg || '上传失败' }
+      }
+    } catch (error) {
+      // 关闭加载提示
+      if (loadingMsg) {
+        loadingMsg.close()
+      }
+
+      console.error('文件上传失败:', error)
+      if (showMessage) ElMessage.error('网络开小差了，请稍后重试')
+      return { success: false, message: '网络错误' }
+    }
   },
 }
 
 export default uploadApi
-

@@ -22,13 +22,7 @@
         </div>
       </div>
     </div>
-    <div class="cta-section">
-      <h3 class="cta-title">{{ t('designMatrix.ctaTitle') }}</h3>
-      <p class="cta-subtitle">{{ t('designMatrix.ctaSubtitle') }}</p>
-      <button class="cta-btn" @click="showComingSoon">
-        {{ t('designMatrix.ctaButton') }}
-      </button>
-    </div>
+    <CtaSection :on-click="showComingSoon" />
   </section>
 </template>
 
@@ -36,6 +30,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import CtaSection from '@/components/CtaSection.vue'
 
 // 外套
 import coat1 from '@/assets/images/home/coat1.png'
@@ -183,36 +178,6 @@ const tags = computed(() => (tm('designMatrix.tags') as string[]) || [])
     }
   }
 
-  .cta-section {
-    background: $color-bg-dark-first;
-    padding: $spacing-5xl 0;
-    text-align: center;
-
-    .cta-title {
-      font-size: $font-size-4xl;
-      font-weight: $font-weight-bold;
-      margin-bottom: $spacing-md;
-    }
-
-    .cta-subtitle {
-      font-size: $font-size-lg;
-      color: $color-text-gray;
-      margin-bottom: $spacing-2xl;
-    }
-
-    .cta-btn {
-      width: 168px;
-      height: 60px;
-      background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
-      border: none;
-      color: $color-text-white;
-      border-radius: 9999px;
-      font-size: $font-size-lg;
-      font-weight: $font-weight-semibold;
-      cursor: pointer;
-    }
-  }
-
   @media (max-width: 1024px) {
     .design-container {
       .design-header {
@@ -242,11 +207,7 @@ const tags = computed(() => (tm('designMatrix.tags') as string[]) || [])
       }
     }
 
-    .cta-section {
-      .cta-title {
-        font-size: $font-size-2xl;
-      }
-    }
+    // CTA 响应式已在 CtaSection 内处理
   }
 }
 </style>

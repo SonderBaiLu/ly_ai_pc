@@ -73,7 +73,7 @@ export function useTaskPolling(
    * 处理API响应
    */
   const handleApiResponse = async (res: any, errorContext = '提交', queryType = 'default') => {
-    if (res.resp_code === 0) {
+    if (res.code === '0000') {
       ElMessage.success(`任务提交成功，生成中`)
 
       // 更新用户信息（刷新潮币等信息）
@@ -86,7 +86,7 @@ export function useTaskPolling(
         }
       }
 
-      const taskId = res.datas
+      const taskId = res.data
       console.log('生成任务已提交，taskId:', taskId)
 
       // 立即添加生成中状态的占位卡片到资产列表
@@ -94,18 +94,18 @@ export function useTaskPolling(
 
       // 开始轮询查询生成结果
       startPollingTaskResult(taskId, errorContext, queryType)
-    } else if (res.resp_code === 1) {
+    } else if (res.code === '0001') {
       // 处理潮币不足或需要升级VIP
-      const errorType = res.resp_msg
+      const errorType = res.msg
       if (errorType === 'coin_deficiency' || errorType === 'up_vip') {
         // 显示潮币不足弹窗
         coinErrorType.value = errorType
         showCoinInsufficient.value = true
       } else {
-        ElMessage.error(res.resp_msg || `${errorContext}失败`)
+        ElMessage.error(res.msg || `${errorContext}失败`)
       }
     } else {
-      ElMessage.error(res.resp_msg || `${errorContext}失败`)
+      ElMessage.error(res.msg || `${errorContext}失败`)
     }
   }
 
@@ -174,8 +174,8 @@ export function useTaskPolling(
         // 统一使用算法结果查询接口
         const res = await creativeApi.findAlgorithmResult({ userId, taskUuid: taskId })
 
-        if (res.resp_code === 0 && res.datas) {
-          const { status, resultList, progress, successfulCount, failedCount } = res.datas
+        if (res.code === '0000' && res.data) {
+          const { status, resultList, progress, successfulCount, failedCount } = res.data
 
           // status 状态：1未开始 2进行中 3完成 4失败
           if (status === 3) {
@@ -193,7 +193,7 @@ export function useTaskPolling(
 
             if (resultList && resultList.length > 0) {
               // 更新资产为生成完成状态
-              updateAssetWithResult(taskId, res.datas, taskType)
+              updateAssetWithResult(taskId, res.data, taskType)
               ElMessage.success(`生成完成！`)
 
               // 生成成功后更新用户信息（刷新潮币等信息）
@@ -233,12 +233,12 @@ export function useTaskPolling(
             })
             console.log(`任务生成中，taskId: ${taskId}，进度: ${progress || 0}%`)
           }
-        } else if (res.resp_code === 1) {
+        } else if (res.code === '0001') {
           // API返回错误也视为生成失败
           clearInterval(pollInterval)
           pollingTaskMap.delete(taskId)
-          updateAssetWithError(taskId, res.resp_msg || '服务器响应异常')
-          ElMessage.error(`生成失败：${res.resp_msg || '服务器响应异常'}`)
+          updateAssetWithError(taskId, res.msg || '服务器响应异常')
+          ElMessage.error(`生成失败：${res.msg || '服务器响应异常'}`)
         }
 
         // 轮询超时检查（在所有情况外检查）

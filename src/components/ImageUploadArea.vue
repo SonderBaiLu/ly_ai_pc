@@ -1,17 +1,9 @@
 <template>
-  <div
-    class="image-upload-area"
-    :class="{ dragging: isDragging, 'has-description': showDesc && imageUrl }"
-  >
+  <div class="image-upload-area" :class="{ dragging: isDragging, 'has-description': showDesc && imageUrl }">
     <!-- 图片上传区域 -->
-    <div
-      class="upload-area"
-      :style="{ width: areaWidth, height: areaHeight }"
-      @dragover.prevent="handleDragOver"
-      @dragleave.prevent="handleDragLeave"
-      @drop.prevent="handleDrop"
-      @click="!imageUrl && !showLoading && handleUpload(imageType, imageName)"
-    >
+    <div class="upload-area" :style="{ width: areaWidth, height: areaHeight }" @dragover.prevent="handleDragOver"
+      @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop"
+      @click="!imageUrl && !showLoading && handleUpload(imageType, imageName)">
       <!-- 上传占位符 -->
       <div v-if="!imageUrl" class="upload-placeholder">
         <template v-if="!showLoading">
@@ -26,21 +18,15 @@
             <span>支持 JPG/PNG</span>
           </div>
         </template>
-        <!-- 上传状态 -->
-        <el-space v-if="showLoading" :size="8">
-          <el-icon class="is-loading">
-            <Loading />
-          </el-icon>
-          <span>{{ loadingText }}</span>
-        </el-space>
+        <!-- 上传中状态 -->
+        <el-icon class="is-loading uploading-icon" v-if="showLoading">
+          <Loading />
+        </el-icon>
+        <span class="uploading-text" v-if="showLoading">{{ loadingText }}</span>
       </div>
 
       <!-- 库选择（左上角，参考样式） -->
-      <div
-        v-if="libraryName"
-        class="uploaded-library"
-        @click.stop="handleLibrarySelection(imageType, imageName)"
-      >
+      <div v-if="libraryName" class="uploaded-library" @click.stop="handleLibrarySelection(imageType, imageName)">
         <span class="library-name-text">{{ libraryName }}</span>
         <img :src="images.arrow" class="library-arrow-icon" alt=">" />
       </div>
@@ -48,17 +34,9 @@
         <!-- 片段/排序 -->
         <div v-if="tagText" class="upload-sort">
           <el-tag class="tag" type="info" effect="dark">{{ tagText }}</el-tag>
-          <el-icon
-            class="drag-handle"
-            :size="36"
-            @touchstart="handleTouchStart"
-            @touchmove="handleTouchMove"
-            @touchend="handleTouchEnd"
-            @mousedown="handleMouseDown"
-            @mousemove="handleMouseMove"
-            @mouseup="handleMouseUp"
-            @mouseleave="handleMouseLeave"
-          >
+          <el-icon class="drag-handle" :size="36" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
+            @touchend="handleTouchEnd" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
+            @mouseup="handleMouseUp" @mouseleave="handleMouseLeave">
             <el-image :src="images.sort2" fit="contain" style="width: 18px; height: 18px" />
           </el-icon>
         </div>
@@ -67,13 +45,8 @@
           {{ angleText }}
         </el-tag>
         <!-- 分类选择（右上角，保留原有功能） -->
-        <el-tag
-          v-if="cateName"
-          class="uploaded-cate"
-          type="info"
-          effect="dark"
-          @click.stop="handleSelection(imageType, imageName)"
-        >
+        <el-tag v-if="cateName" class="uploaded-cate" type="info" effect="dark"
+          @click.stop="handleSelection(imageType, imageName)">
           <el-space :size="5" alignment="center">
             {{ cateName }}
             <el-icon :size="24" :class="isDownOrUp ? 'arrow-rotated' : 'arrow-normal'">
@@ -82,29 +55,14 @@
           </el-space>
         </el-tag>
         <!-- 已上传的图片 -->
-        <el-image
-          :src="imageUrl"
-          fit="contain"
-          class="uploaded-img"
-          :class="{ 'img-loaded': imageLoaded }"
-          :preview-src-list="clickable ? [imageUrl] : []"
-          :initial-index="0"
-          :preview-teleported="true"
-          :hide-on-click-modal="true"
-          :z-index="3000"
-          @dragstart.prevent
-          @load="handleImageLoad"
-        />
+        <el-image :src="imageUrl" fit="contain" class="uploaded-img" :class="{ 'img-loaded': imageLoaded }"
+          :preview-src-list="clickable ? [imageUrl] : []" :initial-index="0" :preview-teleported="true"
+          :hide-on-click-modal="true" :z-index="3000" @dragstart.prevent @load="handleImageLoad" />
         <!-- 操作按钮 -->
         <div v-if="showActions" class="upload-action">
           <!-- 替换按钮（带下拉菜单） -->
-          <el-dropdown
-            class="action-dropdown"
-            trigger="hover"
-            placement="top"
-            popper-class="replace-dropdown-menu"
-            @command="handleReplaceCommand"
-          >
+          <el-dropdown class="action-dropdown" trigger="hover" placement="top" popper-class="replace-dropdown-menu"
+            @command="handleReplaceCommand">
             <div class="action-button">
               <el-image :src="images.replace2" fit="contain" style="width: 16px; height: 16px" />
               <span>替换</span>
@@ -130,29 +88,18 @@
     </div>
 
     <!-- 描述内容区域 - 使用统一组件 -->
-    <CreativeDescription
-      v-if="showDesc && imageUrl"
-      v-model="localDescription"
-      :placeholder="placeholder"
-      :max-length="maxLength"
-      :show-background="false"
-      :show-header="false"
-      :show-movement="showMovement"
-      :movement-name="movementName"
-      :textarea-height="textareaHeight"
-      border-radius="0 0 var(--radius-sm) var(--radius-sm)"
-      @input="handleInput"
-      @focus="handleFocus"
-      @blur="handleBlur"
-      @movement="handleMovement(imageType, imageName)"
-    />
+    <CreativeDescription v-if="showDesc && imageUrl" v-model="localDescription" :placeholder="placeholder"
+      :max-length="maxLength" :show-background="false" :show-header="false" :show-movement="showMovement"
+      :movement-name="movementName" :textarea-height="textareaHeight"
+      border-radius="0 0 var(--radius-sm) var(--radius-sm)" @input="handleInput" @focus="handleFocus" @blur="handleBlur"
+      @movement="handleMovement(imageType, imageName)" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { images } from '@/assets'
-import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 
 // 定义组件属性
 const props = defineProps({
@@ -214,7 +161,7 @@ const props = defineProps({
   // 区域高度
   areaHeight: {
     type: String,
-    default: '200px',
+    default: '213px',
   },
   // 是否显示操作按钮
   showActions: {
@@ -724,8 +671,8 @@ onBeforeUnmount(() => {
 .image-upload-area {
   position: relative;
   transition: all 0.3s ease;
-  background-color: var(--bg-card);
-  border-radius: var(--radius-sm);
+  background-color: $color-bg-dark-secondary;
+  border-radius: $spacing-sm;
   overflow: clip; // 使用 clip 代替 hidden，避免影响拖拽
   box-sizing: border-box;
   border: 2px solid transparent; // 默认透明边框，防止dragging时尺寸变化
@@ -741,7 +688,7 @@ onBeforeUnmount(() => {
 /* 图片上传区域 */
 .upload-area {
   position: relative;
-  height: 200px;
+  height: 213px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -759,19 +706,33 @@ onBeforeUnmount(() => {
     justify-content: center;
     width: 100%;
     height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: $spacing-sm;
+    background-color: $color-bg-dark-secondary;
     text-align: center;
+    color: $color-primary;
+
+    .uploading-icon {
+      margin-bottom: 7px;
+      font-size: $font-size-2xl;
+    }
+
+    .uploading-text {
+      font-size: $font-size-md;
+    }
 
     .upload-icon-wrapper {
       .upload-icon {
         width: 22px;
         height: 22px;
+        margin-bottom: 7px;
         object-fit: contain;
       }
     }
+
     .placeholder-text {
-      font-size: var(--font-sm);
-      color: var(--text-primary);
-      font-weight: 400;
+      font-size: $font-size-md;
+      color: $color-text-gray;
     }
 
     .placeholder-text-box {
@@ -785,6 +746,7 @@ onBeforeUnmount(() => {
       text-align: center;
 
       span {
+
         &:nth-child(1),
         &:nth-child(3) {
           color: var(--text-placeholder);

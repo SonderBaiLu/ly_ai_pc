@@ -449,56 +449,22 @@
 
         <!-- 操作按钮区 -->
         <div class="action-section">
-          <!-- 创意模板：一键同款 -->
-          <template v-if="pageTypeRef === 'template' || pageTypeRef === 'like'">
-            <el-button type="primary" size="large" @click="handleOneClick">一键同款</el-button>
-          </template>
-
-          <!-- 我的资产：操作按钮组 -->
-          <template v-if="pageTypeRef === 'assets'">
-            <div v-if="isImageType(templateDetail)" class="action-item">
-              <div class="section-title">生成</div>
-              <el-button size="large" type="primary" @click="handleGenerateVideo">
-                <img :src="images.video1" alt="" class="action-icon" />
-                生成视频
+          <div v-if="isImageType(templateDetail)" class="action-item">
+            <div class="section-title">生成</div>
+            <div class="flex action-item-content">
+              <el-button size="large" type="primary" @click="handleAgainEdit">
+                <img :src="images.againEdit" alt="" class="action-icon" />
+                重新生成
+              </el-button>
+              <el-button size="large" type="primary" @click="handleAgainGenerate">
+                <img :src="images.againGenerate" alt="" class="action-icon brand-watermark-icon" />
+                再次生成
               </el-button>
             </div>
-            <div v-if="isImageType(templateDetail)" class="action-item">
-              <div class="section-title">编辑</div>
-              <div class="flex action-item-content">
-                <el-button size="large" type="primary" @click="handleEditImage">
-                  <img :src="images.imgEdit" alt="" class="action-icon" />
-                  编辑图片
-                </el-button>
-                <!-- 品牌水印对所有用户可见，但仅会员可用；按钮右上角显示会员标识 -->
-                <div class="vip-feature-btn">
-                  <el-button size="large" type="primary" @click="handleBrandWatermark">
-                    <img :src="images.brandWatermark" alt="" class="action-icon brand-watermark-icon" />
-                    品牌水印
-                  </el-button>
-                  <img :src="images.vip3" alt="VIP" class="vip-badge" />
-                </div>
-              </div>
-            </div>
-            <!-- 视频类型显示品牌水印：所有用户可见，仅会员可用 -->
-            <div v-if="isVideoType(templateDetail)" class="action-item">
-              <div class="section-title">编辑</div>
-              <div class="vip-feature-btn">
-                <el-button size="large" type="primary" @click="handleBrandWatermark">
-                  <img :src="images.brandWatermark" alt="" class="action-icon brand-watermark-icon" />
-                  品牌水印
-                </el-button>
-                <img :src="images.vip3" alt="VIP" class="vip-badge" />
-              </div>
-            </div>
-          </template>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- 编辑图片弹窗 -->
-    <EditImageModal v-model="showEditModal" :image-url="templateDetail?.imageUrl"
-      :original-description="templateDetail?.description || templateDetail?.prompt" @confirm="handleEditConfirm" />
 
     <!-- 反馈弹窗 -->
     <FeedbackModal v-if="templateDetail" v-model="showFeedbackModal" :user-id="userStore.userInfo?.userId"
@@ -512,15 +478,10 @@
     <WatermarkDisclaimerModal v-model="showWatermarkDisclaimer" @confirm="handleWatermarkDisclaimerConfirm"
       @cancel="handleWatermarkDisclaimerCancel" @no-remind-change="handleWatermarkDisclaimerNoRemindChange" />
 
-    <!-- 品牌水印弹窗 -->
-    <BrandWatermarkModal v-model="showBrandWatermarkModal" :task-result-id="templateDetail?.id"
-      :no-watermark-url="templateDetail?.noWatermarkUrl || ''"
-      :image-url="templateDetail?.imageUrl || templateDetail?.imgUrl || ''" :file-url="templateDetail?.fileUrl || ''"
-      :file-type="isVideoType(templateDetail) ? 2 : 1" @close="handleBrandWatermarkClose" />
-
     <!-- 图片预览 - 使用 Element Plus ImageViewer -->
     <el-image-viewer v-if="showImagePreview" :url-list="previewImageList" :initial-index="previewInitialIndex"
       :hide-on-click-modal="true" @close="handlePreviewClose" />
+
     <!-- 右侧缩略图列表 -->
     <div class="thumbnail-sidebar">
       <div ref="thumbnailList" class="thumbnail-list">
@@ -599,7 +560,6 @@ const thumbnailList = ref<HTMLElement>()
 const mediaContainerRef = ref<HTMLElement>()
 const mediaPlayerRefs = ref<any[]>([]) // MediaPlayer 组件引用数组
 const cateTitleRef = ref('')
-const showEditModal = ref(false) // 编辑图片弹窗显示状态
 const showBrandWatermarkModal = ref(false) // 品牌水印弹窗显示状态
 const showImagePreview = ref(false) // 图片预览显示状态
 const previewImageList = ref<string[]>([]) // 预览图片列表
@@ -645,7 +605,7 @@ const requestParams = computed(() => {
     const requestParamStr = (templateDetail.value as any).requestParam
     if (typeof requestParamStr === 'string') {
       // 仅在需要时调试打印，避免频繁访问 computed 导致控制台刷屏
-      // console.log('[TemplateDetail] requestParams:', JSON.parse(requestParamStr))
+      // console.log('[CreativeDetail] requestParams:', JSON.parse(requestParamStr))
       return JSON.parse(requestParamStr)
     }
     return requestParamStr
@@ -847,6 +807,68 @@ const fabricShootDescription = computed(() => {
   return fabricItem?.imageSetDesc || ''
 })
 
+type DetailModule = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
+
+// 详情所属模块：AI服装设计三模块 + 面料创拍一模块（用于“重新生成/再次生成”跳转）
+const detailModule = computed<DetailModule>(() => {
+  if (!templateDetail.value) return 'aiFashion'
+
+  // 优先按 titleCode/titleName 判定“面料创拍”
+  if (isFabricShoot.value) return 'fabricCreative'
+
+  const typeName = String((templateDetail.value as any).typeName || '')
+  const titleName = String((templateDetail.value as any).titleName || '')
+  const combined = `${typeName} ${titleName}`
+
+  if (combined.includes('线稿转实物')) return 'sketchToReal'
+  if (combined.includes('实物转线稿')) return 'realToSketch'
+  if (combined.includes('面料')) return 'fabricCreative'
+
+  return 'aiFashion'
+})
+
+const getDetailMainImageUrl = () => {
+  const d: any = templateDetail.value as any
+  return (
+    d?.noWatermarkUrl ||
+    d?.imageUrl ||
+    d?.imgUrl ||
+    d?.lessenImg ||
+    d?.fileUrl ||
+    ''
+  )
+}
+
+// 重新生成：跳转到 AiFashionStudio 对应模块，并带上当前详情图
+const handleAgainEdit = () => {
+  const url = getDetailMainImageUrl()
+  router.push({
+    name: 'AiFashionStudio',
+    query: {
+      mode: detailModule.value,
+      refImageUrl: url,
+      taskResultId: String((templateDetail.value as any)?.id ?? ''),
+      from: 'detail',
+      action: 'againEdit',
+    },
+  })
+}
+
+// 再次生成：同上（预留 action 让目标页后续可区分不同入口）
+const handleAgainGenerate = () => {
+  const url = getDetailMainImageUrl()
+  router.push({
+    name: 'AiFashionStudio',
+    query: {
+      mode: detailModule.value,
+      refImageUrl: url,
+      taskResultId: String((templateDetail.value as any)?.id ?? ''),
+      from: 'detail',
+      action: 'againGenerate',
+    },
+  })
+}
+
 // 获取 imageSet 的标签文本
 const getImageSetLabel = (closeType: number) => {
   const labelMap: Record<number, string> = {
@@ -966,15 +988,15 @@ const loadTemplateDetail = async (
       userId: userStore.userInfo?.userId,
     }
 
-    let response: any = { resp_code: -1 }
+    let response: any = { code: '9999' }
 
     switch (pageTypeRef.value) {
       case 'assets': // 我的资产详情
         console.log('[资产详情] 查询参数:', params)
         response = await assetApi.getTaskDetail(params)
         console.log('[资产详情] 查询结果:', response)
-        if (response.resp_code === 0) {
-          const assetData = response.datas || {}
+        if (response.code === '0000') {
+          const assetData = response.data || {}
           // 映射资产详情字段到页面使用的字段
           const updatedDetail = {
             ...assetData,
@@ -1013,8 +1035,8 @@ const loadTemplateDetail = async (
         console.log('[模板详情] 查询参数:', params)
         response = await creativeApi.getCreativeTemplateDetail(params)
         console.log('[模板详情] 查询结果:', response)
-        if (response.resp_code === 0) {
-          const updatedDetail = response.datas || {}
+        if (response.code === '0000') {
+          const updatedDetail = response.data || {}
           // 丢弃过期响应：token 不一致或当前目标 id 已变化
           if (
             (typeof token === 'number' && token !== detailRequestToken.value) ||
@@ -1044,8 +1066,8 @@ const loadTemplateDetail = async (
         break
     }
 
-    if (response.resp_code !== 0) {
-      ElMessage.error(response.resp_msg || '获取详情失败')
+    if (response.code !== '0000') {
+      ElMessage.error(response.msg || '获取详情失败')
     }
   } catch (error) {
     console.error('获取详情失败:', error)
@@ -1110,8 +1132,8 @@ const loadRelatedTemplates = async (isRefresh = false) => {
 
       const response = await assetApi.getMyAssetsPage(params)
 
-      if (response.resp_code === 0 && response.datas) {
-        const { records, total } = response.datas
+      if (response.code === '0000' && response.data) {
+        const { records, total } = response.data as any
 
         // 处理数据，确保有 imgUrl 字段
         const processedRecords = records.map((item: any) => ({
@@ -1197,8 +1219,8 @@ const loadRelatedTemplates = async (isRefresh = false) => {
         current: relatedPageParams.value.current,
       })
 
-      if (response.resp_code === 0 && response.datas) {
-        let { records, total } = response.datas
+      if (response.code === '0000' && response.data) {
+        let { records, total } = response.data as any
 
         // 处理数据格式，确保有正确的字段
         const processedRecords = records.map((item: any) => {
@@ -1265,8 +1287,8 @@ const loadRelatedTemplates = async (isRefresh = false) => {
         current: relatedPageParams.value.current,
       })
 
-      if (response.resp_code === 0) {
-        let { records, total } = response.datas
+      if (response.code === '0000') {
+        let { records, total } = (response.data as any) || {}
 
         if (isRefresh) {
           // 找到当前模板在列表中的位置
@@ -1454,75 +1476,8 @@ const copyFabricShootDescription = async () => {
   }
 }
 
-// 一键同款 - 统一跳转到 same_style 页面,根据 taskType 显示不同内容
-const handleOneClick = () => {
-  // 检查登录状态
-  if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
-    if (props.isModal) {
-      emit('close')
-    }
-    router.push('/login')
-    return
-  }
-
-  if (!templateDetail.value) return
-
-  // 获取任务类型（从 titleCode 获取）
-  const taskType = templateDetail.value.titleCode
-
-  // 弹窗模式下，先关闭弹窗再跳转
-  if (props.isModal) {
-    emit('close')
-  }
-
-  // 通过 Generate 容器层路由跳转，确保资产状态正确传递
-  // 直接传递 templateId 和 taskType，SameStyle 页面会调用详情接口获取最新数据
-  router.push({
-    name: 'Generate',
-    params: {
-      module: 'same-style',
-    },
-    query: {
-      id: String(templateDetail.value.id),
-      taskType: taskType || '',
-    },
-  })
-}
-
-// 编辑图片 - 显示编辑弹窗
-const handleEditImage = () => {
-  if (!templateDetail.value) return
-  showEditModal.value = true
-}
-
-// 打开品牌水印弹窗（非会员弹出会员购买，与无水印下载流程一致）
-const handleBrandWatermark = async () => {
-  if (!templateDetail.value) return
-
-  // 先刷新一次用户信息，防止会员已过期/刚开通状态不一致
-  await refreshUserInfoIfPossible()
-
-  // 非会员：拦截并弹出会员购买弹窗
-  if (!isUserVip.value) {
-    // 记录购买成功后的待处理动作：回到品牌水印弹窗
-    pendingAfterVipAction.value = { type: 'brandWatermark' }
-    coinErrorType.value = 'up_vip'
-    showCoinInsufficient.value = true
-    return
-  }
-
-  // 会员：正常打开品牌水印弹窗
-  showBrandWatermarkModal.value = true
-}
-
-// 关闭品牌水印弹窗
-const handleBrandWatermarkClose = () => {
-  showBrandWatermarkModal.value = false
-}
-
 // 图片预览 - 点击图片放大预览
-const handleImagePreview = (index: number, item: any) => {
+const handleImagePreview = (_index: number, item: any) => {
   // 只有图片类型才支持预览
   if (isVideoType(item)) {
     return // 视频不预览
@@ -1550,7 +1505,7 @@ const handleImagePreview = (index: number, item: any) => {
     previewInitialIndex.value = currentIndex
   }
 
-  previewImageList.value = imageUrls
+  previewImageList.value = imageUrls.filter((url) => url !== undefined) as string[]
   showImagePreview.value = true
 }
 
@@ -1559,132 +1514,6 @@ const handlePreviewClose = () => {
   showImagePreview.value = false
   previewImageList.value = []
   previewInitialIndex.value = 0
-}
-
-// 编辑确认 - 直接调用指令改图接口并跳转到统一的立即生成页面
-const handleEditConfirm = async (data: { description: string; imageUrl: string }) => {
-  try {
-    const editDescription = data.description?.trim()
-    if (!editDescription) {
-      ElMessage.warning('请输入编辑描述')
-      return
-    }
-
-    // 解析后的原始请求参数（资产详情中的 requestParam）
-    const params: any = requestParams.value
-    if (!params) {
-      ElMessage.warning('原始参数不存在，无法编辑')
-      return
-    }
-
-    // 实际使用的图片地址：优先用高清图，其次回退到弹窗传入的 imageUrl
-    const actualImageUrl =
-      (templateDetail.value as any)?.imageUrl ||
-      (templateDetail.value as any)?.imgUrl ||
-      data.imageUrl ||
-      ''
-
-    if (!actualImageUrl) {
-      ElMessage.warning('暂无可编辑的图片')
-      return
-    }
-
-    // 构建与移动端 uniapp 一致的指令改图请求参数
-    const requestData: any = {
-      userId: userStore.userInfo?.userId || 0,
-      algorithmId: params.algorithmId || 0,
-      algorithmCode: params.algorithmCode || '',
-      count: params.count || 1,
-      quality: params.quality || '',
-      aspectRatio: params.aspectRatio || '',
-      paramIds: params.paramIds || [],
-      imageUrl: actualImageUrl,
-      creativityDesc: editDescription,
-    }
-
-    // 如果当前详情来源于“我的资产”，且编辑的是历史图片，则补充 historyParams
-    if (pageTypeRef.value === 'assets' && templateDetail.value?.id && actualImageUrl) {
-      requestData.historyParams = [
-        {
-          taskResultId: templateDetail.value.id,
-          type: 'imageUrl',
-          url: actualImageUrl,
-        },
-      ]
-    }
-
-    console.log('[编辑图片] 指令改图请求参数:', requestData)
-
-    const res = await creativeApi.imageEdit(requestData)
-
-    if (res.resp_code === 0) {
-      // 关闭本地编辑弹窗
-      showEditModal.value = false
-      // 弹窗模式下同步关闭外层弹窗
-      if (props.isModal) {
-        emit('close')
-      }
-
-      // 跳转到统一的 Generate 容器层的 AI 图片模块，查看生成结果
-      // 传递 taskId 和 imageUrl，用于回显图片并开始轮询任务结果
-      router.push({
-        name: 'Generate',
-        params: {
-          module: 'image',
-        },
-        query: {
-          taskId: res.datas, // 任务ID，用于开始轮询
-          imageUrl: actualImageUrl, // 图片URL，用于回显
-          fromEdit: 'true', // 标记来源，用于区分是编辑跳转
-        },
-      })
-    } else if (res.resp_code === 1) {
-      // 处理潮币不足或需要升级VIP
-      const errorType = res.resp_msg
-      if (errorType === 'coin_deficiency' || errorType === 'up_vip') {
-        // 显示潮币不足弹窗
-        coinErrorType.value = errorType
-        showCoinInsufficient.value = true
-      } else {
-        ElMessage.error(res.resp_msg || '提交失败，请重试')
-      }
-    } else {
-      ElMessage.error(res.resp_msg || '提交失败，请重试')
-    }
-  } catch (error) {
-    console.error('[编辑图片] 指令改图提交失败:', error)
-    ElMessage.error('网络异常，请重试')
-  }
-}
-
-// 生成视频
-const handleGenerateVideo = () => {
-  if (!templateDetail.value) return
-
-  // 获取图片URL（优先使用高清图）
-  const imageUrl = templateDetail.value.imageUrl || templateDetail.value.imgUrl
-
-  console.log('[生成视频] 跳转到AI视频模块，图片URL:', imageUrl)
-
-  // 弹窗模式下，先关闭弹窗再跳转
-  if (props.isModal) {
-    emit('close')
-  }
-
-  // 通过 Generate 容器层跳转到 AI 视频模块，
-  // 确保左侧模块 + 右侧资产面板都在同一页面中
-  router.push({
-    name: 'Generate',
-    params: {
-      module: 'video',
-    },
-    query: {
-      // 供 VideoGeneration 页面回显主图
-      imageUrl,
-      // 供 Generate 容器层在资产列表中高亮当前资产
-      fromAssetId: templateDetail.value.id,
-    },
-  })
 }
 
 // 刷新用户信息（用于下载前检查会员状态）
@@ -1722,12 +1551,11 @@ const ensureNoWatermarkUrlForAsset = async (asset: any): Promise<string | null> 
       userId: String(userId),
     })
 
-    if (res.resp_code === 0 && res.datas) {
+    if (res.code === '0000' && res.data) {
       const list: any[] =
-        (Array.isArray(res.datas) ? res.datas : null) ||
-        (Array.isArray(res.datas?.records) ? res.datas.records : null) ||
-        (Array.isArray(res.datas?.list) ? res.datas.list : null) ||
-        (Array.isArray(res.datas?.datas) ? res.datas.datas : null) ||
+        (Array.isArray(res.data) ? res.data : null) ||
+        (Array.isArray((res.data as any)?.records) ? (res.data as any).records : null) ||
+        (Array.isArray((res.data as any)?.list) ? (res.data as any).list : null) ||
         []
       const hit = list.find((it) => String(it?.id) === String(taskResultId)) || list[0]
       const fetchedNoWatermarkUrl = hit?.noWatermarkUrl
@@ -1928,7 +1756,7 @@ const handleDownload = async () => {
     const fileExtension = isVideo ? 'mp4' : 'png'
 
     try {
-      await watermarkDownloader.download(downloadUrl, {
+      await watermarkDownloader.download([downloadUrl], {
         filename: `${filePrefix}_${namePart}_${Date.now()}.${fileExtension}`,
         silent: false,
       })
@@ -2171,16 +1999,16 @@ const handleLikeToggle = async () => {
       params.likeId = currentLikeId
     }
 
-    const response = await userApi.userLikes(params)
-    if (response.resp_code === 0) {
+    const response: any = await userApi.userLikes(params)
+    if (response.code === '0000') {
       // 更新点赞状态
       templateDetail.value.isLike = isLiking ? 1 : 0
       // 更新点赞数
       templateDetail.value.useLikes = currentUseLikes + (isLiking ? 1 : -1)
 
       // 更新 likeId
-      if (isLiking && response.datas?.likeId) {
-        templateDetail.value.likeId = response.datas.likeId
+      if (isLiking && (response.data as any)?.likeId) {
+        templateDetail.value.likeId = (response.data as any).likeId
       } else if (!isLiking) {
         templateDetail.value.likeId = null
       }
@@ -2192,7 +2020,7 @@ const handleLikeToggle = async () => {
         emit('likeChanged', templateDetail.value)
       }
     } else {
-      ElMessage.error(response.resp_msg || '网络开小差了~，请稍后再试')
+      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
     }
   } catch (error) {
     console.error('喜欢操作失败:', error)
@@ -2231,12 +2059,12 @@ const handleAssetsCollect = async () => {
     }
 
     const response = await assetApi.batchCollect(params)
-    if (response.resp_code === 0) {
+    if (response.code === '0000') {
       templateDetail.value.isCollect = isCollecting ? 1 : 0
-      templateDetail.value.collectId = response.datas?.collectIds?.[0] || null
+      templateDetail.value.collectId = (response.data as any)?.collectIds?.[0] || null
       ElMessage.success(isCollecting ? '收藏成功' : '取消收藏')
     } else {
-      ElMessage.error(response.resp_msg || '网络开小差了~，请稍后再试')
+      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
     }
   } catch (error) {
     console.error('收藏操作失败:', error)
@@ -2304,11 +2132,13 @@ const handleDelete = async () => {
     }
 
     const response = await assetApi.batchDelete(params)
-    if (response.resp_code === 0) {
+    if (response.code === '0000') {
       ElMessage.success('删除成功')
       const deletedAssetId = templateDetail.value.id
       // 触发 delete 事件，通知父组件更新列表
-      emit('delete', deletedAssetId)
+      if (deletedAssetId !== undefined && deletedAssetId !== null) {
+        emit('delete', deletedAssetId)
+      }
       // 返回上一页
       if (props.isModal) {
         emit('close')
@@ -2316,7 +2146,7 @@ const handleDelete = async () => {
         router.back()
       }
     } else {
-      ElMessage.error(response.resp_msg || '删除失败')
+      ElMessage.error(response.msg || '删除失败')
     }
   } catch (error: any) {
     // 用户取消删除

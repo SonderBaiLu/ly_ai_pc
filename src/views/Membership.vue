@@ -305,9 +305,9 @@
               {{
                 Number(
                   vipChangeDetail?.payAmount ??
-                    vipChangeDetail?.vipItemNew?.itemPrice ??
-                    selectedPlan?.itemPrice ??
-                    0
+                  vipChangeDetail?.vipItemNew?.itemPrice ??
+                  selectedPlan?.itemPrice ??
+                  0
                 )
               }}
             </span>
@@ -446,11 +446,11 @@ const createVipPaymentOrder = async (plan?: any) => {
   }
 
   const res = await paymentApi.createPaymentOrder(payload)
-  if (res.resp_code !== 0 || !res.datas) {
-    throw new Error(res.resp_msg || '创建支付订单失败')
+  if (res.code !== '0000' || !res.data) {
+    throw new Error(res.msg || '创建支付订单失败')
   }
 
-  return res.datas as any
+  return res.data as any
 }
 
 // 支付弹窗关闭回调
@@ -590,14 +590,14 @@ const handlePurchaseAction = async (plan: any) => {
         vipType: memberVersion.value,
       })
 
-      if (res && res.resp_code === 0 && res.datas && res.datas.vipTip) {
+      if (res && res.code === '0000' && res.data && (res.data as any).vipTip) {
         // 缓存会员变更详情用于弹窗展示
-        vipChangeDetail.value = res.datas
+        vipChangeDetail.value = res.data as any
         selectedPlan.value = plan
 
         // 使用后端返回的生效时间文案，若没有则本地计算
-        if (res.datas.effectiveDate) {
-          effectiveDate.value = res.datas.effectiveDate
+        if ((res.data as any).effectiveDate) {
+          effectiveDate.value = (res.data as any).effectiveDate
         } else {
           calculateEffectiveDate()
         }
@@ -640,9 +640,9 @@ const loadMembershipPlans = async () => {
     })
     console.log('会员套餐API响应:', res)
 
-    if (res.resp_code === 0 && res.datas) {
+    if (res.code === '0000' && res.data) {
       // 获取vipItemList数组
-      const { vipItemList } = res.datas
+      const { vipItemList } = res.data as any
       const plans = vipItemList || []
 
       // 前端补充免费版套餐（后端暂无返回）
@@ -660,8 +660,8 @@ const loadMembershipPlans = async () => {
       membershipPlansFromApi.value = hasFree ? plans : [freePlan, ...plans]
       console.log('会员套餐数据已加载:', membershipPlansFromApi.value)
     } else {
-      console.error('获取会员套餐失败:', res.resp_msg)
-      ElMessage.error(res.resp_msg || '获取会员套餐失败')
+      console.error('获取会员套餐失败:', res.msg)
+      ElMessage.error(res.msg || '获取会员套餐失败')
     }
   } catch (error) {
     console.error('加载会员套餐失败:', error)
@@ -688,13 +688,13 @@ watch(
 const loadTideCoinPlans = async () => {
   try {
     const res = await membershipApi.waveCoinList({})
-    if (res.resp_code === 0 && res.datas) {
+    if (res.code === '0000' && res.data) {
       // 将API数据转换为显示格式
-      tideCoinsPlans.value = res.datas
+      tideCoinsPlans.value = res.data as any
       console.log('潮币套餐数据已加载:', tideCoinsPlans.value)
     } else {
-      console.error('获取潮币套餐失败:', res.resp_msg)
-      ElMessage.error(res.resp_msg || '获取潮币套餐失败')
+      console.error('获取潮币套餐失败:', res.msg)
+      ElMessage.error(res.msg || '获取潮币套餐失败')
     }
   } catch (error) {
     console.error('加载潮币套餐失败:', error)
@@ -950,8 +950,8 @@ const getPurchaseButtonText = (plan: any) => {
 
 .main-content {
   background: linear-gradient(143.13deg,
-    rgba(15, 23, 42, 0.5) 14.29%,
-    rgba(30, 27, 75, 0.5) 50%,
+      rgba(15, 23, 42, 0.5) 14.29%,
+      rgba(30, 27, 75, 0.5) 50%,
       rgba(2, 6, 23, 1) 85.71%);
 
   // 内容区域居中，最大宽度80%
@@ -1012,8 +1012,8 @@ const getPurchaseButtonText = (plan: any) => {
         .user-type {
           line-height: 1;
           background: linear-gradient(90deg,
-            rgba(204, 166, 244, 1) 0%,
-            rgba(192, 126, 255, 1) 53%,
+              rgba(204, 166, 244, 1) 0%,
+              rgba(192, 126, 255, 1) 53%,
               rgba(204, 166, 244, 1) 99%);
           color: $color-text-white;
           font-size: $font-size-md;
@@ -1559,8 +1559,8 @@ const getPurchaseButtonText = (plan: any) => {
 
     .purchase-button {
       background: linear-gradient(90deg,
-        rgba(204, 166, 244, 1) 0%,
-        rgba(192, 126, 255, 1) 53%,
+          rgba(204, 166, 244, 1) 0%,
+          rgba(192, 126, 255, 1) 53%,
           rgba(204, 166, 244, 1) 99%) !important;
     }
 
@@ -1596,8 +1596,8 @@ const getPurchaseButtonText = (plan: any) => {
       right: -13px;
       z-index: 10; // 确保标签在最上层
       background: linear-gradient(90deg,
-        rgba(145, 213, 243, 1) 0%,
-        rgba(79, 179, 250, 1) 47%,
+          rgba(145, 213, 243, 1) 0%,
+          rgba(79, 179, 250, 1) 47%,
           rgba(142, 204, 232, 1) 100%);
       color: $color-text-white;
       padding: 4px 16px;
@@ -1612,8 +1612,8 @@ const getPurchaseButtonText = (plan: any) => {
 
     .purchase-button {
       background: linear-gradient(90deg,
-        rgba(130, 209, 246, 1) 0%,
-        rgba(41, 171, 244, 1) 50%,
+          rgba(130, 209, 246, 1) 0%,
+          rgba(41, 171, 244, 1) 50%,
           rgba(80, 199, 253, 1) 99%) !important;
     }
 
@@ -1648,8 +1648,8 @@ const getPurchaseButtonText = (plan: any) => {
       right: -13px;
       z-index: 10; // 确保标签在最上层
       background: linear-gradient(90deg,
-        rgba(244, 232, 190, 1) 0%,
-        rgba(196, 170, 117, 1) 47%,
+          rgba(244, 232, 190, 1) 0%,
+          rgba(196, 170, 117, 1) 47%,
           rgba(244, 232, 190, 1) 100%);
       color: $color-text-white;
       padding: 4px 16px;
@@ -1664,8 +1664,8 @@ const getPurchaseButtonText = (plan: any) => {
 
     .purchase-button {
       background: linear-gradient(90deg,
-        rgba(244, 232, 190, 1) 0%,
-        rgba(196, 170, 117, 1) 50%,
+          rgba(244, 232, 190, 1) 0%,
+          rgba(196, 170, 117, 1) 50%,
           rgba(244, 232, 190, 1) 99%);
     }
 
@@ -1856,7 +1856,7 @@ const getPurchaseButtonText = (plan: any) => {
   padding: 34px 25px;
   border-radius: 12px 12px 12px 12px;
   background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.05) 14.6%,
+      rgba(255, 255, 255, 0.05) 14.6%,
       rgba(255, 255, 255, 0.02) 85.4%);
   border: 1px solid rgba(255, 255, 255, 0.04);
 
@@ -2069,8 +2069,8 @@ const getPurchaseButtonText = (plan: any) => {
       height: 40px;
       border-radius: 20px;
       background: linear-gradient(90deg,
-        rgba(204, 166, 244, 1) 0%,
-        rgba(192, 126, 255, 1) 53%,
+          rgba(204, 166, 244, 1) 0%,
+          rgba(192, 126, 255, 1) 53%,
           rgba(204, 166, 244, 1) 99%);
       border: none !important;
       box-shadow: none !important;

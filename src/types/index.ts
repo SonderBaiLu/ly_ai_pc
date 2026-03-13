@@ -7,7 +7,7 @@
  * 通用接口返回结构（按后端规范：code/success/msg/data/extend）
  */
 export type ApiResponse<T = unknown> = {
-  code: string
+  code: string | number
   success?: boolean
   msg?: string
   data?: T
@@ -16,7 +16,7 @@ export type ApiResponse<T = unknown> = {
 
 /**
  * 创意模板/资产的宽松类型（按实际字段逐步收敛）
- * - 目前 `TemplateDetail.vue` 里仅做类型标注与索引访问，先用可选字段兜底
+ * - 目前 `CreativeDetail.vue` 里仅做类型标注与索引访问，先用可选字段兜底
  */
 export type CreativeTemplate = Record<string, any> & {
   id?: string | number

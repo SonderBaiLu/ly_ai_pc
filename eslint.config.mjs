@@ -3,6 +3,17 @@ import tseslint from '@typescript-eslint/eslint-plugin'
 import tsParser from '@typescript-eslint/parser'
 import vue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
+import { readFileSync } from 'node:fs'
+
+const autoImportGlobals = (() => {
+  try {
+    const raw = readFileSync(new URL('./.eslintrc-auto-import.json', import.meta.url), 'utf-8')
+    const json = JSON.parse(raw)
+    return json?.globals ?? {}
+  } catch {
+    return {}
+  }
+})()
 
 export default [
   {
@@ -28,6 +39,7 @@ export default [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         URL: 'readonly',
+        ...autoImportGlobals,
       },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -81,6 +93,7 @@ export default [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         URL: 'readonly',
+        ...autoImportGlobals,
       },
       parserOptions: {
         ecmaVersion: 'latest',

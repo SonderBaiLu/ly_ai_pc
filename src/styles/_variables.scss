@@ -1,8 +1,13 @@
 /* 全局颜色变量 */
 $color-primary: #96ddff;
 $color-primary-light: #70c5ed;
+$color-primary-dark: #17A0E1;
+
 
 /* 背景色 */
+$color-bg-yellow:#FFD700;
+$color-bg-red:#FF3B30;
+
 $color-bg-black: #000000;
 $color-bg-dark: #101010;
 $color-bg-dark-first: #1A1A1A;
@@ -17,9 +22,11 @@ $color-bg-light: #f9fafb;
 
 /* 文字颜色 */
 $color-text-white: #ffffff;
+$color-text-desc :#AAAAAA;
 $color-text-light: #D1D5DB;
 $color-text-gray: #9ca3af;
 $color-text-secondary: #6B7889;
+$color-text-tabs: #686D70;
 $color-text-placeholder: #6B7280;
 $color-text-three: #374151;
 $color-text-four: #4B5563;
@@ -30,6 +37,7 @@ $color-text-dark-secondary: #1F2937;
 
 /* 边框和分隔线 */
 $color-border: #1F2937;
+$color-border-light: #686D70;
 
 /* 字体大小变量 */
 $font-size-xs: 10px;
@@ -38,8 +46,11 @@ $font-size-md: 14px;
 $font-size-base: 16px;
 $font-size-lg: 18px;
 $font-size-xl: 20px;
+$font-size-xl-sm: 22px;
 $font-size-2xl: 24px;
+$font-size-2xl-lg: 30px;
 $font-size-3xl: 32px;
+$font-size-3xl-lg: 36px;
 $font-size-4xl: 48px;
 $font-size-5xl: 50px;
 $font-size-6xl: 60px;

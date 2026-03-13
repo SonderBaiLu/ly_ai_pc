@@ -1,24 +1,11 @@
 <template>
   <!-- 支付弹窗 -->
-  <el-dialog
-    v-model="dialogVisible"
-    width="420px"
-    class="vip-pay-dialog"
-    :show-close="false"
-    align-center
-    destroy-on-close
-    append-to-body
-  >
+  <el-dialog v-model="dialogVisible" width="420px" class="vip-pay-dialog" :show-close="false" align-center
+    destroy-on-close append-to-body>
     <template #header>
       <div class="vip-pay-header">
         <span class="vip-pay-title">{{ payDialogTitle || '月度会员' }}</span>
-        <img
-          :src="images.closePay"
-          alt=""
-          srcset=""
-          class="vip-pay-close-icon"
-          @click="closePayDialog"
-        />
+        <img :src="images.closePay" alt="" srcset="" class="vip-pay-close-icon" @click="closePayDialog" />
       </div>
     </template>
 
@@ -35,22 +22,13 @@
         <div class="agreement-name" @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">
           《潮推手付费服务协议》
         </div>
-        <el-button
-          class="agree-button"
-          type="primary"
-          :loading="isCreatingPayment"
-          @click="createVipPaymentOrder()"
-        >
+        <el-button class="agree-button" type="primary" :loading="isCreatingPayment" @click="createVipPaymentOrder()">
           同意并支付
         </el-button>
       </div>
 
       <!-- 步骤二：展示二维码 -->
-      <div
-        v-else
-        class="vip-pay-qrcode-wrapper"
-        @click="isQrCodeExpired ? createVipPaymentOrder() : null"
-      >
+      <div v-else class="vip-pay-qrcode-wrapper" @click="isQrCodeExpired ? createVipPaymentOrder() : null">
         <div class="vip-pay-qrcode">
           <img :src="payQrCode" alt="支付二维码" />
           <!-- 过期遮罩层 -->
@@ -260,9 +238,9 @@ const checkAlipayPayStatus = async () => {
 
   try {
     const res = await paymentApi.queryAlipayOrder(currentPayOrderId)
-    // 当 resp_code === 0 且 datas === 1 时，支付成功
-    const datas = res.datas as any
-    if (res.resp_code === 0 && datas === 1) {
+    // 当 code === '0000' 且 data === 1 时，支付成功
+    const data = res.data as any
+    if (res.code === '0000' && data === 1) {
       // 停止轮询
       clearPayTimer()
       currentPayOrderId = null
@@ -449,6 +427,7 @@ onBeforeUnmount(() => {
     box-sizing: border-box;
     font-size: var(--font-md);
     color: var(--text-primary);
+
     .agreement-text-top {
       margin-bottom: 8px;
     }
@@ -461,12 +440,10 @@ onBeforeUnmount(() => {
       width: 166px;
       height: 37px;
       border-radius: 12px 12px 12px 12px;
-      background: linear-gradient(
-        90deg,
-        rgba(204, 166, 244, 1) 0%,
-        rgba(192, 126, 255, 1) 53%,
-        rgba(204, 166, 244, 1) 99%
-      );
+      background: linear-gradient(90deg,
+          rgba(204, 166, 244, 1) 0%,
+          rgba(192, 126, 255, 1) 53%,
+          rgba(204, 166, 244, 1) 99%);
       font-size: var(--font-lg);
       font-weight: 600;
       color: var(--text-primary);

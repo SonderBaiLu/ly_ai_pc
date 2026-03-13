@@ -1,6 +1,8 @@
 import axios from 'axios'
-import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
+import type { ApiResponse } from '@/types'
+import { useModalStore } from '@/stores/modal'
 
 type OSType = 'iOS' | 'Android' | 'HarmonyOS' | 'Web' | 'WeChatMini'
 
@@ -150,46 +152,54 @@ const handleAuthExpired = () => {
 
   if (authExpiredTimer) clearTimeout(authExpiredTimer)
   authExpiredTimer = setTimeout(() => {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
+    // 102：打开登录弹窗（不跳转路由）
+    try {
+      const modalStore = useModalStore()
+      modalStore.openLoginModal()
+    } catch {
+      // ignore（极端情况下 pinia 未初始化）
     }
     isHandlingAuthExpired = false
     authExpiredTimer = null
   }, 0)
 }
 
-// 响应拦截器：统一返回 data，并处理登录过期/401
-request.interceptors.response.use(
-  (response: AxiosResponse) => {
-    const data = response.data
+// 响应拦截器：统一返回 ApiResponse（仅支持新结构），并处理登录过期/102
+;(request.interceptors.response as any).use(
+  (response: any) => {
+    const data = response?.data as ApiResponse<any> | undefined
 
-    // === 新版统一返回结构 ===
-    // { code: '0000'|'0102'|..., success: boolean, msg: string, data: any, extend?: any }
-    if (data && typeof data === 'object' && 'code' in data) {
-      const code = String((data as any).code ?? '')
-      const msg = String((data as any).msg ?? '')
-
-      // 成功：0000
-      if (code !== '0000') {
-        // 102：需要登录 -> 先按需求弹“暂未开放”（后续再替换为登录弹窗）
-        if (code === '102' || code === '0102') {
-          ElMessage.warning('暂未开放')
-          const authError: any = new Error(msg || 'Need Login')
-          authError.__AUTH_REQUIRED__ = true
-          authError.code = code
-          return Promise.reject(authError)
-        }
-
-        // 其他：统一弹 msg
-        ElMessage.error(msg || '请求失败')
-        const bizError: any = new Error(msg || 'Request Failed')
-        bizError.code = code
-        return Promise.reject(bizError)
-      }
+    // 只接受新结构：{ code, success, msg, data, extend }
+    if (!data || typeof data !== 'object' || !('code' in data)) {
+      ElMessage.error('接口返回结构异常')
+      const structError: any = new Error('Invalid API response structure')
+      structError.code = 'INVALID_RESPONSE'
+      return Promise.reject(structError)
     }
-    return data
+
+    const code = String((data as any).code ?? '')
+    const msg = String((data as any).msg ?? '')
+
+    if (code !== '0000') {
+      // 102：需要打开登录弹窗
+      if (code === '102') {
+        handleAuthExpired()
+        const authError: any = new Error(msg || 'Need Login')
+        authError.__AUTH_REQUIRED__ = true
+        authError.code = code
+        return Promise.reject(authError)
+      }
+
+      // 其他：统一弹 msg
+      ElMessage.error(msg || '请求失败')
+      const bizError: any = new Error(msg || 'Request Failed')
+      bizError.code = code
+      return Promise.reject(bizError)
+    }
+
+    return data as any
   },
-  (error) => {
+  (error: any) => {
     // HTTP 401：未授权
     if (error?.response?.status === 401) {
       // 支持单次请求禁用跳转

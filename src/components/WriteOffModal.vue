@@ -1,26 +1,18 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    :title="''"
-    width="800px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="true"
-    :show-close="false"
-    class="write-off-modal"
-    @close="handleClose"
-  >
+  <el-dialog v-model="dialogVisible" width="800px" :close-on-click-modal="false" :close-on-press-escape="true"
+    :show-close="false" class="write-off-modal" @close="handleClose">
     <div class="modal-header">
       <div class="header-title">删除账户</div>
       <div class="header-close" @click="handleClose">
-        <img :src="images.close3" alt="" />
+        <img :src="images.closeDialog" alt="" />
       </div>
     </div>
 
     <div class="modal-content">
       <div class="content-text">
-        将删除此账号在潮推手中所生成的视频、图片等创意资产，以及潮推手的剩余潮币和会员身份等。
+        将删除此账号在灵衍AI中所生成的创意资产，以及灵衍AI的剩余灵衍值和会员身份等。
         <br />
-        如确认注销账号，潮推手将为您开启15天注销冷静期，在此期间，您可以随时终止注销流程，恢复账号的资产与权益；如不进行其他操作，冷静期到后，潮推手将正式注销您的账号。注销账号将包含以下信息，请仔细确认:
+        如确认注销账号，灵衍AI将为您开启15天注销冷静期，在此期间，您可以随时终止注销流程，恢复账号的资产与权益；如不进行其他操作，冷静期到后，灵衍AI将正式注销您的账号。注销账号将包含以下信息，请仔细确认:
       </div>
 
       <div class="delete-list">
@@ -28,14 +20,14 @@
           <div class="delete-dot"></div>
           <div class="delete-content">
             <div class="delete-title">账号生成的数据</div>
-            <div class="delete-desc">在潮推手内生成的视频、图片等创意资产</div>
+            <div class="delete-desc">在灵衍AI内生成的创意资产</div>
           </div>
         </div>
         <div class="delete-item">
           <div class="delete-dot"></div>
           <div class="delete-content">
             <div class="delete-title">账号的基础数据</div>
-            <div class="delete-desc">潮推手的头像、用户昵称等</div>
+            <div class="delete-desc">灵衍AI的头像、用户昵称等</div>
           </div>
         </div>
         <div class="delete-item">
@@ -43,7 +35,9 @@
           <div class="delete-content">
             <div class="delete-title">账号相关权益</div>
             <div class="delete-desc">
-              当前账号在潮推手的剩余潮币值、会员身份等,剩余权益不支持退款与折现
+              当前账号在灵衍AI的剩余灵衍值、会员身份等，剩余权
+              <br />
+              益不支持退款与折现
             </div>
           </div>
         </div>
@@ -55,11 +49,7 @@
         </el-button>
         <div class="agreement-check">
           <label class="checkbox-label" @click="agreed = !agreed">
-            <img
-              :src="agreed ? images.checkedActive : images.checkedNo"
-              alt=""
-              class="checkbox-icon"
-            />
+            <img :src="agreed ? images.choose : images.chosseNo" alt="" class="checkbox-icon" />
             <span class="agreement-text">
               已阅读并同意
               <span class="agreement-link" @click.stop="goToAgreement">《账号注销协议》</span>
@@ -122,14 +112,14 @@ const handleConfirm = async () => {
 
   try {
     const res = await userApi.writeOff({ userId })
-    if (res.resp_code === 0) {
+    if (res.code === '0000') {
       ElMessage.success('注销申请已提交，15天冷静期后账号将被正式注销')
       // 退出登录
       await userStore.logout()
       router.push('/login')
       handleClose()
     } else {
-      ElMessage.error(res.resp_msg || '注销失败')
+      ElMessage.error(res.msg || '注销失败')
     }
   } catch (error) {
     console.error('注销账号失败:', error)
@@ -146,52 +136,58 @@ const handleClose = () => {
 <style lang="scss" scoped>
 .write-off-modal {
   position: relative;
-  color: var(--text-primary);
 
-  .header-title {
-    margin-bottom: var(--spacing-sm);
-    font-size: var(--font-4xl);
-    font-weight: bold;
-  }
+  .modal-header {
+    margin-bottom: $spacing-sm;
 
-  .header-close {
-    position: absolute;
-    top: 32px;
-    right: 32px;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    img {
-      width: 100%;
-      height: 100%;
+    .header-title {
+      font-size: $font-size-2xl-lg;
+      font-weight: bold;
+      font-family: NotoSans-bold;
+      color: $color-text-white;
+    }
+
+    .header-close {
+      position: absolute;
+      top: 32px;
+      right: 32px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+
+      img {
+        width: 100%;
+        height: 100%;
+      }
     }
   }
 
   .modal-content {
     .content-text {
-      font-size: var(--font-md);
-      line-height: 1.8;
-      margin-bottom: var(--spacing-xl);
+      font-size: $font-size-md;
+      line-height: 20px;
+      margin-bottom: $spacing-xl;
+      color: $color-text-white;
     }
 
     .delete-list {
-      background: var(--bg-card);
-      border-radius: var(---radius-lg);
-      padding: var(--spacing-lg);
-      margin-bottom: var(--spacing-xxl) var(--spacing-md);
+      background: $color-bg-dark-secondary;
+      border-radius: $border-radius-lg;
+      padding: 35px 16px 37px;
+      margin-bottom: 66px;
 
       .delete-item {
         display: flex;
         align-items: flex-start;
-        margin-bottom: var(--spacing-md);
+        margin-bottom: $spacing-xl;
 
         .delete-dot {
           width: 6px;
           height: 6px;
-          background: var(--text-yellow);
+          background: $color-bg-yellow;
           border-radius: 50%;
-          margin-right: var(--spacing-md);
-          margin-top: var(--spacing-sm);
+          margin-right: 9px;
+          margin-top: 8px;
           flex-shrink: 0;
         }
 
@@ -199,15 +195,15 @@ const handleClose = () => {
           flex: 1;
 
           .delete-title {
-            font-size: var(--font-lg);
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: var(--spacing-s);
+            font-family: NotoSans-regular;
+            font-size: $font-size-base;
+            color: $color-text-white;
+            margin-bottom: 10px;
           }
 
           .delete-desc {
-            font-size: var(--font-sm);
-            color: var(--text-gray);
+            font-size: $font-size-sm;
+            color: $color-text-desc;
           }
         }
       }
@@ -218,26 +214,25 @@ const handleClose = () => {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin-top: 80px;
 
       .confirm-btn {
         width: 204px;
         height: 50px;
-        margin-bottom: var(--spacing-md);
-        border-radius: var(--radius-lg);
-        background-color: var(--secondary-color);
+        margin-bottom: 14px;
+        border-radius: $border-radius-lg;
+        background-color: $color-bg-red;
         border: none;
-        font-size: var(--font-lg);
-        font-weight: 600;
+        font-size: $font-size-base;
+        color: $color-text-white;
+        font-family: NotoSans-regular;
 
         &:disabled {
-          background: var(--bg-disabled);
+          background-color: rgba($color-bg-red, 0.5);
           cursor: not-allowed;
         }
       }
 
       .agreement-check {
-        margin-bottom: var(--spacing-xl);
 
         .checkbox-label {
           display: flex;
@@ -246,19 +241,19 @@ const handleClose = () => {
           user-select: none;
 
           .checkbox-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: var(--spacing-sm);
+            width: 18px;
+            height: 18px;
+            margin-right: 9px;
             flex-shrink: 0;
             transition: all 0.2s ease;
           }
 
           .agreement-text {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: var(--font-md);
+            color: $color-text-white;
+            font-size: $font-size-md;
 
             .agreement-link {
-              color: var(--primary-color);
+              color: $color-primary;
               cursor: pointer;
             }
           }
@@ -271,16 +266,16 @@ const handleClose = () => {
 
 <style lang="scss">
 .el-dialog.write-off-modal {
-  // 居中样式已在全局样式中设置，无需重复
+  background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+  border: none;
+  font-family: -regular;
 
   .el-dialog__header {
     display: none;
   }
 
   .el-dialog__body {
-    background-color: var(--bg-third) !important;
-    border-radius: var(--radius-lg) !important;
-    padding: var(--spacing-3xl) var(--spacing-4xl) !important;
+    padding: 46px 48px 40px;
   }
 }
 </style>

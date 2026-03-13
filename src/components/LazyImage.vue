@@ -4,15 +4,8 @@
     <div v-if="isLoading" class="lazy-image-loading" :style="loadingStyle"></div>
 
     <!-- 实际图片 - 使用 el-image，只有 src 有值时才渲染 -->
-    <el-image
-      v-if="currentSrc"
-      :src="currentSrc"
-      :alt="alt"
-      :class="['lazy-image', { 'is-loaded': !isLoading }]"
-      :fit="objectFit"
-      @load="handleLoad"
-      @error="handleError"
-    >
+    <el-image v-if="currentSrc" :src="currentSrc" :alt="alt" :class="['lazy-image', { 'is-loaded': !isLoading }]"
+      :fit="objectFit" @load="handleLoad" @error="handleError">
       <template #placeholder>
         <!-- 占位符期间使用外层的 shimmer 动画，这里留空 -->
         <div class="el-image-placeholder"></div>
@@ -216,7 +209,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: var(--shimmer-bg, rgba(255, 255, 255, 0.05));
+  background-color: $color-bg-dark-secondary;
   z-index: 10;
 
   &::after {
@@ -226,14 +219,12 @@ onBeforeUnmount(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--shimmer-light, rgba(255, 255, 255, 0.1)) 20%,
-      var(--shimmer-bright, rgba(255, 255, 255, 0.2)) 50%,
-      var(--shimmer-light, rgba(255, 255, 255, 0.1)) 80%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg,
+        transparent 0%,
+        $color-bg-dark-secondary 20%,
+        $color-bg-dark-secondary 50%,
+        $color-bg-dark-secondary 80%,
+        transparent 100%);
     animation: shimmer 1.5s infinite;
     transform: translateX(-100%);
   }
@@ -245,7 +236,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+  background-color: $color-bg-dark-secondary;
+  border-radius: $border-radius-md;
 }
 
 .lazy-image {
@@ -292,6 +284,7 @@ onBeforeUnmount(() => {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }

@@ -1,15 +1,11 @@
 <template>
   <div class="infinite-scroll-loader">
-    <!-- 加载中 -->
-    <div v-if="showLoading" class="loading-container">
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ loadingText }}</span>
-    </div>
-
-    <!-- 加载更多提示 -->
-    <div v-if="showLoadingMore" class="loading-more">
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ loadingText }}</span>
+    <!-- 加载中（首次/加载更多同一套样式） -->
+    <div v-if="showLoadingUI" class="loading-container">
+      <el-icon class="is-loading">
+        <Loading />
+      </el-icon>
+      <span class="loading-text">{{ loadingText }}</span>
     </div>
 
     <!-- 没有更多数据 - END -->
@@ -19,7 +15,7 @@
 
     <!-- 空状态 -->
     <div v-if="showEmpty" class="empty-state">
-      <img :src="emptyImage" fit="contain" :style="{ width: imageSize, height: imageSize }" />
+      <img :src="emptyImage" fit="contain" :style="{ width: imageSize, height: 'auto' }" />
       <p class="empty-text">{{ emptyText }}</p>
     </div>
 
@@ -30,6 +26,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Loading } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 
@@ -64,25 +61,31 @@ const props = withDefaults(defineProps<Props>(), {
   minDataForEnd: 1,
   showLoadingState: true,
   showEmptyState: true,
-  loadingText: '加载中...',
-  noMoreText: 'END',
-  emptyText: '暂无内容',
+  loadingText: '',
+  noMoreText: '',
+  emptyText: '',
   emptyImage: images.noneData,
-  imageSize: '280px',
+  imageSize: '200px',
   showBackTop: true,
   backtopRight: 100,
   backtopBottom: 100,
 })
 
-// 自动判断：首次加载（loading 且 dataLength === 0）
-const showLoading = computed(() => {
-  return props.showLoadingState && props.loading && props.dataLength === 0
-})
+const { t } = useI18n()
 
-// 自动判断：加载更多（loading 且 dataLength > 0）
-const showLoadingMore = computed(() => {
-  return props.showLoadingState && props.loading && props.dataLength > 0
-})
+// 文案展示：优先用外部传入，其次用组件内的 i18n 默认
+const loadingText = computed(
+  () => props.loadingText || t('components.infiniteScrollLoader.loading'),
+)
+const noMoreText = computed(
+  () => props.noMoreText || t('components.infiniteScrollLoader.noMore'),
+)
+const emptyText = computed(
+  () => props.emptyText || t('components.infiniteScrollLoader.empty'),
+)
+
+// 加载中（首次加载/加载更多展示同一套UI）
+const showLoadingUI = computed(() => props.showLoadingState && props.loading)
 
 // 显示没有更多（END）
 const showNoMore = computed(() => {
@@ -98,86 +101,70 @@ const showEmpty = computed(() => {
 <style lang="scss" scoped>
 .infinite-scroll-loader {
   width: 100%;
-}
+  padding: $spacing-xl 0;
+  background: transparent;
+  font-size: $font-size-base;
+  color: $color-text-tabs;
 
-// 加载中（首次）
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xxl) 0;
-  color: var(--primary-color);
-  font-size: var(--font-sm);
+  // 加载中（首次）
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: $spacing-sm;
 
-  .el-icon {
-    font-size: 16px;
-    color: var(--primary-color);
-  }
-}
-
-// 加载更多
-.loading-more {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xl) 0;
-  color: var(--primary-color);
-  font-size: var(--font-sm);
-
-  .el-icon {
-    font-size: 16px;
-    color: var(--primary-color);
-  }
-}
-
-// 没有更多 - END
-.no-more {
-  text-align: center;
-  padding: var(--spacing-xl) 0;
-  color: var(--text-tertiary);
-  font-size: var(--font-sm);
-
-  span {
-    position: relative;
-
-    // 左右两条线
-    &::before,
-    &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 60px;
-      height: 1px;
-      background: var(--border-color);
+    .loading-text {
+      color: $color-primary;
     }
 
-    &::before {
-      right: 100%;
-      margin-right: var(--spacing-sm);
-    }
-
-    &::after {
-      left: 100%;
-      margin-left: var(--spacing-sm);
+    .el-icon {
+      color: $color-primary;
+      font-size: 22px;
     }
   }
-}
 
-// 空状态
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  padding: var(--spacing-xxl);
+  // 没有更多 - END
+  .no-more {
+    text-align: center;
 
-  .empty-text {
-    margin-top: var(--spacing-lg);
-    color: var(--text-placeholder);
-    font-size: var(--font-md);
+    span {
+      position: relative;
+
+      // 左右两条线
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 60px;
+        height: 1px;
+        background: $color-border-light;
+      }
+
+      &::before {
+        right: 100%;
+        margin-right: $spacing-sm;
+      }
+
+      &::after {
+        left: 100%;
+        margin-left: $spacing-sm;
+      }
+    }
+  }
+
+  // 空状态
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+
+    .empty-text {
+      margin-top: 23px;
+      color: $color-primary;
+    }
   }
 }
 </style>
