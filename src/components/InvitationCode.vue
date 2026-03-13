@@ -7,12 +7,10 @@
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
-
       <h2 class="title">Hi~欢迎填写灵衍AI邀请码</h2>
-
       <div class="input-group">
         <div class="icon-wrapper">
-          <img src="@/assets/images/login_popup/semidesign_emi_icons_link.png" alt="邀请码图标" width="22" height="22">
+          <img src="@/assets/images/login_popup/semi_design_emi_icons_link.png" alt="邀请码图标" width="22" height="22">
         </div>
         <div class="divider"></div>
         <input
@@ -22,7 +20,6 @@
             @keyup.enter="handleConfirm"
         />
       </div>
-
       <button class="confirm-btn" @click="handleConfirm">确认</button>
     </div>
   </div>
@@ -76,7 +73,7 @@ const handleConfirm = () => {
 
 .modal-card {
   position: relative;
-  width: 500px; /* 根据标注比例预估的总宽度 */
+  width: 500px;
   background: #ffffff;
   border-radius: 24px;
   padding: 93px 49px;

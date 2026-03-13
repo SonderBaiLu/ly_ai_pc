@@ -3,22 +3,18 @@
     <div class="login-modal">
       <div class="left-panel">
         <div class="brand-logo">
-          <!--TODO: 目前logo图标中包含文字，导致中英文切换 要修改图片增加服务器压力 考虑是否更换文字 重新设计log图标-->
           <span class="logo-icon">
             <img src="/src/assets/images/login_popup/ailog.png" alt="" />
           </span>
-          <!--
-                    <span class="logo-text">{{ t('LoginPopUpPage.title') || '灵衍AI' }}</span>
-          -->
         </div>
 
-        <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') || '登录即享专属礼遇' }}</h1>
+        <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle')  }}</h1>
 
         <div class="promo-box">
           <span class="promo-text">
-            {{ t('LoginPopUpPage.promoText') || '新用户注册免费赠送' }}
+            {{ t('LoginPopUpPage.promoText') }}
           </span>
-          <span class="promo-value">{{ t('LoginPopUpPage.promoValue') || '50灵衍值' }}</span>
+          <span class="promo-value">{{ t('LoginPopUpPage.promoValue')  }}</span>
         </div>
 
         <ul class="feature-list">
@@ -27,7 +23,7 @@
               <img src="/src/assets/images/login_popup/layered.png" alt="" />
             </span>
             <span>
-              {{ t('LoginPopUpPage.simplifyDesign') || '卸下设计繁琐，让每一份创意都能纯粹发光' }}
+              {{ t('LoginPopUpPage.simplifyDesign')  }}
             </span>
           </li>
           <li>
@@ -35,7 +31,7 @@
               <img src="/src/assets/images/login_popup/clothes.png" alt="" />
             </span>
             <span>
-              {{ t('LoginPopUpPage.aiEmpowerment') || '解锁AI设计全能力，守护你的每一份时尚热爱' }}
+              {{ t('LoginPopUpPage.aiEmpowerment') }}
             </span>
           </li>
           <li>
@@ -44,7 +40,7 @@
             </span>
             <span>
               {{
-                t('LoginPopUpPage.loginRewards') || '登录有礼，解锁潮流面料+专属设计工具，不负初心'
+                t('LoginPopUpPage.loginRewards')
               }}
             </span>
           </li>
@@ -52,7 +48,7 @@
             <span class="icon">
               <img src="/src/assets/images/login_popup/pen.png" alt="" />
             </span>
-            <span>{{ t('LoginPopUpPage.backToEssence') || '让设计回归本质，创作更轻松' }}</span>
+            <span>{{ t('LoginPopUpPage.backToEssence')}}</span>
           </li>
         </ul>
       </div>
@@ -66,14 +62,14 @@
             :class="{ active: accountType === 'personal' }"
             @click="accountType = 'personal'"
           >
-            个人登录
+            {{ t('LoginPopUpPage.personalLogin') }}
           </div>
           <div
             class="switch-item"
             :class="{ active: accountType === 'team' }"
             @click="accountType = 'team'"
           >
-            团队登录
+            {{ t('LoginPopUpPage.teamLogin') }}
           </div>
         </div>
 
@@ -83,14 +79,14 @@
             :class="{ active: loginMethod === 'qrcode' }"
             @click="loginMethod = 'qrcode'"
           >
-            扫码登录
+            {{t('LoginPopUpPage.scanToLogIn')}}
           </div>
           <div
             class="tab-item"
             :class="{ active: loginMethod === 'phone' }"
             @click="loginMethod = 'phone'"
           >
-            手机登录
+            {{t('LoginPopUpPage.mobileLogin')}}
           </div>
         </div>
 
@@ -104,35 +100,45 @@
                 <span class="wechat-icon">
                   <img src="@/assets/images/login_popup/weixin.png" alt="" />
                 </span>
-                <span>打开微信 扫一扫登录</span>
+                <span>{{t('LoginPopUpPage.wechatScanLogin')}}</span>
               </div>
-              <p class="sub-hint">扫码关注「灵衍AI」公众号完成登录</p>
+              <p class="sub-hint">
+                {{t('LoginPopUpPage.subHint')}}
+              </p>
             </div>
 
             <div class="invite-link-wrap qrcode-invite">
-              <a href="#" class="invite-link">填写邀请码注册</a>
+              <a href="#" class="invite-link">
+                {{t('LoginPopUpPage.inviteLink')}}
+              </a>
             </div>
           </div>
 
           <div v-if="accountType === 'personal' && loginMethod === 'phone'" class="form-section">
             <div class="input-block">
-              <label class="block-label">手机号</label>
+              <label class="block-label">
+                {{t('LoginPopUpPage.mobilePhoneNumber')}}
+              </label>
               <div class="input-wrapper phone-input-wrapper">
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
-                <input type="text" v-model="formData.phone" placeholder="请输入手机号" />
+                <input type="text" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')" />
               </div>
             </div>
 
             <div v-if="phoneLoginType === 'code'" class="input-block">
               <div class="label-row">
-                <label class="block-label">验证码</label>
-                <div class="mode-switch-btn" @click="phoneLoginType = 'password'">密码登录</div>
+                <label class="block-label">
+                  {{t('LoginPopUpPage.captcha')}}
+                </label>
+                <div class="mode-switch-btn" @click="phoneLoginType = 'password'">
+                  {{t('LoginPopUpPage.passwordLogin')}}
+                </div>
               </div>
               <div class="input-wrapper code-input-wrapper">
-                <input type="text" v-model="formData.code" placeholder="请输入验证码" />
+                <input type="text" v-model="formData.code" :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone">
-                  获取验证码
+                  {{t('LoginPopUpPage.getVerificationCode')}}
                 </button>
               </div>
             </div>
@@ -217,10 +223,10 @@
 
         <div class="footer-agreement">
           <div class="agreement">
-            注册登录即代表同意
-            <a href="#">《用户协议》</a>
-            和
-            <a href="#">《隐私政策》</a>
+            {{ t('LoginPopUpPage.agreement') }}
+            <a href="#">{{ t('LoginPopUpPage.userAgreement') }}</a>
+            {{ t('LoginPopUpPage.and') }}
+            <a href="#">{{ t('LoginPopUpPage.userPolicy') }}</a>
           </div>
         </div>
       </div>

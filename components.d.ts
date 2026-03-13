@@ -26,6 +26,7 @@ declare module 'vue' {
     InvitationCode: typeof import('./src/components/InvitationCode.vue')['default']
     LoginUser: typeof import('./src/components/LoginUser.vue')['default']
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
+    ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatsSection: typeof import('./src/sections/home/StatsSection.vue')['default']

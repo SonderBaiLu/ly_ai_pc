@@ -22,8 +22,12 @@ const routes: RouteRecordRaw[] = [
     name: 'InvitationCodeModal',
     component: () => import('@/components/InvitationCode.vue'),
   },
+  {
+    path: '/reset',
+    name: 'ResetPasswordModal',
+    component: () => import('@/components/ResetPassword.vue'),
+  },
 // --------------上面全是测试路由 -------------------------------------------------------------------
-
 ]
 
 const router = createRouter({
