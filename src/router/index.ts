@@ -17,6 +17,11 @@ const routes: RouteRecordRaw[] = [
       name: 'BindPhoneModal',
       component: () => import('@/components/BindPhoneModal.vue'),
     },
+  {
+    path: '/code',
+    name: 'InvitationCodeModal',
+    component: () => import('@/components/InvitationCode.vue'),
+  },
 // --------------上面全是测试路由 -------------------------------------------------------------------
 
 ]

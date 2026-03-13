@@ -11,7 +11,6 @@
         <h2>绑定手机</h2>
         <p class="subtitle">首次登陆将通过短信验证码绑定手机</p>
       </div>
-
       <div class="form-area">
         <div class="form-group">
           <label>手机号</label>
@@ -293,34 +292,3 @@ $transition: all 0.2s ease-in-out;
   }
 }
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

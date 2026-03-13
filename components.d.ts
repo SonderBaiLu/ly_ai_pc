@@ -23,6 +23,7 @@ declare module 'vue' {
     GallerySection: typeof import('./src/sections/home/GallerySection.vue')['default']
     Header: typeof import('./src/components/Header.vue')['default']
     HeroSection: typeof import('./src/sections/home/HeroSection.vue')['default']
+    InvitationCode: typeof import('./src/components/InvitationCode.vue')['default']
     LoginUser: typeof import('./src/components/LoginUser.vue')['default']
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
