@@ -2,7 +2,7 @@
   <el-dialog v-model="dialogVisible" width="800px" :close-on-click-modal="false" :close-on-press-escape="true"
     :show-close="false" class="write-off-modal" @close="handleClose">
     <div class="modal-header">
-      <div class="header-title">删除账户</div>
+      <div class="header-title">{{ t('writeOffModal.title') }}</div>
       <div class="header-close" @click="handleClose">
         <img :src="images.closeDialog" alt="" />
       </div>
@@ -10,34 +10,42 @@
 
     <div class="modal-content">
       <div class="content-text">
-        将删除此账号在灵衍AI中所生成的创意资产，以及灵衍AI的剩余灵衍值和会员身份等。
+        {{ t('writeOffModal.desc1') }}
         <br />
-        如确认注销账号，灵衍AI将为您开启15天注销冷静期，在此期间，您可以随时终止注销流程，恢复账号的资产与权益；如不进行其他操作，冷静期到后，灵衍AI将正式注销您的账号。注销账号将包含以下信息，请仔细确认:
+        {{ t('writeOffModal.desc2') }}
       </div>
 
       <div class="delete-list">
         <div class="delete-item">
           <div class="delete-dot"></div>
           <div class="delete-content">
-            <div class="delete-title">账号生成的数据</div>
-            <div class="delete-desc">在灵衍AI内生成的创意资产</div>
-          </div>
-        </div>
-        <div class="delete-item">
-          <div class="delete-dot"></div>
-          <div class="delete-content">
-            <div class="delete-title">账号的基础数据</div>
-            <div class="delete-desc">灵衍AI的头像、用户昵称等</div>
-          </div>
-        </div>
-        <div class="delete-item">
-          <div class="delete-dot"></div>
-          <div class="delete-content">
-            <div class="delete-title">账号相关权益</div>
+            <div class="delete-title">
+              {{ t('writeOffModal.item1Title') }}
+            </div>
             <div class="delete-desc">
-              当前账号在灵衍AI的剩余灵衍值、会员身份等，剩余权
-              <br />
-              益不支持退款与折现
+              {{ t('writeOffModal.item1Desc') }}
+            </div>
+          </div>
+        </div>
+        <div class="delete-item">
+          <div class="delete-dot"></div>
+          <div class="delete-content">
+            <div class="delete-title">
+              {{ t('writeOffModal.item2Title') }}
+            </div>
+            <div class="delete-desc">
+              {{ t('writeOffModal.item2Desc') }}
+            </div>
+          </div>
+        </div>
+        <div class="delete-item">
+          <div class="delete-dot"></div>
+          <div class="delete-content">
+            <div class="delete-title">
+              {{ t('writeOffModal.item3Title') }}
+            </div>
+            <div class="delete-desc">
+              {{ t('writeOffModal.item3DescLine1') }}
             </div>
           </div>
         </div>
@@ -45,14 +53,16 @@
 
       <div class="modal-footer">
         <el-button type="danger" class="confirm-btn" :disabled="!agreed" @click="handleConfirm">
-          确认注销
+          {{ t('writeOffModal.confirmButton') }}
         </el-button>
         <div class="agreement-check">
           <label class="checkbox-label" @click="agreed = !agreed">
             <img :src="agreed ? images.choose : images.chosseNo" alt="" class="checkbox-icon" />
             <span class="agreement-text">
-              已阅读并同意
-              <span class="agreement-link" @click.stop="goToAgreement">《账号注销协议》</span>
+              {{ t('writeOffModal.agreementPrefix') }}
+              <span class="agreement-link" @click.stop="goToAgreement">
+                {{ t('writeOffModal.agreementLink') }}
+              </span>
             </span>
           </label>
         </div>
@@ -63,11 +73,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import { images } from '@/assets'
+
+const { t } = useI18n()
 
 interface Props {
   modelValue: boolean
@@ -100,30 +113,30 @@ const goToAgreement = () => {
 // 确认注销
 const handleConfirm = async () => {
   if (!agreed.value) {
-    ElMessage.warning('请先阅读并同意《账号注销协议》')
+    ElMessage.warning(t('writeOffModal.msgNeedAgree'))
     return
   }
 
   const userId = userStore.userInfo?.userId
   if (!userId) {
-    ElMessage.warning('用户信息不存在')
+    ElMessage.warning(t('writeOffModal.msgNoUser'))
     return
   }
 
   try {
     const res = await userApi.writeOff({ userId })
     if (res.code === '0000') {
-      ElMessage.success('注销申请已提交，15天冷静期后账号将被正式注销')
+      ElMessage.success(t('writeOffModal.msgSuccess'))
       // 退出登录
       await userStore.logout()
       router.push('/login')
       handleClose()
     } else {
-      ElMessage.error(res.msg || '注销失败')
+      ElMessage.error(res.msg || t('writeOffModal.msgFail'))
     }
   } catch (error) {
     console.error('注销账号失败:', error)
-    ElMessage.error('注销失败，请重试')
+    ElMessage.error(t('writeOffModal.msgError'))
   }
 }
 
