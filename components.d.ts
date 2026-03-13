@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BindPhoneModal: typeof import('./src/components/BindPhoneModal.vue')['default']
     ContactModal: typeof import('./src/components/ContactModal.vue')['default']
     CreativeDescription: typeof import('./src/components/CreativeDescription.vue')['default']
     CtaSection: typeof import('./src/components/CtaSection.vue')['default']
@@ -48,6 +49,7 @@ declare module 'vue' {
     ImageUploadArea: typeof import('./src/components/ImageUploadArea.vue')['default']
     InfiniteScrollLoader: typeof import('./src/components/InfiniteScrollLoader.vue')['default']
     InspirationValueModal: typeof import('./src/components/InspirationValueModal.vue')['default']
+    InvitationCode: typeof import('./src/components/InvitationCode.vue')['default']
     LazyImage: typeof import('./src/components/LazyImage.vue')['default']
     LoginUser: typeof import('./src/components/LoginUser.vue')['default']
     MainImageDisplay: typeof import('./src/components/MainImageDisplay.vue')['default']
@@ -57,6 +59,7 @@ declare module 'vue' {
     ParameterSelectModal: typeof import('./src/components/ParameterSelectModal.vue')['default']
     PaymentModal: typeof import('./src/components/PaymentModal.vue')['default']
     PersonalSettingsModal: typeof import('./src/components/PersonalSettingsModal.vue')['default']
+    ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatsSection: typeof import('./src/sections/home/StatsSection.vue')['default']

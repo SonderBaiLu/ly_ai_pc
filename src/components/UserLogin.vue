@@ -3,44 +3,50 @@
     <div class="login-modal">
       <div class="left-panel">
         <div class="brand-logo">
-          <!--          TODO: 目前logo图标中包含文字，导致中英文切换 要修改图片增加服务器压力 考虑是否更换文字 重新设计log图标-->
-          <span class="logo-icon"><img src="/src/assets/images/LoginPop-Up/灵衍AIlog.png" alt="" /></span>
-          <!--
-                    <span class="logo-text">{{ t('LoginPopUpPage.title') || '灵衍AI' }}</span>
-          -->
+          <span class="logo-icon">
+            <img src="/src/assets/images/login_popup/ailog.png" alt="" />
+          </span>
         </div>
 
-        <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') || '登录即享专属礼遇' }}</h1>
+        <h1 class="main-title">
+          {{ t('LoginPopUpPage.mainTitle') }}
+        </h1>
 
         <div class="promo-box">
-          <span class="promo-text">{{ t('LoginPopUpPage.promoText') || '新用户注册免费赠送' }}</span>
-          <span class="promo-value">{{ t('LoginPopUpPage.promoValue') || '50灵衍值' }}</span>
+          <span class="promo-text">
+            {{ t('LoginPopUpPage.promoText') }}
+          </span>
+          <span class="promo-value">
+            {{ t('LoginPopUpPage.promoValue') }}
+          </span>
         </div>
 
         <ul class="feature-list">
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Layered.png" alt="" />
+              <img src="/src/assets/images/login_popup/layered.png" alt="" />
             </span>
-            <span>{{ t('LoginPopUpPage.simplifyDesign') || '卸下设计繁琐，让每一份创意都能纯粹发光' }}</span>
+            <span>{{ t('LoginPopUpPage.simplifyDesign') }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Clothes.png" alt="" />
+              <img src="/src/assets/images/login_popup/clothes.png" alt="" />
             </span>
-            <span>{{ t('LoginPopUpPage.aiEmpowerment') || '解锁AI设计全能力，守护你的每一份时尚热爱' }}</span>
+            <span>{{ t('LoginPopUpPage.aiEmpowerment') }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Shopping_cart.png" alt="" />
+              <img src="/src/assets/images/login_popup/shopping.png" alt="" />
             </span>
-            <span>{{ t('LoginPopUpPage.loginRewards') || '登录有礼，解锁潮流面料+专属设计工具，不负初心' }}</span>
+            <span>
+              {{ t('LoginPopUpPage.loginRewards') }}
+            </span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/LoginPop-Up/Pen.png" alt="" />
+              <img src="/src/assets/images/login_popup/pen.png" alt="" />
             </span>
-            <span>{{ t('LoginPopUpPage.backToEssence') || '让设计回归本质，创作更轻松' }}</span>
+            <span>{{ t('LoginPopUpPage.backToEssence') }}</span>
           </li>
         </ul>
       </div>
@@ -50,56 +56,75 @@
 
         <div class="account-type-switch" :class="accountType">
           <div class="switch-item" :class="{ active: accountType === 'personal' }" @click="accountType = 'personal'">
-            个人登录
+            {{ t('LoginPopUpPage.personalLogin') }}
           </div>
-          <div class="switch-item" :class="{ active: accountType === 'team' }" @click="accountType = 'team'">团队登录
+          <div class="switch-item" :class="{ active: accountType === 'team' }" @click="accountType = 'team'">
+            {{ t('LoginPopUpPage.teamLogin') }}
           </div>
         </div>
 
         <div v-if="accountType === 'personal'" class="login-method-tabs" :class="loginMethod">
-          <div class="tab-item" :class="{ active: loginMethod === 'qrcode' }" @click="loginMethod = 'qrcode'">扫码登录
+          <div class="tab-item" :class="{ active: loginMethod === 'qrcode' }" @click="loginMethod = 'qrcode'">
+            {{ t('LoginPopUpPage.scanToLogIn') }}
           </div>
-          <div class="tab-item" :class="{ active: loginMethod === 'phone' }" @click="loginMethod = 'phone'">手机登录
+          <div class="tab-item" :class="{ active: loginMethod === 'phone' }" @click="loginMethod = 'phone'">
+            {{ t('LoginPopUpPage.mobileLogin') }}
           </div>
         </div>
 
         <div class="method-content">
-
+          <!-- 扫码登录 -->
           <div v-if="accountType === 'personal' && loginMethod === 'qrcode'" class="qrcode-section">
             <div class="qrcode-container">
               <div class="qrcode-placeholder"></div>
             </div>
             <div class="qrcode-instruction">
               <div class="wechat-hint">
-                <span class="wechat-icon">💬</span>
-                <span>打开微信 扫一扫登录</span>
+                <span class="wechat-icon">
+                  <img src="@/assets/images/login_popup/weixin.png" alt="" />
+                </span>
+                <span>{{ t('LoginPopUpPage.wechatScanLogin') }}</span>
               </div>
-              <p class="sub-hint">扫码关注「灵衍AI」公众号完成登录</p>
+              <p class="sub-hint">
+                {{ t('LoginPopUpPage.subHint') }}
+              </p>
             </div>
 
             <div class="invite-link-wrap qrcode-invite">
-              <a href="#" class="invite-link">填写邀请码注册</a>
+              <a href="#" class="invite-link">
+                {{ t('LoginPopUpPage.inviteLink') }}
+              </a>
             </div>
           </div>
 
+          <!-- 手机号登录 -->
           <div v-if="accountType === 'personal' && loginMethod === 'phone'" class="form-section">
             <div class="input-block">
-              <label class="block-label">手机号</label>
+              <label class="block-label">
+                {{ t('LoginPopUpPage.mobilePhoneNumber') }}
+              </label>
               <div class="input-wrapper phone-input-wrapper">
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
-                <input type="text" v-model="formData.phone" placeholder="请输入手机号" />
+                <input type="text" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')" />
               </div>
             </div>
 
             <div v-if="phoneLoginType === 'code'" class="input-block">
               <div class="label-row">
-                <label class="block-label">验证码</label>
-                <div class="mode-switch-btn" @click="phoneLoginType = 'password'">密码登录</div>
+                <label class="block-label">
+                  {{ t('LoginPopUpPage.captcha') }}
+                </label>
+                <div class="mode-switch-btn" @click="phoneLoginType = 'password'">
+                  {{ t('LoginPopUpPage.passwordLogin') }}
+                </div>
               </div>
               <div class="input-wrapper code-input-wrapper">
-                <input type="text" v-model="formData.code" placeholder="请输入验证码" />
-                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone">获取验证码</button>
+                <input type="text" v-model="formData.code"
+                  :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
+                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone">
+                  {{ t('LoginPopUpPage.getVerificationCode') }}
+                </button>
               </div>
             </div>
 
@@ -107,7 +132,9 @@
               <div class="label-row">
                 <label class="block-label">密码</label>
                 <div class="link-group">
-                  <a href="#" class="action-link" @click.prevent="phoneLoginType = 'code'">验证码登录</a>
+                  <a href="#" class="action-link" @click.prevent="phoneLoginType = 'code'">
+                    验证码登录
+                  </a>
                   <span class="link-divider"></span>
                   <a href="#" class="action-link">忘记密码?</a>
                 </div>
@@ -133,6 +160,7 @@
             <button class="submit-btn" @click="handleSubmit">登录/注册</button>
           </div>
 
+          <!-- 团队登录 -->
           <div v-if="accountType === 'team'" class="form-section team-form-section">
             <div class="input-block">
               <label class="block-label">账号名</label>
@@ -156,17 +184,23 @@
                   </svg>
                 </span>
               </div>
-              <div v-if="formError" class="error-text">密码错误，还剩余5次机会，请重新输入</div>
+              <div v-if="formError" class="error-text">
+                密码错误，还剩余5次机会，请重新输入
+              </div>
             </div>
 
-            <button class="submit-btn team-submit-btn" @click="handleTeamSubmit">登录</button>
+            <button class="submit-btn team-submit-btn" @click="handleTeamSubmit">
+              登录
+            </button>
           </div>
-
         </div>
 
         <div class="footer-agreement">
           <div class="agreement">
-            注册登录即代表同意 <a href="#">《用户协议》</a> 和 <a href="#">《隐私政策》</a>
+            {{ t('LoginPopUpPage.agreement') }}
+            <a href="#">{{ t('LoginPopUpPage.userAgreement') }}</a>
+            {{ t('LoginPopUpPage.and') }}
+            <a href="#">{{ t('LoginPopUpPage.userPolicy') }}</a>
           </div>
         </div>
       </div>
@@ -175,23 +209,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import { useI18n } from "vue-i18n";
+import { ref, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n();
-const emit = defineEmits(['close']);
+const { t } = useI18n()
+const emit = defineEmits(['close'])
 
 // 基础状态
-const accountType = ref<'personal' | 'team'>('personal');
-const loginMethod = ref<'qrcode' | 'phone'>('phone'); // 测试默认设为phone看效果
-const phoneLoginType = ref<'code' | 'password'>('code'); // code (验证码) | password (密码)
+const accountType = ref<'personal' | 'team'>('personal')
+const loginMethod = ref<'qrcode' | 'phone'>('phone') // 默认 phone
+const phoneLoginType = ref<'code' | 'password'>('code') // code (验证码) | password (密码)
 
 // 密码显示切换状态
-const showPersonalPwd = ref(false);
-const showTeamPwd = ref(false);
+const showPersonalPwd = ref(false)
+const showTeamPwd = ref(false)
 
 // 错误提示状态（示例）
-const formError = ref(false);
+const formError = ref(false)
 
 // 表单数据
 const formData = reactive({
@@ -199,38 +233,34 @@ const formData = reactive({
   code: '',
   password: '',
   teamAccount: '',
-  teamPassword: ''
-});
+  teamPassword: '',
+})
 
 const GetSmSCode = () => {
-  ElMessage.success(formData.phone);
-};
+  ElMessage.success(formData.phone)
+}
 
 const handleClose = () => {
-  emit('close');
-};
+  emit('close')
+}
 
 const handleSubmit = () => {
   console.log('个人登录提交:', {
     phone: formData.phone,
     code: formData.code,
     password: formData.password,
-    type: phoneLoginType.value
-  });
-};
+    type: phoneLoginType.value,
+  })
+}
 
 const handleTeamSubmit = () => {
   console.log('团队登录提交:', {
     account: formData.teamAccount,
-    password: formData.teamPassword
-  });
+    password: formData.teamPassword,
+  })
   // 模拟验证失败
-  if (formData.teamPassword !== '123456') {
-    formError.value = true;
-  } else {
-    formError.value = false;
-  }
-};
+  formError.value = formData.teamPassword !== '123456'
+}
 </script>
 
 <style scoped lang="scss">
@@ -254,13 +284,12 @@ const handleTeamSubmit = () => {
 
 /* --- 左侧面板 --- */
 .left-panel {
-  /*  */
   width: 592px;
   min-height: 627px;
-  background: linear-gradient(135deg, rgba(30, 58, 138, 1) 14.6%, rgba(109, 40, 217, 1) 85.4%);
   border-radius: 24px;
-
-  /* 关键修改：移除统一的 padding，仅保留顶部初始距离，并开启 box-sizing */
+  background: linear-gradient(135deg,
+      rgba(30, 58, 138, 1) 14.6%,
+      rgba(109, 40, 217, 1) 85.4%);
   padding-top: 20px;
   box-sizing: border-box;
 
@@ -282,6 +311,12 @@ const handleTeamSubmit = () => {
     .logo-icon {
       width: 136px;
       height: 54px;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
     }
   }
 
@@ -382,7 +417,7 @@ const handleTeamSubmit = () => {
 /* 顶部开关 */
 .account-type-switch {
   display: flex;
-  background: #F1F4F9;
+  background: #f1f4f9;
   border-radius: 30px;
   padding: 4px;
   align-self: center;
@@ -399,15 +434,13 @@ const handleTeamSubmit = () => {
     width: calc(50% - 4px);
     /* 一半的宽度 */
     height: calc(100% - 8px);
-    background: #4A85F6;
+    background: #4a85f6;
     border-radius: 25px;
     box-shadow: 0 4px 10px rgba(74, 133, 246, 0.2);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    /* 平滑过渡曲线 */
     z-index: -1;
   }
 
-  /* 状态判断：如果是团队登录，滑块向右平移 100% 的自身宽度 */
   &.team::before {
     transform: translateX(100%);
   }
@@ -416,7 +449,7 @@ const handleTeamSubmit = () => {
     padding: 8px 30px;
     border-radius: 25px;
     font-size: 14px;
-    color: #8E97A7;
+    color: #8e97a7;
     cursor: pointer;
     transition: color 0.3s ease;
 
@@ -431,7 +464,7 @@ const handleTeamSubmit = () => {
   display: flex;
   justify-content: center;
   gap: 60px;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid #f0f0f0;
   margin-bottom: 30px;
   position: relative;
 
@@ -441,15 +474,13 @@ const handleTeamSubmit = () => {
     bottom: -1px;
     left: 50%;
     margin-left: -32px;
-    /* 居中 (64px 宽度的字大 约占 64px, 一半是 32px) */
     width: 64px;
     height: 3px;
-    background: #3BB1FF;
+    background: #3bb1ff;
     border-radius: 2px;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* 精确控制下划线的位置 (60px gap的一半是30，加上文字一半宽度32，所以平移62px) */
   &.qrcode::after {
     transform: translateX(-62px);
   }
@@ -466,13 +497,12 @@ const handleTeamSubmit = () => {
     transition: color 0.3s ease;
 
     &.active {
-      color: #3BB1FF;
+      color: #3bb1ff;
       font-weight: 600;
     }
   }
 }
 
-/* 内容区域 */
 @keyframes formFadeIn {
   from {
     opacity: 0;
@@ -507,7 +537,7 @@ const handleTeamSubmit = () => {
   .qrcode-container {
     width: 200px;
     height: 200px;
-    border: 1px solid #3BB1FF;
+    border: 1px solid #3bb1ff;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -530,8 +560,14 @@ const handleTeamSubmit = () => {
       margin-bottom: 8px;
 
       .wechat-icon {
-        color: #07C160;
+        color: #07c160;
         font-size: 18px;
+
+        img {
+          width: 18px;
+          /* 垂直居中 因为字体与图片不对齐，给图标设置内边距对其字体 */
+          padding-bottom: 4px;
+        }
       }
     }
 
@@ -542,13 +578,11 @@ const handleTeamSubmit = () => {
   }
 }
 
-/* ====== 表单通用样式 ====== */
+/* 表单通用样式 */
 .form-section {
   width: 328px;
-  /* 限制表单整体宽度328px */
   margin: 0 auto;
 
-  /* 让表单在右侧面板中水平居中 */
   .input-block {
     margin-bottom: 20px;
 
@@ -572,7 +606,7 @@ const handleTeamSubmit = () => {
       .mode-switch-btn {
         font-size: 12px;
         color: #999;
-        background-color: #F2F2F2;
+        background-color: #f2f2f2;
         padding: 4px 10px;
         border-radius: 4px;
         cursor: pointer;
@@ -581,7 +615,7 @@ const handleTeamSubmit = () => {
         user-select: none;
 
         &:hover {
-          background-color: #E5E5E5;
+          background-color: #e5e5e5;
           /* 鼠标悬浮背景变色 */
           color: #666;
         }
@@ -601,12 +635,11 @@ const handleTeamSubmit = () => {
 
       .action-link {
         font-size: 12px;
-
         color: #999;
         text-decoration: none;
 
         &:hover {
-          color: #3BB1FF;
+          color: #3bb1ff;
         }
       }
     }
@@ -615,18 +648,18 @@ const handleTeamSubmit = () => {
       position: relative;
       display: flex;
       align-items: center;
-      border: 1px solid #E5E7EB;
+      border: 1px solid #e5e7eb;
       border-radius: 8px;
       height: 49px;
       padding: 0 16px;
       transition: 0.3s;
 
       &:focus-within {
-        border-color: #3BB1FF;
+        border-color: #3bb1ff;
       }
 
       &.has-error {
-        border-color: #FF4D4F;
+        border-color: #ff4d4f;
       }
 
       input {
@@ -638,7 +671,7 @@ const handleTeamSubmit = () => {
         color: #333;
 
         &::placeholder {
-          color: #CCC;
+          color: #ccc;
         }
       }
 
@@ -655,7 +688,7 @@ const handleTeamSubmit = () => {
     }
 
     .error-text {
-      color: #FF4D4F;
+      color: #ff4d4f;
       font-size: 12px;
       margin-top: 6px;
     }
@@ -664,10 +697,10 @@ const handleTeamSubmit = () => {
   /* 特定输入框覆盖 */
   .phone-input-wrapper {
     margin-bottom: 24px;
-
     /* 手机号的input和验证码input之间的间距 */
+
     .country-code {
-      color: #ADB3BD;
+      color: #adb3bd;
       font-weight: 500;
       font-size: 14px;
     }
@@ -675,18 +708,17 @@ const handleTeamSubmit = () => {
     .divider {
       width: 1px;
       height: 16px;
-      background: #EEE;
+      background: #eee;
       margin: 0 12px;
     }
-
   }
 
   .code-input-wrapper {
     padding-right: 6px;
 
     .get-code-btn {
-      background: #E8F4FF;
-      color: #3BB1FF;
+      background: #e8f4ff;
+      color: #3bb1ff;
       border: none;
       padding: 6px 14px;
       border-radius: 6px;
@@ -694,28 +726,16 @@ const handleTeamSubmit = () => {
       cursor: pointer;
 
       &:disabled {
-        background: #F5F5F5;
-        color: #CCC;
+        background: #f5f5f5;
+        color: #ccc;
       }
-    }
-  }
-
-  .invite-link-wrap {
-    text-align: center;
-    margin: 10px 0 20px 0;
-
-    .invite-link {
-      color: #3BB1FF;
-      text-decoration: none;
-      font-size: 16px;
-      font-weight: 600;
     }
   }
 
   .submit-btn {
     width: 100%;
     height: 48px;
-    background: #0D2139;
+    background: #0d2139;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -729,7 +749,25 @@ const handleTeamSubmit = () => {
   }
 }
 
-/* 团队登录特化调整 */
+/* 手机号登录 和 扫码登录 "填写邀请码注册"  */
+.invite-link-wrap {
+  text-align: center;
+  margin: 10px 0 20px 0;
+
+  .invite-link {
+    color: #3bb1ff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: justify;
+    border-radius: 24px;
+    background-color: #fff;
+    padding: 4px 12px;
+    display: inline-block;
+  }
+}
+
+/* 团队登录 */
 .team-form-section {
   margin-top: 10px;
 
@@ -738,7 +776,7 @@ const handleTeamSubmit = () => {
   }
 }
 
-/* ====== 底部协议 ====== */
+/* 底部协议 */
 .footer-agreement {
   margin-top: auto;
   text-align: center;
@@ -749,7 +787,7 @@ const handleTeamSubmit = () => {
     color: #999;
 
     a {
-      color: #3BB1FF;
+      color: #3bb1ff;
     }
   }
 }

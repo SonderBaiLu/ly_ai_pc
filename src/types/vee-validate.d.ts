@@ -1,0 +1,2 @@
+declare module 'vee-validate';
+
