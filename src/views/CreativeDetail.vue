@@ -148,7 +148,7 @@
 
             <!-- AI试衣-人台图 => 正面/背面-->
             <!-- 人台图 正面-->
-            <img v-if="requestParams.mannequinFrontUrl" :src="requestParams.mannequinFrontUrl" />
+            <img v-if="requestParams.mannequinFrontUrl" :src="requestParams.mannequinFrontUrl"  />
             <!-- 人台图 背面 -->
             <img v-if="requestParams.mannequinBackUrl" :src="requestParams.mannequinBackUrl" />
           </div>

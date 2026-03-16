@@ -4,7 +4,7 @@
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
-            <img src="/src/assets/images/login_popup/ailog.png" alt="" />
+            <img src="/src/assets/images/login_popup/ailog.png" alt=""/>
           </span>
         </div>
 
@@ -24,19 +24,19 @@
         <ul class="feature-list">
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/layered.png" alt="" />
+              <img src="/src/assets/images/login_popup/layered.png" alt=""/>
             </span>
             <span>{{ t('LoginPopUpPage.simplifyDesign') }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/clothes.png" alt="" />
+              <img src="/src/assets/images/login_popup/clothes.png" alt=""/>
             </span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/shopping.png" alt="" />
+              <img src="/src/assets/images/login_popup/shopping.png" alt=""/>
             </span>
             <span>
               {{ t('LoginPopUpPage.loginRewards') }}
@@ -44,7 +44,7 @@
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/pen.png" alt="" />
+              <img src="/src/assets/images/login_popup/pen.png" alt=""/>
             </span>
             <span>{{ t('LoginPopUpPage.backToEssence') }}</span>
           </li>
@@ -81,7 +81,7 @@
             <div class="qrcode-instruction">
               <div class="wechat-hint">
                 <span class="wechat-icon">
-                  <img src="@/assets/images/login_popup/weixin.png" alt="" />
+                  <img src="@/assets/images/login_popup/weixin.png" alt=""/>
                 </span>
                 <span>{{ t('LoginPopUpPage.wechatScanLogin') }}</span>
               </div>
@@ -107,7 +107,7 @@
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
                 <input type="tel" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')"
-                  maxlength="11" @input="handlePhoneInput" />
+                       maxlength="11" @input="handlePhoneInput"/>
               </div>
             </div>
 
@@ -122,12 +122,12 @@
               </div>
               <div class="input-wrapper code-input-wrapper">
                 <input type="text" v-model="formData.code"
-                  :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
+                       :placeholder="t('LoginPopUpPage.enterTheVerificationCode')"/>
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
                   {{
                     isCounting
-                      ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
-                      : t('LoginPopUpPage.getVerificationCode')
+                        ? t('LoginPopUpPage.smsCountdown', {seconds: countdown})
+                        : t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
               </div>
@@ -150,9 +150,9 @@
               </div>
               <div class="input-wrapper">
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
-                  :placeholder="t('LoginPopUpPage.passwordPlaceholder')" />
+                       :placeholder="t('LoginPopUpPage.passwordPlaceholder')"/>
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
+                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img"/>
                 </span>
               </div>
             </div>
@@ -175,7 +175,7 @@
               </label>
               <div class="input-wrapper">
                 <input type="text" v-model="formData.teamAccount"
-                  :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')" />
+                       :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')"/>
               </div>
             </div>
 
@@ -185,9 +185,9 @@
               </label>
               <div class="input-wrapper" :class="{ 'has-error': formError }">
                 <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
-                  :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" />
+                       :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')"/>
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
-                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
+                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img"/>
                 </span>
               </div>
               <div v-if="formError" class="error-text">
@@ -215,26 +215,24 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-import { images } from '@/assets'
-import { loginBySmsCodeApi, getSmsCodeApi } from '@/api/userLogin'
+import {useI18n} from 'vue-i18n'
+import {ElMessage} from 'element-plus'
+import {images} from '@/assets'
+import {getSmsCodeApi} from '@/api/userLogin'
+import {useUserStore} from "@/stores/user"
 
-const { t } = useI18n()
+const userStore = useUserStore()
+const {t} = useI18n()
 const emit = defineEmits(['close'])
-
 // 基础状态
 const accountType = ref<'personal' | 'team'>('personal')
-const loginMethod = ref<'qrcode' | 'phone'>('phone') // 默认 phone
-const phoneLoginType = ref<'code' | 'password'>('code') // code (验证码) | password (密码)
-
+const loginMethod = ref<'qrcode' | 'phone'>('phone')
+const phoneLoginType = ref<'code' | 'password'>('code')
 // 密码显示切换状态
 const showPersonalPwd = ref(false)
 const showTeamPwd = ref(false)
-
-// 错误提示状态（示例）
+// 错误提示状态
 const formError = ref(false)
-
 // 表单数据
 const formData = reactive({
   phone: '',
@@ -243,51 +241,41 @@ const formData = reactive({
   teamAccount: '',
   teamPassword: '',
 })
-
 // 限制手机号只允许数字且最长 11 位
 const handlePhoneInput = () => {
   formData.phone = formData.phone.replace(/\D/g, '').slice(0, 11)
 }
-
 // 短信验证码倒计时
 const isCounting = ref(false)
 const countdown = ref(120)
 let smsTimer: ReturnType<typeof setInterval> | null = null
-
-// 获取短信验证码
 const GetSmSCode = async () => {
-  if (!formData.phone) {
+  const mobile = Number(formData.phone)
+  if (!formData.phone || !Number.isInteger(mobile)) {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
     return
   }
+
   try {
-    // 后端入参为 number，这里做一次安全转换
-    const mobile = Number(formData.phone)
-    if (!Number.isInteger(mobile)) {
-      ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
-      return
-    }
     const res = await getSmsCodeApi(mobile)
-    // 拦截器里已对 code !== '0000' 做了 reject，这里拿到的就是成功结果
     if (String((res as any).code) === '0000') {
       ElMessage.success(t('LoginPopUpPage.smsCodeSent') || '验证码已发送')
+
       // 启动 120s 倒计时
       isCounting.value = true
       countdown.value = 120
       if (smsTimer) clearInterval(smsTimer)
+
       smsTimer = setInterval(() => {
         countdown.value -= 1
         if (countdown.value <= 0) {
-          if (smsTimer) {
-            clearInterval(smsTimer)
-            smsTimer = null
-          }
+          if (smsTimer) clearInterval(smsTimer)
+          smsTimer = null
           isCounting.value = false
         }
       }, 1000)
     }
   } catch (e) {
-    // 统一错误在 request 拦截器里处理，这里不再重复提示
     console.error('getSmsCode error', e)
   }
 }
@@ -295,55 +283,41 @@ const GetSmSCode = async () => {
 const handleClose = () => {
   emit('close')
 }
-
+// 🎯 修复点 2：在 handleSubmit 中干净利落地调用 Pinia 进行登录
 const handleSubmit = async () => {
   if (!formData.phone) {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
     return
   }
 
-  // 仅在“验证码登录”模式下调用短信登录接口
-  if (phoneLoginType.value === 'code') {
-    if (!formData.code) {
-      ElMessage.warning(t('LoginPopUpPage.enterTheVerificationCode'))
-      return
+  try {
+    if (phoneLoginType.value === 'code') {
+      // 验证码登录校验
+      if (!formData.code) {
+        ElMessage.warning(t('LoginPopUpPage.enterTheVerificationCode'))
+        return
+      }
+      await userStore.loginWithSms(formData.phone, formData.code)
+    } else {
+      // 密码登录校验
+      if (!formData.password) {
+        ElMessage.warning(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
+        return
+      }
+      await userStore.loginWithPassword(formData.phone, formData.password)
     }
 
-    try {
-      const res = await loginBySmsCodeApi({
-        mobile: formData.phone,
-        verifyCode: formData.code,
-      })
-      // 按约定：成功 code === '0000' 已在拦截器校验，这里只处理业务数据
-      const token = (res.data as any)?.token
-      const userInfo = (res.data as any)?.userInfo
-      if (token) {
-        localStorage.setItem('token', token)
-      }
-      if (userInfo) {
-        localStorage.setItem('userInfo', JSON.stringify(userInfo))
-      }
-      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
-      emit('close')
-      return
-    } catch (e) {
-      console.error('loginBySmsCode error', e)
-      // 错误提示已由拦截器处理
-      return
-    }
+    // 只要没报错抛出异常，走到这里就是成功
+    ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+    emit('close')
+
+  } catch (e) {
+    console.error('login error', e)
   }
-
-  // TODO: 密码登录逻辑后续接入 /api/login/loginByPassword
-  ElMessage.info('密码登录接口待接入')
 }
 
 const handleTeamSubmit = () => {
-  console.log('团队登录提交:', {
-    account: formData.teamAccount,
-    password: formData.teamPassword,
-  })
-  // 模拟验证失败
-  formError.value = formData.teamPassword !== '123456'
+  // 团队登录逻辑预留
 }
 
 onUnmounted(() => {
