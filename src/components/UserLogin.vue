@@ -283,7 +283,6 @@ const GetSmSCode = async () => {
 const handleClose = () => {
   emit('close')
 }
-// 🎯 修复点 2：在 handleSubmit 中干净利落地调用 Pinia 进行登录
 const handleSubmit = async () => {
   if (!formData.phone) {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
