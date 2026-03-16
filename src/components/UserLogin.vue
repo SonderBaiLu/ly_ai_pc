@@ -4,7 +4,7 @@
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
-            <img src="/src/assets/images/login_popup/ailog.png" alt=""/>
+            <img src="/src/assets/images/login_popup/ailog.png" alt="" />
           </span>
         </div>
 
@@ -24,19 +24,19 @@
         <ul class="feature-list">
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/layered.png" alt=""/>
+              <img src="/src/assets/images/login_popup/layered.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.simplifyDesign') }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/clothes.png" alt=""/>
+              <img src="/src/assets/images/login_popup/clothes.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') }}</span>
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/shopping.png" alt=""/>
+              <img src="/src/assets/images/login_popup/shopping.png" alt="" />
             </span>
             <span>
               {{ t('LoginPopUpPage.loginRewards') }}
@@ -44,7 +44,7 @@
           </li>
           <li>
             <span class="icon">
-              <img src="/src/assets/images/login_popup/pen.png" alt=""/>
+              <img src="/src/assets/images/login_popup/pen.png" alt="" />
             </span>
             <span>{{ t('LoginPopUpPage.backToEssence') }}</span>
           </li>
@@ -81,7 +81,7 @@
             <div class="qrcode-instruction">
               <div class="wechat-hint">
                 <span class="wechat-icon">
-                  <img src="@/assets/images/login_popup/weixin.png" alt=""/>
+                  <img src="@/assets/images/login_popup/weixin.png" alt="" />
                 </span>
                 <span>{{ t('LoginPopUpPage.wechatScanLogin') }}</span>
               </div>
@@ -107,7 +107,7 @@
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
                 <input type="tel" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')"
-                       maxlength="11" @input="handlePhoneInput"/>
+                  maxlength="11" @input="handlePhoneInput" />
               </div>
             </div>
 
@@ -122,12 +122,12 @@
               </div>
               <div class="input-wrapper code-input-wrapper">
                 <input type="text" v-model="formData.code"
-                       :placeholder="t('LoginPopUpPage.enterTheVerificationCode')"/>
+                  :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
                   {{
                     isCounting
-                        ? t('LoginPopUpPage.smsCountdown', {seconds: countdown})
-                        : t('LoginPopUpPage.getVerificationCode')
+                      ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
+                      : t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
               </div>
@@ -150,9 +150,9 @@
               </div>
               <div class="input-wrapper">
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
-                       :placeholder="t('LoginPopUpPage.passwordPlaceholder')"/>
+                  :placeholder="t('LoginPopUpPage.passwordPlaceholder')" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img"/>
+                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
             </div>
@@ -175,7 +175,7 @@
               </label>
               <div class="input-wrapper">
                 <input type="text" v-model="formData.teamAccount"
-                       :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')"/>
+                  :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')" />
               </div>
             </div>
 
@@ -185,9 +185,9 @@
               </label>
               <div class="input-wrapper" :class="{ 'has-error': formError }">
                 <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
-                       :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')"/>
+                  :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" />
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
-                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img"/>
+                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
               <div v-if="formError" class="error-text">
@@ -215,14 +215,14 @@
 </template>
 
 <script setup lang="ts">
-import {useI18n} from 'vue-i18n'
-import {ElMessage} from 'element-plus'
-import {images} from '@/assets'
-import {getSmsCodeApi} from '@/api/userLogin'
-import {useUserStore} from "@/stores/user"
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { images } from '@/assets'
+import { getSmsCodeApi } from '@/api/userLogin'
+import { useUserStore } from "@/stores/user"
 
 const userStore = useUserStore()
-const {t} = useI18n()
+const { t } = useI18n()
 const emit = defineEmits(['close'])
 // 基础状态
 const accountType = ref<'personal' | 'team'>('personal')
@@ -315,8 +315,25 @@ const handleSubmit = async () => {
   }
 }
 
-const handleTeamSubmit = () => {
-  // 团队登录逻辑预留
+const handleTeamSubmit = async () => {
+  try {
+    if (!formData.teamAccount) {
+      ElMessage.warning(t('LoginPopUpPage.teamAccountPlaceholder'))
+      return
+    } else {
+      if (!formData.teamPassword) {
+        ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
+        return
+      } else {
+        await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
+      }
+    }
+    // 只要没报错抛出异常，走到这里就是成功
+    ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+    emit('close')
+  } catch (e) {
+    console.error('login error', e)
+  }
 }
 
 onUnmounted(() => {
@@ -629,7 +646,6 @@ onUnmounted(() => {
 
         img {
           width: 18px;
-          /* 垂直居中 因为字体与图片不对齐，给图标设置内边距对其字体 */
           padding-bottom: 4px;
         }
       }

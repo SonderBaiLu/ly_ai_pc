@@ -1,10 +1,10 @@
 import request from '@/utils/request'
-import type {ApiResponse} from '@/types'
+import type { ApiResponse } from '@/types'
 
 // 获取验证码
 export const getSmsCodeApi = (mobile: number) => {
     return request.get('/v1/login/send/smsCode', {
-        params: {mobile},
+        params: { mobile },
     }) as unknown as Promise<ApiResponse<string>>
 }
 
@@ -17,7 +17,7 @@ export const loginBySmsCodeApi = (
     }) => {
     return request.post('/v1/login/loginBySmsCode', payload) as unknown as Promise<ApiResponse<any>>
 }
-// 检查密码登录
+// 用户密码登录 
 export const loginByPwd = (
     payload: {
         mobile: string;
@@ -25,4 +25,8 @@ export const loginByPwd = (
     }
 ) => {
     return request.post('/v1/login/loginByPwd', payload) as unknown as Promise<ApiResponse<any>>
+}
+// 团队登录
+export const teamLogin = (payload: { userName: string, pwd: string }) => {
+    return request.post('/v1/sonLogin/loginByPwd', payload) as unknown as Promise<ApiResponse<any>>
 }
