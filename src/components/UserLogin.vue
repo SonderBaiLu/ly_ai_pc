@@ -350,7 +350,7 @@ onUnmounted(() => {
   if (smsTimer) {
     clearInterval(smsTimer)
     smsTimer = null
-  }
+}
 })
 </script>
 

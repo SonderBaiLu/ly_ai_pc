@@ -156,7 +156,7 @@ export const downloadFile = async (url: string, filename: string) => {
   } catch (error: any) {
     clearTimeout(timeoutId)
     if (error.name === 'AbortError') {
-      throw new Error('下载超时，请稍后重试', { cause: error })
+      throw new Error('下载超时，请稍后重试')
     }
     throw error
   }

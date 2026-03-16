@@ -3,7 +3,6 @@ $color-primary: #96ddff;
 $color-primary-light: #70c5ed;
 $color-primary-dark: #17A0E1;
 
-
 /* 背景色 */
 $color-bg-yellow:#FFD700;
 $color-bg-red:#FF3B30;
@@ -12,6 +11,7 @@ $color-bg-black: #000000;
 $color-bg-dark: #101010;
 $color-bg-dark-first: #1A1A1A;
 $color-bg-dark-second: #020105;
+$color-bg-dark-clear: #27272A;
 $color-bg-dark-primary: #0f0f11;
 $color-bg-dark-card: #1E1E2D;
 $color-bg-dark-secondary: #121212;
@@ -23,11 +23,16 @@ $color-bg-light: #f9fafb;
 /* 文字颜色 */
 $color-text-white: #ffffff;
 $color-text-desc :#AAAAAA;
+$color-text-desc-secondary: #A1A1AA;
+$color-text-placeholder-gray: #B6BFCA;
 $color-text-light: #D1D5DB;
+$color-text-light-secondary: #E5E7EB;
 $color-text-gray: #9ca3af;
 $color-text-secondary: #6B7889;
 $color-text-tabs: #686D70;
 $color-text-placeholder: #6B7280;
+$color-text-tip: #6F7884;
+$color-text-tags: #6C757D;
 $color-text-three: #374151;
 $color-text-four: #4B5563;
 $color-text-white-disabled: rgba(255, 255, 255, 0.3);
@@ -40,6 +45,7 @@ $color-border: #1F2937;
 $color-border-light: #686D70;
 
 /* 字体大小变量 */
+$font-size-xxs: 8px;
 $font-size-xs: 10px;
 $font-size-sm: 12px;
 $font-size-md: 14px;
@@ -69,6 +75,8 @@ $spacing-md: 16px;
 $spacing-lg: 20px;
 $spacing-xl-sm: 24px;
 $spacing-2xl-sm: 26px;
+$spacing-2xl-md: 28px;
+$spacing-2xl-lg: 30px;
 $spacing-xl: 32px;
 $spacing-2xl: 40px;
 $spacing-3xl: 64px;

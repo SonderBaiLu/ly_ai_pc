@@ -13,9 +13,9 @@ declare module 'vue' {
   export interface GlobalComponents {
     BindPhoneModal: typeof import('./src/components/BindPhoneModal.vue')['default']
     ContactModal: typeof import('./src/components/ContactModal.vue')['default']
+    CreationTypeSelectModal: typeof import('./src/components/CreationTypeSelectModal.vue')['default']
     CreativeDescription: typeof import('./src/components/CreativeDescription.vue')['default']
     CtaSection: typeof import('./src/components/CtaSection.vue')['default']
-    D: typeof import('./src/components/d.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -51,12 +51,10 @@ declare module 'vue' {
     InspirationValueModal: typeof import('./src/components/InspirationValueModal.vue')['default']
     InvitationCode: typeof import('./src/components/InvitationCode.vue')['default']
     LazyImage: typeof import('./src/components/LazyImage.vue')['default']
-    LoginUser: typeof import('./src/components/LoginUser.vue')['default']
     MainImageDisplay: typeof import('./src/components/MainImageDisplay.vue')['default']
     MediaPlayer: typeof import('./src/components/MediaPlayer.vue')['default']
     MembershipModal: typeof import('./src/components/MembershipModal.vue')['default']
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
-    ParameterSelectModal: typeof import('./src/components/ParameterSelectModal.vue')['default']
     PaymentModal: typeof import('./src/components/PaymentModal.vue')['default']
     PersonalSettingsModal: typeof import('./src/components/PersonalSettingsModal.vue')['default']
     ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
@@ -67,11 +65,11 @@ declare module 'vue' {
     ThumbnailGallery: typeof import('./src/components/ThumbnailGallery.vue')['default']
     TransformRow: typeof import('./src/sections/home/TransformRow.vue')['default']
     UserLogin: typeof import('./src/components/UserLogin.vue')['default']
+    VideoOptionsSection: typeof import('./src/components/VideoOptionsSection.vue')['default']
     WatermarkDisclaimerModal: typeof import('./src/components/WatermarkDisclaimerModal.vue')['default']
     WriteOffModal: typeof import('./src/components/WriteOffModal.vue')['default']
   }
   export interface GlobalDirectives {
-    UserLogin: typeof import('./src/components/UserLogin.vue')['default']
     vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }

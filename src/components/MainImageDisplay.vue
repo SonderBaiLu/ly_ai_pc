@@ -276,10 +276,12 @@ const currentAsset = computed(() => {
   // 没有选择时返回 null，不显示任何资产
   return null
 })
+void currentAsset
 
 // 计算属性：根据图片尺寸判断媒体框架的样式类（预留扩展，当前未使用）
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mediaFrameClass = computed(() => '')
+void mediaFrameClass
 
 // 内容标签
 const contentTabs = ref<Array<{ key: string; label: string; fileType?: number }>>([
@@ -752,6 +754,7 @@ const scrollToTop = () => {
 // 预留：检测当前可见的资产（目前未用到，后续可扩展智能播放等能力）
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const detectVisibleAsset = () => { }
+void detectVisibleAsset
 
 // 滚动到指定资产（供外部调用，如缩略图点击）
 const scrollToAsset = (index: number) => {

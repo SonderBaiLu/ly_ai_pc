@@ -43,9 +43,19 @@
 
       <div v-if="!isQrCodeExpired" class="vip-pay-footer-row">
         <div class="pay-channel">
-          <img :src="images.alipayPay" alt="" srcset="" class="pay-icon" />
-          <span>支付宝扫码支付</span>
+          <img v-if="selectedMethod?.iconUrl" :src="selectedMethod.iconUrl" alt="" class="pay-icon" />
+          <img v-else :src="images.alipayPay" alt="" class="pay-icon" />
+          <span>{{ selectedMethod?.channelName || '支付宝扫码支付' }}</span>
           <span v-if="payExpireText" class="expire-text">{{ payExpireText }}</span>
+        </div>
+      </div>
+
+      <!-- 支付方式选择（创建订单前可选） -->
+      <div v-if="!payQrCode && paymentMethods.length > 0" class="pay-methods">
+        <div v-for="m in paymentMethods" :key="m.id" class="pay-method-item"
+          :class="{ active: m.channelCode === selectedChannelCode }" @click="selectedChannelCode = m.channelCode">
+          <img v-if="m.iconUrl" :src="m.iconUrl" alt="" class="method-icon" />
+          <span class="method-name">{{ m.channelName }}</span>
         </div>
       </div>
 
@@ -88,7 +98,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-import { paymentApi } from '@/api/payment'
+import { paymentApi, type PaymentMethod } from '@/api/payment'
 import { generateQRCode } from '@/utils/qrcode'
 import { images } from '@/assets'
 import { useUserStore } from '@/stores/user'
@@ -168,6 +178,13 @@ let payTimer: number | null = null
 // 当前支付订单号（用于轮询支付结果）
 let currentPayOrderId: string | null = null
 
+// 支付方式
+const paymentMethods = ref<PaymentMethod[]>([])
+const selectedChannelCode = ref<string>('alipay')
+const selectedMethod = computed(() =>
+  paymentMethods.value.find((m) => m.channelCode === selectedChannelCode.value)
+)
+
 // 初始化金额从 props 获取（始终使用传过来的 initialAmount）
 watch(
   () => props.initialAmount,
@@ -226,11 +243,32 @@ watch(dialogVisible, (newVal) => {
     payAmount.value = props.initialAmount || 0 // 重置为初始金额
     payExpireSeconds.value = 0
     currentPayOrderId = null
+    paymentMethods.value = []
+    selectedChannelCode.value = 'alipay'
   } else {
     // 弹窗打开时，设置初始金额（即使为0也要设置，确保金额正确）
     payAmount.value = props.initialAmount || 0
+    // 弹窗打开时加载支付方式
+    loadPaymentMethods()
   }
 })
+
+const loadPaymentMethods = async () => {
+  try {
+    const res = await paymentApi.getPaymentMethod()
+    if (res.code === '0000' && Array.isArray(res.data)) {
+      paymentMethods.value = res.data
+      // 默认选择：优先支付宝，其次列表第一个
+      if (paymentMethods.value.some((m) => m.channelCode === 'alipay')) {
+        selectedChannelCode.value = 'alipay'
+      } else if (paymentMethods.value[0]?.channelCode) {
+        selectedChannelCode.value = paymentMethods.value[0].channelCode
+      }
+    }
+  } catch (e) {
+    console.error('loadPaymentMethods error', e)
+  }
+}
 
 // 轮询查询支付宝支付结果
 const checkAlipayPayStatus = async () => {
@@ -310,7 +348,10 @@ const handleCreatePayment = async () => {
 
   try {
     // 调用父组件传入的创建支付订单函数
-    const data = await props.createPaymentOrder()
+    const createFn = props.createPaymentOrder as unknown as (
+      channelCode?: string
+    ) => Promise<any>
+    const data = await createFn(selectedChannelCode.value)
 
     if (!data) {
       ElMessage.error('创建支付订单失败')
@@ -321,14 +362,7 @@ const handleCreatePayment = async () => {
 
     if (data.alipayOrderInfo) {
       try {
-        const qrCodeDataUrl = await generateQRCode(data.alipayOrderInfo, {
-          width: 300,
-          margin: 1,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF',
-          },
-        })
+        const qrCodeDataUrl = await generateQRCode(data.alipayOrderInfo)
         payQrCode.value = qrCodeDataUrl
       } catch (error) {
         console.error('生成二维码失败:', error)
@@ -563,6 +597,42 @@ onBeforeUnmount(() => {
       &:hover {
         opacity: 0.8;
       }
+    }
+  }
+}
+
+.pay-methods {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 10px 0 18px;
+  flex-wrap: wrap;
+
+  .pay-method-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    user-select: none;
+
+    &.active {
+      border-color: rgba(59, 130, 246, 0.9);
+    }
+
+    .method-icon {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+    }
+
+    .method-name {
+      font-size: var(--font-sm);
+      color: rgba(255, 255, 255, 0.9);
+      white-space: nowrap;
     }
   }
 }

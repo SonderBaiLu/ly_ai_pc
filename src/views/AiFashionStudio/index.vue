@@ -196,98 +196,90 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .studio-page {
-  min-height: 100vh;
+  height: 100vh;
   background: $color-bg-dark;
-}
-
-.studio-body {
-  display: flex;
-  padding-top: $spacing-md;
-}
-
-.left-rail {
-  width: 92px;
-  margin-left: $spacing-md;
-  background: rgba(9, 17, 37, 0.8);
-  border-radius: $border-radius-xl;
-  padding: $spacing-md $spacing-sm;
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
-}
 
-.rail-item {
-  padding: $spacing-md $spacing-sm;
-  border-radius: $border-radius-lg;
-  cursor: pointer;
-  color: $color-text-gray;
-  text-align: center;
-  transition: all $transition-base;
+  .studio-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden; // 固定整页高度，只让内部区域滚动
 
-  &.active {
-    border: 1px solid rgba(112, 197, 237, 0.6);
-    background: rgba(23, 160, 225, 0.12);
-    color: $color-text-white;
-  }
-}
+    .left-rail {
+      width: 95px;
+      margin-top: 17px;
+      background: $color-bg-dark-secondary;
+      padding: $spacing-2xl-md $spacing-sm;
+      border-radius: 0px 8px 0px 0px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
 
-.rail-icon {
-  width: 44px;
-  height: 44px;
-  margin: 0 auto $spacing-xs;
-  display: grid;
-  place-items: center;
+      .rail-item {
+        padding: $spacing-sm-md 0;
+        border: 1px solid transparent;
+        border-radius: $border-radius-md;
+        cursor: pointer;
+        color: $color-text-light-secondary;
+        text-align: center;
+        transition: all $transition-base;
 
-  img {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-  }
-}
+        &.active {
+          background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+          border-color: $color-primary;
+          color: $color-primary;
+        }
 
-.rail-text {
-  font-size: $font-size-xs;
-  line-height: 1.2;
-}
+        .rail-icon {
+          width: 35px;
+          height: 35px;
+          margin: 0 auto $spacing-xs;
+          display: grid;
+          place-items: center;
 
-.studio-main {
-  flex: 1;
-  padding: 0 $spacing-md $spacing-md;
-}
+          img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+          }
+        }
 
-.studio-content {
-  display: grid;
-  grid-template-columns: 380px minmax(520px, 1fr) 260px;
-  gap: $spacing-md;
-}
+        .rail-text {
+          font-size: $font-size-sm;
+        }
+      }
+    }
 
-.param-panel {
-  background: rgba(9, 17, 37, 0.8);
-  border-radius: $border-radius-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: $spacing-lg;
-  min-height: calc(100vh - 120px);
-}
+    .studio-main {
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
 
-.result-panel {
-  background: rgba(9, 17, 37, 0.65);
-  border-radius: $border-radius-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  min-height: calc(100vh - 120px);
-}
+      .studio-content {
+        display: grid;
+        grid-template-columns: 480px minmax(520px, 1fr) 98px;
+        gap: $spacing-md;
+        height: 100%;
 
-.thumb-rail {
-  background: rgba(9, 17, 37, 0.8);
-  border-radius: $border-radius-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  min-height: calc(100vh - 120px);
-}
+        .param-panel {
+          padding: 17px 25px 0;
+          height: 100%;
+          overflow-y: auto;
+        }
 
-@media (max-width: 1280px) {
-  .studio-content {
-    grid-template-columns: 360px minmax(460px, 1fr) 240px;
+        .result-panel {
+          height: 100%;
+          overflow-y: auto;
+        }
+
+        .thumb-rail {
+          height: 100%;
+          overflow-y: auto;
+        }
+      }
+    }
   }
 }
 </style>

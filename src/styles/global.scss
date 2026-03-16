@@ -126,13 +126,15 @@ body {
 }
 
 /* 全局主题按钮样式：覆盖 Element Plus primary 按钮 */
+.el-button {
+  border-radius: 8px;
+}
+
 .el-button--primary {
-  background: radial-gradient(0.5% 0.5% at 50% 50%,
-      rgba(23, 160, 225, 1) 0%,
-      rgba(112, 197, 237, 1) 100%);
-  border-color: transparent;
   color: #fff;
   box-shadow: none;
+  border-color: transparent;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
 }
 
 /* 悬停 / 激活 状态，保持同样渐变，略微加深或减透明 */
@@ -146,6 +148,26 @@ body {
   color: #fff;
 }
 
+/* 全局：primary 按钮禁用态黑色透明遮罩（统一“不可点击”视觉） */
+.el-button--primary.is-disabled,
+.el-button--primary.is-disabled:hover,
+.el-button--primary.is-disabled:focus,
+.el-button--primary.is-disabled:active {
+  position: relative;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  border: transparent !important;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+}
 
 /* 轮播图指示器主题色 */
 .el-carousel__indicators--outside .el-carousel__indicator.is-active button {

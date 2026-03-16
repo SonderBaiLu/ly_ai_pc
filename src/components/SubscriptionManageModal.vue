@@ -1,12 +1,6 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    width="723px"
-    :show-close="false"
-    class="subscription-manage-modal"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-  >
+  <el-dialog v-model="visible" width="723px" :show-close="false" class="subscription-manage-modal"
+    :close-on-click-modal="false" :close-on-press-escape="false">
     <template #header>
       <div class="modal-header">
         <div class="title">订阅管理</div>
@@ -18,13 +12,9 @@
       </el-tabs>
     </template>
 
-    <div
-      ref="modalBodyRef"
-      v-infinite-scroll="loadMoreRecords"
-      class="modal-body"
+    <div ref="modalBodyRef" v-infinite-scroll="loadMoreRecords" class="modal-body"
       :infinite-scroll-disabled="loadingRecords || loadingMoreRecords || !hasMoreRecords"
-      :infinite-scroll-distance="100"
-    >
+      :infinite-scroll-distance="100">
       <!-- 订阅列表 -->
       <div v-if="activeTab === 'subscription'" class="tab-panel">
         <div v-if="hasActiveSubscription" class="subscription-list">
@@ -40,13 +30,8 @@
           </div>
         </div>
 
-        <InfiniteScrollLoader
-          :loading="loadingSubscription"
-          :has-more="false"
-          :data-length="hasActiveSubscription ? 1 : 0"
-          :show-empty-state="!hasActiveSubscription"
-          empty-text="暂无订阅"
-        />
+        <InfiniteScrollLoader :loading="loadingSubscription" :has-more="false"
+          :data-length="hasActiveSubscription ? 1 : 0" :show-empty-state="!hasActiveSubscription" empty-text="暂无订阅" />
       </div>
 
       <!-- 购买记录 -->
@@ -71,12 +56,7 @@
                 <span class="value">
                   {{ item.orderNo || '--' }}
                 </span>
-                <img
-                  :src="images.copy"
-                  alt="复制"
-                  class="copy-icon"
-                  @click="handleCopy(item.orderNo)"
-                />
+                <img :src="images.copy" alt="复制" class="copy-icon" @click="handleCopy(item.orderNo)" />
               </div>
             </div>
             <div class="record-row">
@@ -88,14 +68,8 @@
           </div>
         </div>
 
-        <InfiniteScrollLoader
-          :loading="loadingRecords"
-          :loading-more="loadingMoreRecords"
-          :has-more="hasMoreRecords"
-          :data-length="records.length"
-          :show-empty-state="true"
-          empty-text="暂无购买记录"
-        />
+        <InfiniteScrollLoader :loading="loadingRecords" :loading-more="loadingMoreRecords" :has-more="hasMoreRecords"
+          :data-length="records.length" :show-empty-state="true" empty-text="暂无购买记录" />
       </div>
     </div>
   </el-dialog>
@@ -137,6 +111,11 @@ const loadingRecords = ref(false)
 const loadingMoreRecords = ref(false)
 const hasMoreRecords = ref(true)
 const modalBodyRef = ref<HTMLElement>()
+
+// vue-tsc 不会把 template 里的 ref 当作“被读取”，这里在脚本侧补一次使用
+const resetScroll = () => {
+  modalBodyRef.value?.scrollTo?.({ top: 0 })
+}
 
 // 分页参数
 const pageParams = ref({
@@ -250,6 +229,7 @@ watch(
   () => visible.value,
   (val) => {
     if (val) {
+      resetScroll()
       activeTab.value = 'subscription'
       loadRecords(true)
     }
@@ -319,10 +299,12 @@ watch(
   border: 1px solid rgba(63, 62, 62, 0.5);
   font-size: var(--font-md);
   color: var(--text-primary);
+
   .info {
     display: flex;
     align-items: center;
     gap: 4px;
+
     .icon {
       width: 24px;
       height: 24px;
@@ -369,6 +351,7 @@ watch(
       display: flex;
       align-items: center;
       gap: 5px;
+
       img {
         width: 17px;
         height: 17px;

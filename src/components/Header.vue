@@ -80,8 +80,6 @@
       </div>
     </div>
   </header>
-  <!-- 登录弹窗 -->
-  <UserLogin v-if="isLoginVisible" @close="closeLoginModal" />
 </template>
 
 <script setup lang="ts">
@@ -89,7 +87,6 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import UserLogin from '@/components/UserLogin.vue'
 import { useModalStore } from '@/stores/modal'
 
 const { t, locale } = useI18n()
@@ -110,7 +107,8 @@ const isLoggedIn = ref(false)
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
-  { key: 'fabricCreative', path: '/fabric-creative' },
+  // 面料创拍：进入 AI 工作台，并带上 mode=fabricCreative
+  { key: 'fabricCreative', path: '/ai-fashion', query: { mode: 'fabricCreative' } },
   { key: 'about', path: '/about' },
   { key: 'contactUs', path: '/contact-us' },
   { key: 'followUs', path: '/follow-us' },
@@ -125,9 +123,9 @@ const isAiDesignPage = computed(
   () => route.name === 'AiDesign' || route.name === 'AiFashionStudio' || route.name === 'MyCreations'
 )
 
-const handleMenuClick = (item: { key: string; path?: string }) => {
+const handleMenuClick = (item: { key: string; path?: string; query?: Record<string, any> }) => {
   if (item.path) {
-    router.push(item.path)
+    router.push({ path: item.path, query: item.query })
     return
   }
   showComingSoon()
@@ -143,17 +141,9 @@ const showComingSoon = () => {
 
 const modalStore = useModalStore()
 
-// 控制弹窗显示的变量（全局）
-const isLoginVisible = computed(() => modalStore.showLoginModal)
-
 // 打开登录弹窗
 const showLoginModal = () => {
   modalStore.openLoginModal()
-}
-
-// 关闭登录弹窗
-const closeLoginModal = () => {
-  modalStore.closeLoginModal()
 }
 </script>
 

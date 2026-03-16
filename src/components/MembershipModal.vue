@@ -200,14 +200,17 @@ const initialPayAmount = ref(0) // 初始支付金额
 // 加载会员套餐数据
 const loadMembershipPlans = async () => {
   try {
-    const res = await membershipApi.vipInfoList({
-      vipType: 0,
-      code: 'COMMON_PROBLEM',
-    })
+    // 新接口：/api/v1/app/getAppProductList?productKind=vip
+    const res: any = await membershipApi.getAppProductList({ productKind: 'vip' })
 
     if (res.code === '0000' && res.data) {
-      const { vipItemList } = res.data as any
-      const plans = vipItemList || []
+      const data = res.data as any
+      const plans =
+        data?.vipItemList ||
+        data?.productList ||
+        data?.list ||
+        data?.items ||
+        []
 
       // 前端补充免费版套餐（后端暂无返回）
       const hasFree = plans.some((p: any) => p.itemName === '免费版' || p.id === 'free')
@@ -234,9 +237,11 @@ const loadMembershipPlans = async () => {
 // 加载潮币套餐数据
 const loadTideCoinPlans = async () => {
   try {
-    const res = await membershipApi.waveCoinList({})
+    // 新接口：/api/v1/app/getAppProductList?productKind=Points
+    const res: any = await membershipApi.getAppProductList({ productKind: 'Points' })
     if (res.code === '0000' && res.data) {
-      tideCoinsPlans.value = res.data as any
+      const data = res.data as any
+      tideCoinsPlans.value = data?.productList || data?.list || data?.items || data || []
     } else {
       ElMessage.error(res.msg || '获取潮币套餐失败')
     }
@@ -300,7 +305,15 @@ const selectTideCoin = (plan: any) => {
 }
 
 // 创建支付订单的函数（供 PaymentModal 调用）
-const handleCreatePaymentOrder = async () => {
+const channelCodeToPaymentType = (channelCode?: string) => {
+  // 约定映射（如后端不同，可再调整）
+  if (channelCode === 'wechat_pay') return 1
+  if (channelCode === 'alipay') return 0
+  if (channelCode === 'apple_pay') return 2
+  return 0
+}
+
+const handleCreatePaymentOrder = async (channelCode?: string) => {
   if (!userInfo.value) {
     ElMessage.warning('请先登录后再购买')
     router.push('/login')
@@ -318,7 +331,7 @@ const handleCreatePaymentOrder = async () => {
   // 根据购买类型构建不同的支付参数
   const payload: any = {
     userId: userInfo.value.userId || userInfo.value.logicId || userInfo.value.phone,
-    paymentType: 0, // 0-支付宝
+    paymentType: channelCodeToPaymentType(channelCode), // 0-支付宝 1-微信 2-ApplePay
     orderType: isCoinPurchase ? 1 : 0, // 订单类型：0-开通会员 1-购买潮币
     itemCode: isCoinPurchase ? targetPlan.itemCode || targetPlan.coinCode : targetPlan.itemCode,
     itemId: targetPlan.id,
@@ -417,7 +430,7 @@ const navigateToAgreement = (agreementType: string) => {
 }
 
 // 原价文案
-const getOriginalPrice = (plan: any, index: number) => {
+const getOriginalPrice = (_plan: any, index: number) => {
   if (index <= 0) return ''
   if (index === 2) return '¥894'
   if (index === 3) return '¥3576'

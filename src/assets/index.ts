@@ -33,15 +33,18 @@ export const images = {
   checkedNo: new URL('./images/checked_no.png', import.meta.url).href,
   clear: new URL('./images/clear.png', import.meta.url).href,
   certification: new URL('./images/certification.png', import.meta.url).href,
+  check1: new URL('./images/right.png', import.meta.url).href,
+  check2: new URL('./images/right.png', import.meta.url).href,
+  check3: new URL('./images/right.png', import.meta.url).href,
 
   // D
   designActive: new URL('./images/design_active.png', import.meta.url).href,
   designIcon: new URL('./images/design_icon.png', import.meta.url).href,
   douyin: new URL('./images/douyin.png', import.meta.url).href,
   down: new URL('./images/down.png', import.meta.url).href,
-  edit: new URL('./images/edit.png', import.meta.url).href,
   del: new URL('./images/del.png', import.meta.url).href,
   download: new URL('./images/download.png', import.meta.url).href,
+  downloadIcon: new URL('./images/download.png', import.meta.url).href,
 
   design1: new URL('./images/home/design1.png', import.meta.url).href,
   design2: new URL('./images/home/design2.png', import.meta.url).href,
@@ -49,6 +52,8 @@ export const images = {
   design4: new URL('./images/home/design4.png', import.meta.url).href,
 
   // E
+  edit: new URL('./images/edit.png', import.meta.url).href,
+  editText: new URL('./images/edit_text.png', import.meta.url).href,
   editWhite: new URL('./images/edit_white.png', import.meta.url).href,
   eye: new URL('./images/login_popup/eye.png', import.meta.url).href,
   eyeClose: new URL('./images/login_popup/eye_close.png', import.meta.url).href,
@@ -66,10 +71,13 @@ export const images = {
   language: new URL('./images/language.png', import.meta.url).href,
   logo: new URL('./images/logo.png', import.meta.url).href,
   logo2: new URL('./images/logo2.png', import.meta.url).href,
+  logoMini: new URL('./images/logo.png', import.meta.url).href,
 
   // M
   more: new URL('./images/more.png', import.meta.url).href,
   msg: new URL('./images/msg.png', import.meta.url).href,
+  money: new URL('./images/money.png', import.meta.url).href,
+  magic: new URL('./images/magic.png', import.meta.url).href,
 
   // N
   noneData: new URL('./images/none_data.png', import.meta.url).href,
@@ -79,6 +87,7 @@ export const images = {
   realIcon: new URL('./images/real_icon.png', import.meta.url).href,
   redBook: new URL('./images/red book.png', import.meta.url).href,
   refresh: new URL('./images/refresh.png', import.meta.url).href,
+  refreshTry: new URL('./images/refresh2.png', import.meta.url).href,
   right: new URL('./images/right.png', import.meta.url).href,
   rightTop: new URL('./images/right_top.png', import.meta.url).href,
 
@@ -90,6 +99,7 @@ export const images = {
 
   // T
   together: new URL('./images/together.png', import.meta.url).href,
+  tagDel: new URL('./images/tag_del.png', import.meta.url).href,
 
   // U
   uploadIcon: new URL('./images/upload_icon.png', import.meta.url).href,
@@ -121,6 +131,7 @@ export const images = {
   // ImageParamPopup / ImageUploadArea / PaymentModal / Membership 等
   imgVideo: new URL('./images/logo.png', import.meta.url).href,
   vip4: new URL('./images/star2.png', import.meta.url).href,
+  vipPrivilege: new URL('./images/star2.png', import.meta.url).href,
   sort2: new URL('./images/arrow_icon.png', import.meta.url).href,
   replace2: new URL('./images/edit.png', import.meta.url).href,
   delete2: new URL('./images/close.png', import.meta.url).href,
@@ -134,6 +145,8 @@ export const images = {
   // InspirationValueModal
   time: new URL('./images/refresh.png', import.meta.url).href,
   warn: new URL('./images/msg.png', import.meta.url).href,
+  warning: new URL('./images/msg.png', import.meta.url).href,
+  date: new URL('./images/refresh.png', import.meta.url).href,
 } as const
 
 export default images
