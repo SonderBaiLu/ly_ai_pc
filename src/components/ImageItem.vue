@@ -47,9 +47,9 @@
             (imageData.isCollect === 1 || imageData.collectId)))
       " class="favorite-button" :class="{ 'no-click': collectMode === 'collected-only' }"
         @click.stop="collectMode === 'both' ? handleCollect() : null">
-        <img v-if="imageData.isCollect === 1 || imageData.collectId" :src="images.collected" alt="已收藏"
+        <img v-if="imageData.isCollect === 1 || imageData.collectId" :src="images.collectActive" alt="已收藏"
           class="favorite-icon" />
-        <img v-else :src="images.collect" alt="收藏" class="favorite-icon" />
+        <img v-else :src="images.collectNo" alt="收藏" class="favorite-icon" />
       </div>
 
       <!-- 预览按钮（支持左下角/右下角） -->

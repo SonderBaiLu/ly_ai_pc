@@ -233,12 +233,6 @@ onMounted(() => {
       }
     }
 
-    .optional-tag {
-      color: var(--text-placeholder);
-      font-size: var(--font-sm);
-      font-weight: 400;
-    }
-
     .action-buttons {
       display: flex;
       align-items: center;
@@ -247,6 +241,11 @@ onMounted(() => {
         width: 66px;
         height: 23px;
         border-radius: $spacing-xs;
+        background: $color-primary-dark;
+        color: $color-text-white;
+        font-family: NotoSans-regular;
+        border: none;
+        cursor: pointer;
         font-size: $font-size-xs;
       }
 
@@ -378,6 +377,7 @@ onMounted(() => {
       backface-visibility: hidden;
       animation: tryMarquee 15s linear infinite;
       color: $color-text-tip;
+      cursor: pointer;
     }
 
     .try-separator {

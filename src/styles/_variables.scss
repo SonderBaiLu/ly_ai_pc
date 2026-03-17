@@ -8,9 +8,11 @@ $color-bg-yellow:#FFD700;
 $color-bg-red:#FF3B30;
 
 $color-bg-black: #000000;
+$color-bg-black-secondary: #050505;
 $color-bg-dark: #101010;
 $color-bg-dark-first: #1A1A1A;
 $color-bg-dark-second: #020105;
+$color-bg-dark-two: #222222;
 $color-bg-dark-clear: #27272A;
 $color-bg-dark-primary: #0f0f11;
 $color-bg-dark-card: #1E1E2D;
@@ -35,6 +37,8 @@ $color-text-tip: #6F7884;
 $color-text-tags: #6C757D;
 $color-text-three: #374151;
 $color-text-four: #4B5563;
+$color-text-seven: #71717A;
+$color-text-agree: #89939F;
 $color-text-white-disabled: rgba(255, 255, 255, 0.3);
 $color-text-black: #000000;
 $color-text-dark: #111827;
@@ -70,6 +74,7 @@ $font-weight-bold: 700;
 /* 间距变量 */
 $spacing-xs: 4px;
 $spacing-sm: 8px;
+$spacing-sm-xs: 10px;
 $spacing-sm-md: 12px;
 $spacing-md: 16px;
 $spacing-lg: 20px;

@@ -27,8 +27,10 @@ export const images = {
   close: new URL('./images/close.png', import.meta.url).href,
   closeCustomer: new URL('./images/close_customer.png', import.meta.url).href,
   closeDialog: new URL('./images/close_dialog.png', import.meta.url).href,
+  closeParams: new URL('./images/close_params.png', import.meta.url).href,
   coin: new URL('./images/coin.png', import.meta.url).href,
   comma: new URL('./images/comma.png', import.meta.url).href,
+  checked: new URL('./images/checked.png', import.meta.url).href,
   checkedActive: new URL('./images/checked_active.png', import.meta.url).href,
   checkedNo: new URL('./images/checked_no.png', import.meta.url).href,
   clear: new URL('./images/clear.png', import.meta.url).href,
@@ -37,19 +39,36 @@ export const images = {
   check2: new URL('./images/right.png', import.meta.url).href,
   check3: new URL('./images/right.png', import.meta.url).href,
 
+  collectNo: new URL('./images/collect_no.png', import.meta.url).href,
+  collectActive: new URL('./images/collect_active.png', import.meta.url).href,
+
   // D
   designActive: new URL('./images/design_active.png', import.meta.url).href,
   designIcon: new URL('./images/design_icon.png', import.meta.url).href,
   douyin: new URL('./images/douyin.png', import.meta.url).href,
   down: new URL('./images/down.png', import.meta.url).href,
   del: new URL('./images/del.png', import.meta.url).href,
+  delete: new URL('./images/delete.png', import.meta.url).href,
+  delMini: new URL('./images/del_mini.png', import.meta.url).href,
   download: new URL('./images/download.png', import.meta.url).href,
   downloadIcon: new URL('./images/download.png', import.meta.url).href,
+  downloadMini: new URL('./images/download_mini.png', import.meta.url).href,
 
   design1: new URL('./images/home/design1.png', import.meta.url).href,
   design2: new URL('./images/home/design2.png', import.meta.url).href,
   design3: new URL('./images/home/design3.png', import.meta.url).href,
   design4: new URL('./images/home/design4.png', import.meta.url).href,
+
+  designFeatures: new URL('./images/design_features.png', import.meta.url).href,
+  designFeatures1: new URL('./images/design_features1.png', import.meta.url).href,
+  designFeatures2: new URL('./images/design_features2.png', import.meta.url).href,
+  designFeatures3: new URL('./images/design_features3.png', import.meta.url).href,
+  designFeatures4: new URL('./images/design_features4.png', import.meta.url).href,
+  designFeatures5: new URL('./images/design_features5.png', import.meta.url).href,
+  designFeatures6: new URL('./images/design_features6.png', import.meta.url).href,
+  designFeatures7: new URL('./images/design_features7.png', import.meta.url).href,
+  designFeatures8: new URL('./images/design_features8.png', import.meta.url).href,
+  designFeatures9: new URL('./images/design_features9.png', import.meta.url).href,
 
   // E
   edit: new URL('./images/edit.png', import.meta.url).href,
@@ -82,6 +101,9 @@ export const images = {
   // N
   noneData: new URL('./images/none_data.png', import.meta.url).href,
 
+  // P
+  plus: new URL('./images/plus.png', import.meta.url).href,
+
   // R
   realActive: new URL('./images/real_active.png', import.meta.url).href,
   realIcon: new URL('./images/real_icon.png', import.meta.url).href,
@@ -90,6 +112,7 @@ export const images = {
   refreshTry: new URL('./images/refresh2.png', import.meta.url).href,
   right: new URL('./images/right.png', import.meta.url).href,
   rightTop: new URL('./images/right_top.png', import.meta.url).href,
+  replace: new URL('./images/replace.png', import.meta.url).href,
 
   // S
   sketchActive: new URL('./images/sketch_active.png', import.meta.url).href,
@@ -120,8 +143,6 @@ export const images = {
   // MainImageDisplay
   failVideoPrimary: new URL('./images/msg.png', import.meta.url).href,
   failImgPrimary: new URL('./images/msg.png', import.meta.url).href,
-  collected: new URL('./images/star2.png', import.meta.url).href,
-  collect: new URL('./images/star.png', import.meta.url).href,
 
   // CreativeDetail 兼容 key
   like: new URL('./images/star2.png', import.meta.url).href,

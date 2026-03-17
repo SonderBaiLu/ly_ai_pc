@@ -15,12 +15,12 @@
             <span>从</span>
             <span class="history-link" @click.stop="handleShowHistory">历史创作</span>
             <span>选择，</span>
-            <span v-if="historyMaxCount">最多可选择{{ historyMaxCount }}张，</span>
+            <span v-if="historyMaxCount > 1">最多可选择{{ historyMaxCount }}张，</span>
             <span v-if="historyMinSizeKB && historyMaxSizeMB">文件大小{{ historyMinSizeKB }}KB - {{ historyMaxSizeMB
-              }}MB之间，</span>
+            }}MB之间，</span>
             <span v-if="historyMinResolution">分辨率大于{{ historyMinResolution }}，</span>
           </div>
-          <div class="placeholder-text-box" v-if="historyFormats">
+          <div class="placeholder-text-box" v-if="historyFormats && showHistoryTip">
             <span>格式支持{{ historyFormats.join('/') }}</span>
           </div>
         </template>
@@ -70,7 +70,7 @@
           <el-dropdown class="action-dropdown" trigger="hover" placement="top" popper-class="replace-dropdown-menu"
             @command="handleReplaceCommand">
             <div class="action-button">
-              <el-image :src="images.replace2" fit="contain" style="width: 16px; height: 16px" />
+              <el-image :src="images.replace" fit="contain" style="width: 16px; height: 16px" />
               <span>替换</span>
             </div>
             <template #dropdown>
@@ -86,7 +86,7 @@
           <el-divider direction="vertical" class="action-divider" />
 
           <div class="action-button" @click.stop="handleDelete(imageType, imageName)">
-            <el-image :src="images.delete2" fit="contain" style="width: 16px; height: 16px" />
+            <el-image :src="images.delete" fit="contain" style="width: 16px; height: 16px" />
             <span>删除</span>
           </div>
         </div>
@@ -160,7 +160,7 @@ const props = defineProps({
   // 区域高度
   areaHeight: {
     type: String,
-    default: '213px',
+    default: '109px',
   },
   // 是否显示操作按钮
   showActions: {
@@ -582,16 +582,16 @@ onBeforeUnmount(() => {
 .image-upload-area {
   position: relative;
   transition: all 0.3s ease;
-  background-color: $color-bg-dark-secondary;
+  background-color: $color-bg-black;
   border-radius: $spacing-sm;
   overflow: clip; // 使用 clip 代替 hidden，避免影响拖拽
   box-sizing: border-box;
-  border: 2px solid transparent; // 默认透明边框，防止dragging时尺寸变化
+  border: 2px dashed transparent; // 默认透明边框，防止dragging时尺寸变化
 
   &.dragging {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    border-color: var(--primary-color);
+    border-color: $color-primary-dark;
     border-style: dashed;
   }
 }
@@ -599,7 +599,7 @@ onBeforeUnmount(() => {
 /* 图片上传区域 */
 .upload-area {
   position: relative;
-  height: 213px;
+  height: 109px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -619,7 +619,7 @@ onBeforeUnmount(() => {
     height: 100%;
     border: 2px dashed rgba(255, 255, 255, 0.15);
     border-radius: $spacing-sm;
-    background-color: $color-bg-dark-secondary;
+    background-color: $color-bg-black-secondary;
     text-align: center;
     color: $color-primary;
 
@@ -675,7 +675,7 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 0;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
       // 图片未加载完成时隐藏，避免闪烁
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
     top: 12px;
     z-index: 9;
     cursor: pointer;
-    background-color: var(--primary-dark) !important;
+    background-color: $color-primary-dark !important;
     border: none !important;
     padding: 7px 6px 8px 12px !important; // 左右padding平衡
 
@@ -802,8 +802,8 @@ onBeforeUnmount(() => {
     bottom: 0;
     width: 100%;
     height: 40px;
-    background: rgba(32, 27, 38, 0.8);
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    background-color: rgba(24, 24, 27, 0.2);
+    border-radius: 0 0 $border-radius-sm $border-radius-sm;
     z-index: 2;
     display: flex;
     align-items: center;
@@ -825,10 +825,10 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: var(--spacing-xs);
+      gap: $spacing-xs;
       height: 100%;
-      color: #fff;
-      font-size: var(--font-xs);
+      color: $color-text-white;
+      font-size: $font-size-xs;
       outline: none !important;
 
       &:hover {
@@ -844,7 +844,7 @@ onBeforeUnmount(() => {
     .action-divider {
       height: 18px;
       margin: 0;
-      border-color: var(--bg-tertiary);
+      border-color: rgba($color-text-white, 0.15);
     }
   }
 }

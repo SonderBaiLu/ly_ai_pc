@@ -1,107 +1,93 @@
 <template>
-  <div class="left-panel">
+  <div class="left-panel studio-left--btn-sm studio-left--select-card-bordered">
     <div class="panel-title">线稿转实物</div>
 
     <div class="block">
-      <div class="block-title">上传线稿图（必传）</div>
-      <ImageUploadArea v-model:image-url="imageUrl" :image-icon="images.uploadIcon" image-type="main"
-        image-name="sketch" :show-actions="!!imageUrl" :clickable="true" area-height="150px"
-        placeholder-text="上传或拖拽1张图片" :show-history-tip="true" @upload="emit('coming-soon')"
-        @replace="emit('coming-soon')" @delete="emit('delete')" @show-history="emit('coming-soon')"
-        @drop-file="(p) => emit('drop-file', p)" />
-      <div v-if="taskResultId" class="sub-tip">已从我的资产引用（ID: {{ taskResultId }}）</div>
+      <div class="block-title flex align-center flex-between">
+        <div>
+          上传线稿图<span class="required-mark">（必传）</span>
+        </div>
+        <el-button class="upload-btn" size="small" type="primary" @click="emit('open-type-modal')">选择款型</el-button>
+      </div>
+      <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="sketch" :show-actions="!!imageUrl"
+        :clickable="true" placeholder-text="上传或拖拽1张图片" :show-history-tip="true" :history-max-count="1"
+        @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
+        @show-history="emit('coming-soon')" @drop-file="(p) => emit('drop-file', p)" />
+
+      <!-- 款型选择回显 -->
+      <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
+        {{ typeText }}
+        <img class="select-del-icon" :src="images.tagDel" alt="" srcset="" @click.stop="emit('clear-type-selection')">
+      </div>
     </div>
 
     <div class="block">
-      <div class="block-title">选择线稿类型（必选，单选）</div>
-      <div class="segmented">
-        <button class="seg-btn" :class="{ active: sketchColor === 'bw' }" type="button" @click="sketchColor = 'bw'">
+      <div class="block-title">选择线稿类型<span class="required-mark">（必选，单选）</span></div>
+      <div class="ai-segmented">
+        <el-button :type="sketchColor === 'bw' ? 'primary' : 'default'" @click="sketchColor = 'bw'">
           黑白线稿
-        </button>
-        <button class="seg-btn" :class="{ active: sketchColor === 'color' }" type="button"
-          @click="sketchColor = 'color'">
+        </el-button>
+        <el-button :type="sketchColor === 'color' ? 'primary' : 'default'" @click="sketchColor = 'color'">
           彩色线稿
-        </button>
+        </el-button>
       </div>
     </div>
 
     <div class="block">
-      <div class="block-title">选择线稿风格（必选，单选）</div>
-      <div class="segmented">
-        <button class="seg-btn" :class="{ active: sketchStyle === 'outline' }" type="button"
-          @click="sketchStyle = 'outline'">
+      <div class="block-title">选择线稿风格 <span class="required-mark">（必选，单选）</span></div>
+      <div class="ai-segmented">
+        <el-button :type="sketchStyle === 'outline' ? 'primary' : 'default'" @click="sketchStyle = 'outline'">
           轮廓线稿
-        </button>
-        <button class="seg-btn" :class="{ active: sketchStyle === 'hand' }" type="button" @click="sketchStyle = 'hand'">
+        </el-button>
+        <el-button :type="sketchStyle === 'hand' ? 'primary' : 'default'" @click="sketchStyle = 'hand'">
           手绘线稿
-        </button>
+        </el-button>
       </div>
     </div>
 
     <div class="block">
-      <div class="block-title">生成图片类型（必选，单选）</div>
-      <div class="segmented">
-        <button class="seg-btn" :class="{ active: outputType === 'flat' }" type="button" @click="outputType = 'flat'">
+      <div class="block-title">生成图片类型 <span class="required-mark">（必选，单选）</span></div>
+      <div class="ai-segmented">
+        <el-button :type="outputType === 'flat' ? 'primary' : 'default'" @click="outputType = 'flat'">
           平铺图
-        </button>
-        <button class="seg-btn" :class="{ active: outputType === 'model' }" type="button" @click="outputType = 'model'">
+        </el-button>
+        <el-button :type="outputType === 'model' ? 'primary' : 'default'" @click="outputType = 'model'">
           模特图
-        </button>
-        <button class="seg-btn" :class="{ active: outputType === '3d' }" type="button" @click="outputType = '3d'">
+        </el-button>
+        <el-button :type="outputType === '3d' ? 'primary' : 'default'" @click="outputType = '3d'">
           3D图
-        </button>
+        </el-button>
       </div>
     </div>
 
-    <div class="block">
-      <div class="block-title row-between">
-        <span>创意描述（选填）</span>
-        <div class="mini-actions">
-          <el-button class="mini-btn" size="small" @click="emit('coming-soon')">灵感调优</el-button>
-          <el-button class="mini-btn" size="small" @click="prompt = ''">全部清空</el-button>
-        </div>
-      </div>
-      <el-input v-model="prompt" type="textarea" :rows="5" maxlength="200" show-word-limit
-        placeholder="请输入完整的服装款式描述，建议包含类别、风格、材质、设计细节等关键信息，以生成精准的款式效果。" />
-      <div class="try-line">
-        试一试：一位意大利时尚男模特（齐耳黑色短卷发，轮廓造型，超宽肩）
-        <span class="refresh" @click="emit('coming-soon')">换一换</span>
-      </div>
-    </div>
+    <CreativeDescription v-model:prompt="prompt" :optional="true"
+      placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。参考示例：无领 驼色 长款 双面呢 宽松版型 羊毛材质 毛呢大衣" />
 
-    <div class="bottom-bar">
-      <div class="bar-left">
-        <div class="pill">LingImage 1.0</div>
-        <div class="pill">自适应</div>
-        <div class="pill">2K</div>
-        <div class="pill">1</div>
-      </div>
-      <div class="bar-right">
-        <div class="coin">
-          <img :src="images.coin" class="coin-icon" alt="" />
-          <span>50</span>
-        </div>
-        <el-button type="primary" class="gen-btn" @click="emit('coming-soon')">立即生成</el-button>
-      </div>
-    </div>
-
-    <div class="footer-tip">内容由AI生成，禁止利用功能从事违法活动</div>
+    <!-- 底部参数以及生成按钮 -->
+    <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
+      button-text="立即生成" @show-params="() => emit('show-params')" @generate="() => emit('generate')" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { images } from '@/assets'
+import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 
 const imageUrl = defineModel<string>('imageUrl', { default: '' })
 
-defineProps<{
+const props = defineProps<{
   taskResultId?: string | number
+  creationTypeSelection?: Partial<CreationTypeSelection>
 }>()
 
 const emit = defineEmits<{
   (e: 'drop-file', payload: any): void
   (e: 'delete'): void
   (e: 'coming-soon'): void
+  (e: 'show-params'): void
+  (e: 'generate'): void
+  (e: 'open-type-modal'): void
+  (e: 'clear-type-selection'): void
 }>()
 
 type SketchColor = 'bw' | 'color'
@@ -112,153 +98,23 @@ const sketchColor = ref<SketchColor>('bw')
 const sketchStyle = ref<SketchStyle>('outline')
 const outputType = ref<OutputType>('flat')
 const prompt = ref('')
+
+const typeText = computed(() => {
+  const s = props.creationTypeSelection
+  if (!s?.category || !s?.clothType || !s?.subKind) return ''
+  return `${s.category}-${s.clothType}-${s.subKind}`
+})
+
+// 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
+const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '自适应', '2K', '1'])
+const coin = computed(() => 50)
+const isGenerating = ref(false)
 </script>
 
 <style scoped lang="scss">
-.left-panel {
-  color: $color-text-white;
-}
-
-.panel-title {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-semibold;
-  margin-bottom: $spacing-lg;
-}
+@use '@/styles/_studio_left.scss';
 
 .block {
   margin-bottom: $spacing-lg;
-}
-
-.block-title {
-  font-size: $font-size-sm;
-  color: $color-text-light;
-  margin-bottom: $spacing-sm;
-}
-
-.row-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-sm;
-}
-
-.mini-actions {
-  display: inline-flex;
-  gap: $spacing-sm;
-}
-
-.mini-btn {
-  padding: 0 $spacing-md;
-  border-radius: $border-radius-lg;
-}
-
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-md;
-}
-
-.seg-btn {
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.78);
-  cursor: pointer;
-  transition: all $transition-base;
-
-  &:hover {
-    border-color: rgba(112, 197, 237, 0.5);
-  }
-
-  &.active {
-    border-color: rgba(112, 197, 237, 0.9);
-    background: rgba(23, 160, 225, 0.14);
-    color: $color-text-white;
-    box-shadow: 0 0 0 2px rgba(23, 160, 225, 0.12) inset;
-  }
-}
-
-/* 3列的 segmented（生成类型） */
-.segmented:has(.seg-btn:nth-child(3)) {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.sub-tip {
-  margin-top: $spacing-xs;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.try-line {
-  margin-top: $spacing-sm;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.6);
-
-  .refresh {
-    margin-left: $spacing-xs;
-    color: $color-primary;
-    cursor: pointer;
-  }
-}
-
-.bottom-bar {
-  margin-top: $spacing-xl;
-  padding: $spacing-md;
-  border-radius: $border-radius-xl;
-  background: rgba(6, 12, 26, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-md;
-}
-
-.bar-left {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
-}
-
-.pill {
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.bar-right {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-}
-
-.coin {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  color: $color-primary;
-  font-weight: 600;
-}
-
-.coin-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
-
-.gen-btn {
-  height: 44px;
-  padding: 0 22px;
-  border-radius: 12px;
-}
-
-.footer-tip {
-  margin-top: $spacing-sm;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.45);
-  text-align: center;
 }
 </style>

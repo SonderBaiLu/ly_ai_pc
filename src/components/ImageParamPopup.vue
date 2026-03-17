@@ -1,13 +1,12 @@
 <template>
-  <el-dialog
-    v-model="showPopup"
-    :title="dialogTitle"
-    width="840px"
-    :close-on-click-modal="true"
-    :close-on-press-escape="true"
-    class="image-param-dialog"
-    @close="onClose"
-  >
+  <el-dialog v-model="showPopup" width="840px" :close-on-click-modal="true" :close-on-press-escape="true"
+    :show-close="false" class="image-param-dialog" @close="onClose">
+    <template #header>
+      <div class="dialog-header">
+        <h3 class="dialog-title">{{ dialogTitle }}</h3>
+        <img :src="images.closeParams" alt="" class="dialog-close" @click="onClose" />
+      </div>
+    </template>
     <div class="video-params-container">
       <!-- 算法模型选择 -->
       <div class="param-section">
@@ -17,16 +16,11 @@
         </h3>
         <el-scrollbar class="scrollbar-bottom">
           <div class="param-options">
-            <div
-              v-for="algorithm in algorithmModels"
-              :key="(algorithm as any).id"
-              :class="[
-                'version-option',
-                selectedAlgorithm.id === (algorithm as any).id ? 'active' : '',
-                (algorithm as any).isVip && !userInfo?.isVip ? 'vip-locked' : '',
-              ]"
-              @click="selectAlgorithm(algorithm as any)"
-            >
+            <div v-for="algorithm in algorithmModels" :key="(algorithm as any).id" :class="[
+              'version-option',
+              selectedAlgorithm.id === (algorithm as any).id ? 'active' : '',
+              (algorithm as any).isVip && !userInfo?.isVip ? 'vip-locked' : '',
+            ]" @click="selectAlgorithm(algorithm as any)">
               <!-- 背景图片 -->
               <img class="background-image" :src="(algorithm as any).imageUrl || images.imgVideo" />
 
@@ -34,29 +28,18 @@
               <img v-if="(algorithm as any).isVip" class="vip-tag" :src="images.vip4" />
 
               <!-- 选中状态图标 -->
-              <img
-                v-if="selectedAlgorithm.id === (algorithm as any).id"
-                class="active-icon"
-                :src="images.choose"
-              />
+              <img v-if="selectedAlgorithm.id === (algorithm as any).id" class="active-icon" :src="images.checked" />
             </div>
           </div>
         </el-scrollbar>
       </div>
 
       <!-- 动态渲染参数组（只显示有数据的） -->
-      <div
-        v-for="(paramGroup, groupIndex) in selectedAlgorithm.paramGroups"
-        v-show="paramGroup.params && paramGroup.params.length > 0"
-        :key="groupIndex"
-        class="param-section"
-      >
+      <div v-for="(paramGroup, groupIndex) in selectedAlgorithm.paramGroups"
+        v-show="paramGroup.params && paramGroup.params.length > 0" :key="groupIndex" class="param-section">
         <h3 class="section-title">
           {{ getParamGroupTitle(paramGroup.type) }}：{{ getSelectedParamValue(paramGroup.type) }}
-          <span
-            v-if="paramGroup.type === 1 && getSelectedParamDesc(paramGroup.type)"
-            class="text-sm agree"
-          >
+          <span v-if="paramGroup.type === 1 && getSelectedParamDesc(paramGroup.type)" class="text-sm agree">
             {{ getSelectedParamDesc(paramGroup.type) }}
           </span>
         </h3>
@@ -64,30 +47,19 @@
         <!-- 运镜参数使用横向滚动（单独处理） -->
         <el-scrollbar v-if="paramGroup.type === 3" class="scrollbar-bottom">
           <div class="camera-scroll-view">
-            <div
-              v-for="(param, paramIndex) in paramGroup.params"
-              :key="paramIndex"
-              class="camera-item"
-            >
+            <div v-for="(param, paramIndex) in paramGroup.params" :key="paramIndex" class="camera-item">
               <!-- 图片使用param-item，有边框 -->
-              <div
-                :class="[
-                  'param-item',
-                  'camera-option',
-                  {
-                    active: isParamSelected(paramGroup.type, param),
-                    'vip-locked': param.isVip && !userInfo?.isVip,
-                  },
-                ]"
-                @click="selectParam(paramGroup.type, param, Number(paramIndex))"
-              >
+              <div :class="[
+                'param-item',
+                'camera-option',
+                {
+                  active: isParamSelected(paramGroup.type, param),
+                  'vip-locked': param.isVip && !userInfo?.isVip,
+                },
+              ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
                 <img :src="param.imageUrl" class="camera-image" />
                 <!-- 运镜参数的选中标记（图片右下角） -->
-                <img
-                  v-if="isParamSelected(paramGroup.type, param)"
-                  class="active-icon"
-                  :src="images.choose"
-                />
+                <img v-if="isParamSelected(paramGroup.type, param)" class="active-icon" :src="images.choose" />
                 <!-- VIP标签 -->
                 <img v-if="param.isVip" class="vip-tag" :src="images.vip4" />
               </div>
@@ -100,10 +72,7 @@
         <!-- 比例参数使用横向滚动 -->
         <el-scrollbar v-else-if="paramGroup.type === 1" class="scrollbar-bottom">
           <div class="param-options param-scroll-view">
-            <div
-              v-for="(param, paramIndex) in paramGroup.params"
-              :id="`ratio-param-${paramIndex}`"
-              :key="paramIndex"
+            <div v-for="(param, paramIndex) in paramGroup.params" :id="`ratio-param-${paramIndex}`" :key="paramIndex"
               :class="[
                 'param-item',
                 getParamItemClass(paramGroup.type),
@@ -111,9 +80,7 @@
                   active: isParamSelected(paramGroup.type, param),
                   'vip-locked': param.isVip && !userInfo?.isVip,
                 },
-              ]"
-              @click="selectParam(paramGroup.type, param, Number(paramIndex))"
-            >
+              ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
               <img :src="param.imageUrl" class="ratio-image" />
               <span>{{ param.templateName }}</span>
               <img v-if="param.isVip" class="vip-tag" :src="images.vip4" />
@@ -124,19 +91,14 @@
         <!-- 其他参数使用换行布局 -->
         <div v-else class="scrollbar-bottom">
           <div class="param-options">
-            <div
-              v-for="(param, paramIndex) in paramGroup.params"
-              :key="paramIndex"
-              :class="[
-                'param-item',
-                getParamItemClass(paramGroup.type),
-                {
-                  active: isParamSelected(paramGroup.type, param),
-                  'vip-locked': param.isVip && !userInfo?.isVip,
-                },
-              ]"
-              @click="selectParam(paramGroup.type, param)"
-            >
+            <div v-for="(param, paramIndex) in paramGroup.params" :key="paramIndex" :class="[
+              'param-item',
+              getParamItemClass(paramGroup.type),
+              {
+                active: isParamSelected(paramGroup.type, param),
+                'vip-locked': param.isVip && !userInfo?.isVip,
+              },
+            ]" @click="selectParam(paramGroup.type, param)">
               <!-- 比例参数显示图片+文字 -->
               <template v-if="paramGroup.type === 1 && param.imageUrl">
                 <img :src="param.imageUrl" class="ratio-image" />
@@ -162,19 +124,14 @@
     <!-- 底部按钮 -->
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="onClose">取消</el-button>
+        <el-button class="cancel-btn" plain @click="onClose">取消</el-button>
         <el-button type="primary" @click="onConfirm">确定</el-button>
       </div>
     </template>
   </el-dialog>
 
   <!-- 会员购买弹窗：用于参数中点击 VIP 选项时提示升级会员（只展示会员相关内容） -->
-  <MembershipModal
-    v-model="showMembershipModal"
-    error-type="up_vip"
-    :is-vip="isVip"
-    custom-title="会员购买"
-  />
+  <MembershipModal v-model="showMembershipModal" error-type="up_vip" :is-vip="isVip" custom-title="会员购买" />
 </template>
 
 <script setup lang="ts">
@@ -336,7 +293,7 @@ watch(
 const getParamGroupTitle = (type: number) => {
   const isVideo = props.title?.includes('视频')
   const titles: Record<number, string> = {
-    1: '选择生成的比例',
+    1: '生成比例',
     2: isVideo ? (props.isMultiVideo ? '每片段时长' : '视频时长') : '参数选择',
     3: isVideo ? '选择运镜' : '参数选择',
     4: isVideo ? '视频清晰度' : '图片清晰度',
@@ -469,29 +426,51 @@ const onClose = () => {
 </script>
 
 <style lang="scss" scoped>
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 32px 30px 32px 20px;
+  background: $color-bg-dark-two;
+  border-radius: 12px 12px 0 0;
+
+  .dialog-title {
+    font-size: $font-size-xl;
+    color: $color-text-white;
+    font-weight: $font-weight-semibold;
+  }
+
+  .dialog-close {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+}
+
 .video-params-container {
   max-height: 60vh;
+  padding: $spacing-sm-md $spacing-lg;
   overflow-y: auto;
 
   .param-section {
-    margin-bottom: var(--spacing-ss);
+    margin-bottom: $spacing-md;
 
     .section-title {
-      font-size: var(--font-md);
-      color: var(--text-primary);
-      font-weight: 600;
+      font-size: $font-size-md;
+      color: $color-text-white;
+      font-family: PingFangSC-regular;
 
       .agree {
-        font-size: var(--font-xs);
-        color: var(--text-agree);
-        font-weight: 400;
-        margin-left: var(--spacing-xs);
+        font-size: $font-size-sm;
+        color: $color-text-agree;
+        margin-left: $spacing-md;
       }
     }
 
     .param-scroll-view {
       display: flex;
-      gap: var(--spacing-md);
+      gap: 15px;
       min-width: max-content;
       flex-wrap: nowrap; // 不换行
     }
@@ -499,7 +478,7 @@ const onClose = () => {
     /* 运镜横向滚动视图 */
     .camera-scroll-view {
       display: flex !important;
-      gap: var(--spacing-md);
+      gap: 15px;
       min-width: max-content;
       flex-wrap: nowrap !important;
     }
@@ -511,7 +490,7 @@ const onClose = () => {
         bottom: 0;
 
         .el-scrollbar__thumb {
-          background-color: var(--primary-color);
+          background-color: $color-primary-dark;
           border-radius: 4px;
           opacity: 0.6;
           cursor: pointer;
@@ -529,7 +508,7 @@ const onClose = () => {
 
     // 滚动条：显示在内容下方，不遮挡文字
     .scrollbar-bottom {
-      padding: var(--spacing-md) 0; // 为滚动条留出空间，滚动条显示在这个区域内，不遮挡内容;
+      padding-top: 15px; // 为滚动条留出空间，滚动条显示在这个区域内，不遮挡内容;
     }
 
     /* 运镜容器（图片+文字垂直布局） */
@@ -541,7 +520,7 @@ const onClose = () => {
       width: 100px;
 
       .camera-name {
-        color: var(--text-primary);
+        color: $color-text-desc;
         font-size: 12px;
         text-align: center;
         white-space: nowrap;
@@ -568,7 +547,7 @@ const onClose = () => {
         height: 100%;
         object-fit: cover;
         display: block;
-        border-radius: var(--radius-xs);
+        border-radius: $border-radius-sm;
       }
 
       .active-icon {
@@ -583,18 +562,18 @@ const onClose = () => {
 
     .param-options {
       display: flex;
-      gap: var(--spacing-md);
+      gap: $spacing-md;
       flex-wrap: wrap;
 
       .version-option {
         position: relative;
-        width: 70px;
-        height: 70px;
+        width: 81px;
+        height: 81px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        border-radius: var(--radius-xs);
+        border-radius: $border-radius-md;
         border: 1px solid transparent;
         cursor: pointer;
         flex-shrink: 0;
@@ -607,13 +586,13 @@ const onClose = () => {
           left: 0;
           width: 100%;
           height: 100%;
-          border-radius: var(--radius-xs);
+          border-radius: $border-radius-md;
           z-index: 0;
           object-fit: cover;
         }
 
         &.active {
-          border-color: var(--primary-color);
+          border-color: $color-primary-dark;
         }
 
         &.vip-locked {
@@ -627,7 +606,7 @@ const onClose = () => {
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.3);
-            border-radius: var(--radius-xs);
+            border-radius: $border-radius-sm;
             z-index: 1;
           }
         }
@@ -635,21 +614,20 @@ const onClose = () => {
 
       .param-item {
         position: relative;
-        background: var(--bg-tertiary);
+        background-color: rgba(23, 160, 225, 0.1);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-xs);
-        font-size: var(--font-sm);
-        color: var(--text-primary);
+        border-radius: $border-radius-sm;
+        font-size: $font-size-sm;
+        color: $color-text-white;
         z-index: 1;
         cursor: pointer;
         flex-shrink: 0;
 
         &.active {
-          border-color: var(--primary-color);
+          border-color: $color-primary;
         }
 
         &.vip-locked {
@@ -663,8 +641,8 @@ const onClose = () => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: var(--radius-xs);
+            background: rgba(0, 0, 0, 0.01);
+            border-radius: $border-radius-sm;
             z-index: 0;
           }
         }
@@ -672,18 +650,17 @@ const onClose = () => {
 
       /* 比例选项 */
       .ratio-option {
-        width: 60px;
-        height: auto;
-        min-height: 66px;
-        padding: var(--spacing-ss) 0;
+        width: 78px;
+        height: 78px;
+        padding: $spacing-xs 0;
         justify-content: flex-start;
         flex-shrink: 0;
         gap: 4px;
 
         /* 比例图片样式 */
         .ratio-image {
-          width: 18px;
-          height: 18px;
+          width: 38px;
+          height: 38px;
           object-fit: contain;
           flex-shrink: 0;
         }
@@ -700,15 +677,15 @@ const onClose = () => {
       }
 
       /* 时长选项 */
-      /* 清晰度选项 */
-      .duration-option,
-      .quality-option {
+      .duration-option {
         width: 108px;
         height: 36px;
       }
 
       /* 数量选项 */
-      .count-option {
+      /* 清晰度选项 */
+      .count-option,
+      .quality-option {
         width: 78px;
         height: 36px;
       }
@@ -740,20 +717,42 @@ const onClose = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xxl);
+  padding: $spacing-3xl;
   min-height: 200px;
 
   :deep(.el-empty) {
     .el-empty__description {
-      color: var(--text-placeholder);
+      color: $color-text-placeholder;
     }
   }
 }
 
 .dialog-footer {
+  background: $color-bg-dark-two;
+  border-radius: 0 0 12px 12px;
+  padding: 24px 22px;
+
   :deep(.el-button) {
-    min-width: 120px;
-    height: 40px;
+    min-width: 142px;
+    height: 44px;
+    margin-left: 15px;
+    font-size: $font-size-md;
+    font-family: Inter-bold;
   }
+
+  .cancel-btn {
+    border: 1px solid rgba(150, 221, 255, 1);
+    color: $color-text-white;
+
+    &:hover {
+      color: $color-text-white;
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+.image-param-dialog {
+  border: none !important;
 }
 </style>

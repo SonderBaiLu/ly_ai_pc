@@ -1,45 +1,70 @@
 <template>
-  <div class="left-panel">
+  <div class="left-panel studio-left--select-card-bg">
     <div class="panel-title">AI服装设计</div>
 
     <div class="block">
       <div class="block-title">创作款型<span class="required-mark">（必选，单选）</span></div>
-      <div class="select-card" @click="showTypeModal = true">
+      <div class="select-card" @click="emit('open-type-modal')">
         {{ typeText ? typeText : '+ 请选择款型' }}
       </div>
     </div>
 
     <div class="block">
       <div class="block-title">设计特征<span class="required-mark">（非必选，多选）</span></div>
-      <div class="select-card" @click="emit('coming-soon')">+ 请选择设计特征</div>
+      <template v-if="selectedFeatures.length">
+        <div v-if="selectedFeatures && selectedFeatures.length > 0" class="feature-chips">
+          <div class="feature-chip" v-for="x in selectedFeatures" :key="x.key"
+            @click="removeFeature(x.categoryKey, x.label)">
+            {{ x.label }}
+            <img class="feature-del-icon" :src="images.tagDel" alt="" srcset="">
+          </div>
+          <div class="feature-plus" @click="showFeatureModal = true">
+            <img class="feature-plus-icon" :src="images.plus" alt="">
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="select-card" @click="showFeatureModal = true">+ 请选择设计特征</div>
+      </template>
     </div>
 
     <div class="block-title">上传参考图<span class="required-mark">（非必传）</span></div>
     <ImageUploadArea v-model:image-url="imageUrl" image-type="ref" image-name="reference" :show-actions="!!imageUrl"
-      :clickable="true" area-height="109px" placeholder-text="上传或拖拽参考图" :show-history-tip="true"
-      :enable-history-replace="false" @upload="emit('coming-soon')" @replace="emit('coming-soon')"
-      @delete="emit('delete')" @drop-file="(p) => emit('drop-file', p)" />
+      :clickable="true" placeholder-text="上传或拖拽参考图" :show-history-tip="true" :enable-history-replace="false"
+      @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
+      @drop-file="(p) => emit('drop-file', p)" />
+
+    <!-- 上传之后的样式 -->
+    <el-scrollbar>
+      <div class="scrollbar-flex-content">
+        <ImageUploadArea v-for="n in 5" :key="n" v-model:image-url="imageUrl" image-type="main" image-name="main"
+          placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px" />
+      </div>
+    </el-scrollbar>
 
     <!-- 创意描述 -->
-    <CreativeDescription v-model:prompt="prompt" :optional="true" />
+    <CreativeDescription v-model:prompt="prompt" :optional="true" placeholder="请输入创作描述，提升设计精准度" />
 
     <!-- 底部参数以及生成按钮 -->
     <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
       button-text="立即生成" @show-params="() => emit('show-params')" @generate="() => emit('generate')" />
 
-    <!-- 款型选择弹窗 -->
-    <CreationTypeSelectModal v-model="showTypeModal" :selection="creationTypeSelection" @confirm="handleTypeConfirm" />
+    <!-- 设计特征弹窗 -->
+    <DesignFeatureModal v-model="showFeatureModal" :selection="designFeatureSelection"
+      @confirm="handleFeatureConfirm" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
+import { images } from '@/assets'
+import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
+import DesignFeatureModal, { type DesignFeatureSelection } from '@/components/DesignFeatureModal.vue'
 
 const imageUrl = defineModel<string>('imageUrl', { default: '' })
 
-defineProps<{
+const props = defineProps<{
   taskResultId?: string | number
+  creationTypeSelection?: Partial<CreationTypeSelection>
 }>()
 
 const emit = defineEmits<{
@@ -48,38 +73,56 @@ const emit = defineEmits<{
   (e: 'coming-soon'): void
   (e: 'show-params'): void
   (e: 'generate'): void
+  (e: 'open-type-modal'): void
+  (e: 'clear-type-selection'): void
 }>()
 
 const prompt = ref('')
 
-const showTypeModal = ref(false)
-const creationTypeSelection = ref<Partial<CreationTypeSelection>>({})
 const typeText = computed(() => {
-  const s = creationTypeSelection.value
+  const s = props.creationTypeSelection
   if (!s?.category || !s?.clothType || !s?.subKind) return ''
   return `${s.category}-${s.clothType}-${s.subKind}`
 })
 
-const handleTypeConfirm = (v: CreationTypeSelection) => {
-  creationTypeSelection.value = v
+const showFeatureModal = ref(false)
+const designFeatureSelection = ref<DesignFeatureSelection>({})
+
+const handleFeatureConfirm = (v: DesignFeatureSelection) => {
+  designFeatureSelection.value = v
+}
+
+
+const selectedFeatures = computed(() => {
+  const result: Array<{ key: string; categoryKey: string; label: string }> = []
+  Object.entries(designFeatureSelection.value || {}).forEach(([categoryKey, arr]) => {
+    ; (arr || []).forEach((label) => {
+      const t = String(label || '').trim()
+      if (!t) return
+      result.push({ key: `${categoryKey}::${t}`, categoryKey, label: t })
+    })
+  })
+  return result
+})
+
+const removeFeature = (categoryKey: string, label: string) => {
+  const next = { ...(designFeatureSelection.value || {}) }
+  const arr = next[categoryKey] || []
+  next[categoryKey] = arr.filter((x) => String(x || '').trim() !== label)
+  if (!next[categoryKey]?.length) delete next[categoryKey]
+  designFeatureSelection.value = next
 }
 
 // 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
-const defaultImageParams = computed<string[]>(() => ['高清', '写实', '1:1'])
+const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
 const coin = computed(() => 0)
 const isGenerating = ref(false)
 </script>
 
 <style scoped lang="scss">
-.left-panel {
-  color: $color-text-white;
+@use '@/styles/_studio_left.scss';
 
-  .panel-title {
-    font-size: $font-size-xl;
-    font-weight: $font-weight-semibold;
-    margin-bottom: 35px;
-    text-align: center;
-  }
+.left-panel {
 
   .block {
     padding: 25px 10px 26px;
@@ -89,30 +132,52 @@ const isGenerating = ref(false)
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  .block-title {
-    margin-bottom: $spacing-md;
-    font-family: Inter-medium;
-    font-size: $font-size-md;
-    font-weight: $font-weight-medium;
+  .feature-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 5px;
 
-    .required-mark {
-      color: $color-primary;
+    .feature-chip {
+      position: relative;
+      padding: 5px 10px;
+      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: $color-text-gray;
+      font-size: 14px;
+      text-align: center;
+      font-family: -regular;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+
+      .feature-del-icon {
+        position: absolute;
+        right: -5px;
+        top: -5px;
+        width: 10px;
+        height: 10px;
+      }
+    }
+
+    .feature-plus {
+      padding: 0 17px;
+      cursor: pointer;
+      border-radius: 4px;
+      background-color: rgba(150, 221, 255, 0.15);
+      font-family: -regular;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+
+      .feature-plus-icon {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 
-  .select-card {
+  .scrollbar-flex-content {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 350px;
-    height: 50px;
-    margin: 0 auto;
-    background: url('@/assets/images/select_btn.png') no-repeat center center;
-    background-size: 100% 100%;
-    color: $color-text-gray;
-    font-size: $font-size-base;
-    font-family: Inter-regular;
-    cursor: pointer;
+    flex-wrap: nowrap;
+    gap: 11px;
+    padding-bottom: 10px;
   }
 }
 </style>

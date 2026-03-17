@@ -2029,7 +2029,7 @@ const getPurchaseButtonText = (plan: any) => {
 
   // 上半部分
   .tidecoin-top {
-    background: $color-bg-dark-card url('@/assets/images/logo_hui.png') no-repeat right 4px top 17px;
+    background: $color-bg-dark-card url('@/assets/images/logo.png') no-repeat right 4px top 17px;
     background-size: 144px 162px;
     padding: 20px;
     position: relative;

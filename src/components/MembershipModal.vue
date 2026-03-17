@@ -1233,7 +1233,7 @@ const handleClose = () => {
 
   // 上半部分
   .tidecoin-top {
-    background: var(--bg-btn) url('@/assets/images/logo_hui.png') no-repeat right 4px top 17px;
+    background: var(--bg-btn) url('@/assets/images/logo.png') no-repeat right 4px top 17px;
     background-size: 144px 162px;
     padding: 20px;
     position: relative;

@@ -6,12 +6,12 @@
         <el-tab-pane v-for="tab in contentTabs" :key="tab.key" :label="tab.label" :name="tab.key" />
       </el-tabs>
       <!-- 刷新按钮 -->
-      <el-button :loading="loading" :disabled="loading" @click="handleRefresh">
+      <!-- <el-button :loading="loading" :disabled="loading" @click="handleRefresh">
         <el-icon>
           <Refresh />
         </el-icon>
         <span>刷新</span>
-      </el-button>
+      </el-button> -->
     </div>
 
     <!-- 主内容显示区域 -->
@@ -26,8 +26,6 @@
             { active: index === currentIndex },
             asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
           ]" @click="selectAsset(index)">
-          <!-- 提示词 -->
-          <!-- <div class="asset-prompt">{{ asset.prompt }}</div> -->
 
           <!-- 生成中状态（卡片内仅保留骨架和文案，不再重复进度条） -->
           <div v-if="asset.status === 2" class="asset-placeholder generating">
@@ -66,41 +64,18 @@
 
             <!-- 操作按钮栏 -->
             <div class="action-buttons">
-              <el-button class="action-btn" :class="{ 'is-collected': asset.collectId }"
+              <el-button class="action-btn" :class="{ 'is-collected': asset.collectId }" type="primary"
                 @click.stop="handleCollect(index)">
-                <img :src="asset.collectId ? images.collected : images.collect" alt="收藏" class="collect-icon" />
+                <img :src="asset.collectId ? images.collectActive : images.collectNo" alt="收藏" class="action-icon" />
                 <span>{{ asset.collectId ? '已收藏' : '收藏' }}</span>
               </el-button>
-              <el-dropdown trigger="click" placement="bottom-end" :hide-on-click="false"
-                popper-class="main-image-download-popper" @command="(cmd: string) => handleDownloadCommand(cmd, index)"
-                @visible-change="handleDownloadMenuVisible">
                 <el-button class="action-btn" :loading="isDownloading(asset, index)"
-                  :disabled="isDownloading(asset, index)" @click.stop>
-                  <img :src="images.download" alt="下载" class="action-icon" />
+                :disabled="isDownloading(asset, index)" type="primary" @click="handleDownload(index)">
+                <img :src="images.downloadMini" alt="下载" class="action-icon" />
                   <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
                 </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu class="download-menu">
-                    <el-dropdown-item command="download" :disabled="isDownloading(asset, index)">
-                      <div class="menu-item-content">
-                        <img :src="images.download" alt="下载" class="menu-icon" />
-                        <span>下载</span>
-                      </div>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="toggle-watermark" :disabled="isDownloading(asset, index)"
-                      class="watermark-toggle-item">
-                      <div class="menu-item-content" @click.stop="handleWatermarkToggleChange(!removeWatermarkEnabled)">
-                        <el-switch v-model="removeWatermarkEnabled" active-color="#8f50ea" inactive-color="#201B26"
-                          :disabled="isDownloading(asset, index)" @click.stop @change="handleWatermarkToggleChange" />
-                        <span>去除水印</span>
-                        <img :src="images.vip" alt="VIP" class="vip-icon" />
-                      </div>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-              <el-button class="action-btn delete-btn" @click.stop="handleDelete(index)">
-                <img :src="images.del" alt="删除" class="action-icon" />
+              <el-button class="action-btn delete-btn" type="primary" @click.stop="handleDelete(index)">
+                <img :src="images.delMini" alt="删除" class="action-icon" />
                 <span>删除</span>
               </el-button>
             </div>
@@ -143,7 +118,7 @@
 // 自动导入：Vue API, Element Plus 图标
 import { type Asset } from '@/composables/useTaskPolling'
 import { ElMessage } from 'element-plus'
-import { Loading, ArrowUp, Refresh } from '@element-plus/icons-vue'
+import { Loading, ArrowUp } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import GradientProgress from './GradientProgress.vue'
 
@@ -347,12 +322,6 @@ const handleTabChange = (tabKey: string | number) => {
   emit('tab-change', key, tab?.fileType)
 }
 
-// 刷新列表
-const handleRefresh = () => {
-  if (props.loading) return
-  emit('refresh')
-}
-
 // 点击标志
 let isClickingAsset = false
 
@@ -384,50 +353,10 @@ const handleCollect = (index: number) => {
   emit('collect', index)
 }
 
-// 处理下载菜单命令
-const handleDownloadCommand = (command: string, index: number) => {
-  if (command === 'download') {
-    const currentAsset = props.assets[index]
-    if (currentAsset) {
+// 处理下载
+const handleDownload = (index: number) => {
       emit('download', index, removeWatermarkEnabled.value)
     }
-  } else if (command === 'toggle-watermark') {
-    // 点击整个按钮区域时切换开关状态
-    handleWatermarkToggleChange(!removeWatermarkEnabled.value)
-  }
-}
-
-// 处理下载菜单显示/隐藏
-const handleDownloadMenuVisible = (_visible: boolean) => {
-  // 菜单显示时可以做一些处理
-}
-
-// 处理去除水印开关变化
-const handleWatermarkToggleChange = (val: string | number | boolean) => {
-  const enabled = val === true || val === 1 || val === '1' || val === 'true'
-  // 如果不是会员，打开会员购买弹窗
-  if (!props.isVip) {
-    emit('open-membership-modal')
-    // 恢复开关状态
-    removeWatermarkEnabled.value = false
-    return
-  }
-
-  // 如果是会员，检查是否需要显示责任声明
-  const noRemind = localStorage.getItem('watermark_disclaimer_no_remind') === 'true'
-  if (!noRemind && enabled) {
-    // 显示责任声明弹窗
-    emit('open-watermark-disclaimer')
-    // 先不更新状态，等用户确认后再更新
-    removeWatermarkEnabled.value = false
-    return
-  }
-
-  // 更新状态
-  removeWatermarkEnabled.value = enabled
-  emit('watermark-toggle-change', enabled)
-}
-
 // 处理删除
 const handleDelete = (index: number) => {
   console.log('[操作] 删除资产:', index)
@@ -749,6 +678,11 @@ const scrollToTop = () => {
       behavior: 'smooth',
     })
   }
+
+  // 回到顶部时同步选中第一个资产
+  if (props.assets.length > 0) {
+    emit('asset-click', 0)
+  }
 }
 
 // 预留：检测当前可见的资产（目前未用到，后续可扩展智能播放等能力）
@@ -810,31 +744,26 @@ defineExpose({
 /* ========== 主容器 ========== */
 .main-image-display {
   flex: 1;
-  background-color: var(--primary-dark);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-right: 27px;
 }
 
 /* ========== 内容标签页 ========== */
 .content-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-lg) 0;
+  padding: 10px 0 16px;
+  font-size: $font-size-md;
 
-  :deep(.el-tabs__item) {
-    &:hover {
-      color: var($color-primary) !important;
-    }
-
-    &.is-active {
-      color: var($color-primary) !important;
-    }
-  }
-
-  :deep(.el-tabs__active-bar) {
-    background-color: var($color-primary) !important;
+  :deep(.el-tabs__item).is-active {
+    font-family: NotoSans-bold;
+    font-weight: bold;
   }
 
   // 去掉未选中标签页的底部横线
@@ -850,7 +779,6 @@ defineExpose({
 /* ========== 主内容区域 ========== */
 .main-content-area {
   flex: 1;
-  padding: 0 var(--spacing-lg) var(--spacing-lg);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; // iOS平滑滚动
@@ -870,11 +798,10 @@ defineExpose({
 .assets-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: 37px;
 }
 
 .asset-item {
-  border-radius: var(--radius-lg);
   cursor: pointer;
   will-change: transform;
   transform: translateZ(0); // GPU加速
@@ -884,23 +811,13 @@ defineExpose({
   }
 }
 
-/* ========== 资产项内容 ========== */
-.asset-prompt {
-  color: var(--text-primary);
-  font-size: var(--font-sm);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-md);
-  white-space: pre-wrap; // 保留换行符，支持多行显示
-  word-break: break-word; // 长单词自动换行
-}
-
 /* ========== 资产占位符（生成中/失败） ========== */
 .asset-placeholder {
   position: relative;
   width: 100%;
-  border-radius: var(--radius-md);
-  background-color: var(--bg-secondary);
-  margin-bottom: var(--spacing-md);
+  border-radius: $border-radius-md;
+  background-color: $color-bg-dark-secondary;
+  margin-bottom: $spacing-md;
   overflow: hidden;
 
   &.generating {
@@ -917,13 +834,13 @@ defineExpose({
     .placeholder-icon {
       width: 120px;
       height: 120px;
-      margin-bottom: var(--spacing-sm);
+      margin-bottom: $spacing-sm;
       object-fit: contain;
     }
 
     .placeholder-text {
-      font-size: var(--font-sm);
-      color: var(--text-secondary);
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
     }
   }
 }
@@ -932,10 +849,10 @@ defineExpose({
 .skeleton-box {
   position: relative;
   width: 100%;
-  height: 500px;
+  height: 420px;
   background: linear-gradient(90deg, #2a2a3e 0%, #32324a 50%, #2a2a3e 100%);
   background-size: 200% 100%;
-  border-radius: var(--radius-md);
+  border-radius: $border-radius-md;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -973,16 +890,16 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: $spacing-sm;
 
   .status-icon {
     font-size: 48px;
-    color: var(--primary-color);
+    color: $color-primary;
   }
 
   .status-text {
     font-size: 16px;
-    color: var(--primary-color);
+    color: $color-primary;
     font-weight: 500;
     letter-spacing: 1px;
   }
@@ -992,7 +909,7 @@ defineExpose({
 .card-progress {
   width: 360px;
   max-width: 90%;
-  margin-top: var(--spacing-md);
+  margin-top: $spacing-md;
 }
 
 /* ========== 当前资产展示区域 ========== */
@@ -1002,11 +919,11 @@ defineExpose({
 
 .media-frame {
   position: relative;
-  background-color: var(--bg-card);
-  border-radius: var(--radius-md);
+  background: $color-bg-dark-secondary;
+  border-radius: $border-radius-md;
   overflow: hidden;
   width: 100%;
-  height: 500px;
+  height: 420px;
   /* 固定高度确保容器有明确尺寸 */
   display: flex;
   align-items: center;
@@ -1045,47 +962,33 @@ defineExpose({
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-lg);
-  margin-top: var(--spacing-md);
+  gap: 29px;
+  margin-top: 15px;
 
   .action-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: var(--font-sm);
+    width: 82px;
+    height: 31px;
+    margin: 0;
+    font-family: NotoSans-bold;
     transition: all 0.3s ease;
+    border-radius: 4px;
+    background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+    color: $color-text-white;
+    font-size: 11px;
+    border: 1px solid rgba(76, 87, 86, 1);
 
-    .collect-icon,
     .action-icon {
-      width: 16px;
-      height: 16px;
+      width: 13px;
+      height: 13px;
+      margin-right: 3px;
       object-fit: contain;
-    }
-
-    span {
-      margin-left: var(--spacing-xs);
-    }
-
-    &.is-collected {
-      color: var(--primary-color);
-      border-color: var(--primary-color);
-      background-color: rgba(143, 80, 234, 0.1);
-
-      &:hover {
-        background-color: rgba(143, 80, 234, 0.2);
-      }
-    }
-
-    &.delete-btn {
-      &:hover {
-        color: var(--danger-color, #f56c6c);
-        border-color: var(--danger-color, #f56c6c);
-      }
     }
   }
 }
 
-/* ========== 固定在底部的状态和回到顶部按钮 ========== */
+/* ========== 固定在底部的状态和回到顶部按钮（统一主题样式） ========== */
 .main-content-area {
   position: relative;
 }
@@ -1099,34 +1002,34 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: $spacing-sm;
   pointer-events: none;
 
   .status-content {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-md);
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-md;
+    background: $color-bg-dark-secondary;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: $border-radius-2xl;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     pointer-events: auto;
 
     /* 生成状态区域 */
     .generating-status-section {
       display: flex;
       align-items: center;
-      gap: var(--spacing-sm);
+      gap: $spacing-sm;
 
       .status-icon {
-        font-size: var(--font-md);
-        color: var(--primary-color);
+        font-size: $font-size-md;
+        color: $color-primary;
       }
 
       .status-text {
-        color: var(--text-primary);
-        font-size: var(--font-sm);
+        color: $color-primary;
+        font-size: $font-size-sm;
         font-weight: 500;
         white-space: nowrap;
       }
@@ -1136,7 +1039,7 @@ defineExpose({
     .divider {
       width: 1px;
       height: 10px;
-      background: var(--border-color);
+      background: rgba(255, 255, 255, 0.18);
       flex-shrink: 0;
     }
 
@@ -1144,29 +1047,29 @@ defineExpose({
     .back-to-top-section {
       display: flex;
       align-items: center;
-      gap: var(--spacing-xs);
+      gap: $spacing-xs;
       cursor: pointer;
       transition: all 0.3s ease;
 
       &:hover {
         .back-to-top-icon {
-          color: var(--primary-color);
+          color: $color-primary;
         }
 
         .back-to-top-text {
-          color: var(--primary-color);
+          color: $color-primary;
         }
       }
 
       .back-to-top-icon {
-        font-size: var(--font-md);
-        color: var(--text-secondary);
+        font-size: $font-size-md;
+        color: $color-text-secondary;
         transition: color 0.3s ease;
       }
 
       .back-to-top-text {
-        color: var(--text-secondary);
-        font-size: var(--font-sm);
+        color: $color-text-secondary;
+        font-size: $font-size-sm;
         font-weight: 500;
         white-space: nowrap;
         transition: color 0.3s ease;

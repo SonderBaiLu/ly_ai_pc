@@ -177,10 +177,6 @@ const handleConfirm = () => {
     background: $color-bg-dark-secondary;
     border-radius: 10px 10px 0 0;
 
-    ::v-deep(.el-dialog__header) {
-      padding: 0;
-    }
-
     .header-left {
       display: flex;
       align-items: center;
@@ -197,8 +193,8 @@ const handleConfirm = () => {
     }
 
     .header-close {
-      width: 32px;
-      height: 32px;
+      width: 24px;
+      height: 24px;
       cursor: pointer;
     }
   }
@@ -268,10 +264,6 @@ const handleConfirm = () => {
     padding: 18px 25px 16px;
     background: $color-bg-dark-secondary;
     border-radius: 0 0 10px 10px;
-
-    &::v-deep(.el-dialog__footer) {
-      padding: 0;
-    }
 
     .current {
       color: $color-text-tags;

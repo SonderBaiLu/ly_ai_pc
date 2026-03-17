@@ -63,8 +63,8 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <img :src="templateDetail?.isCollect === 1 ? images.collected : images.collect" class="btn-icon" alt=""
-              @click="handleAssetsCollect" />
+            <img :src="templateDetail?.isCollect === 1 ? images.collectActive : images.collectNo" class="btn-icon"
+              alt="" @click="handleAssetsCollect" />
             <el-dropdown trigger="click" popper-class="template-detail-more-popper" @command="handleMoreCommand">
               <img :src="images.more" class="btn-icon" alt="" />
               <template #dropdown>

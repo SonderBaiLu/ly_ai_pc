@@ -30,7 +30,7 @@
           <el-button v-if="batchMode && selectedIds.length > 0 && activeTab !== 'upload'" type="warning"
             @click="handleBatchCollect">
             <img
-              :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collected : images.collect"
+              :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collectActive : images.collectNo"
               alt="收藏" class="action-icon" />
             {{
               selectedCollectStatus.allCollected || activeTab === 'collect'
@@ -82,7 +82,7 @@
                   :disabled="selectedIds.length === 0">
                   <div class="menu-item-content">
                     <img
-                      :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collected : images.collect"
+                      :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collectActive : images.collectNo"
                       alt="收藏" class="menu-icon" />
                     <span>
                       {{

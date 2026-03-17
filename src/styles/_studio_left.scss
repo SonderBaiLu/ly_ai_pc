@@ -1,0 +1,126 @@
+// 公用：AI Fashion Studio 左侧面板（left/*）重复样式抽离（B方案：公共 class）
+// 约定：
+// - 不改页面内部语义类名（upload-btn/select-card/bottom-sticky/ai-segmented 保持不动）
+// - 通过 left-panel 上的“页面级修饰类”区分少量样式差异
+
+@use './_variables.scss'as *;
+
+.left-panel {
+  color: $color-text-white;
+}
+
+.panel-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  margin-bottom: 35px;
+  text-align: center;
+}
+
+.block-title {
+  margin-bottom: $spacing-md;
+  padding: 0 $spacing-sm-xs;
+  font-family: Inter-medium;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+
+  .required-mark {
+    color: $color-primary;
+  }
+
+  .upload-btn {
+    width: 66px;
+    height: 23px;
+    border-radius: 4px;
+    background: $color-primary-dark;
+    color: $color-text-white;
+    font-size: $font-size-xs;
+    font-family: NotoSans-regular;
+    border: none;
+    cursor: pointer;
+  }
+}
+
+// 分段按钮外框（内部仍用 el-button 的 primary/default 切换）
+.ai-segmented {
+  display: inline-block;
+  padding: 7px 8px;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  .el-button {
+    width: 95px;
+    height: 36px;
+    margin: 0;
+    font-size: $font-size-md;
+    font-family: Inter-bold;
+    font-weight: $font-weight-bold;
+  }
+
+  .el-button--default {
+    background: transparent;
+    border: none;
+  }
+
+  .el-button--primary {
+    background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+  }
+}
+
+// 款型卡片：描边样式（SketchToReal/FabricCreative）
+.studio-left--select-card-bordered {
+  .select-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    padding: 9px 0;
+    border: 1px solid $color-primary;
+    border-radius: 8px;
+    color: $color-text-gray;
+    font-size: $font-size-md;
+    font-family: Inter-regular;
+    cursor: pointer;
+
+    .select-del-icon {
+      position: absolute;
+      right: -3px;
+      top: -4px;
+      width: 10px;
+      height: 10px;
+      cursor: pointer;
+    }
+  }
+}
+
+// 款型卡片：背景图样式（Fashion/RealToSketch）
+.studio-left--select-card-bg {
+  .select-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 350px;
+    height: 50px;
+    margin: 0 auto;
+    background: url('@/assets/images/select_btn.png') no-repeat center center;
+    background-size: 100% 100%;
+    color: $color-text-gray;
+    font-size: $font-size-base;
+    font-family: Inter-regular;
+    cursor: pointer;
+  }
+}
+
+// 底部贴底容器（FabricCreative）
+.studio-left--bottom-sticky {
+  .bottom-sticky {
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 35%, rgba(0, 0, 0, 0.9) 100%);
+  }
+}
