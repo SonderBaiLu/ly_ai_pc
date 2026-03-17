@@ -149,6 +149,13 @@ const resetPassword = async () => {
     console.error('login error', e)
   }
 }
+onUnmounted(() => {
+  // 当组件被销毁时，如果定时器还在运行，就强行停掉它
+  if (smsTimer) {
+    clearInterval(smsTimer)
+    smsTimer = null
+  }
+})
 </script>
 
 <style lang="scss" scoped>
