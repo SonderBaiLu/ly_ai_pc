@@ -116,7 +116,7 @@
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
                   :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
+                  <img :src="showPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" class="eye-img" />
                 </span>
               </div>
               <div v-if="pwdErrorMsg" class="error-text">
@@ -147,7 +147,7 @@
                 <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
                   :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" @input="clearTeamError" />
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
-                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
+                  <img :src="showTeamPwd ? iconEyesOpen : iconEyeClose" alt="" class="eye-img" />
                 </span>
               </div>
               <div v-if="teamErrorMsg" class="error-text">
@@ -178,7 +178,8 @@
 import { onUnmounted, reactive, ref } from 'vue' // 显式导入，防止偶尔的自动导入失效
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { images } from '@/assets'
+import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
+import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 import { getSmsCodeApi } from '@/api/userLogin'
 import { useUserStore } from "@/stores/user"
 

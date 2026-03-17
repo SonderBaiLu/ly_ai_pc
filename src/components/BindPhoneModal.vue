@@ -52,14 +52,12 @@ const { t } = useI18n();
 //表单验证初始化
 const { handleSubmit, validateField } = useForm({
   validationSchema: codeLoginSchema,
-  // 初始值可以写在这里
   initialValues: {
     phone: '',
     code: '',
   }
 });
 // 字段绑定
-// 使用 useField 替代你原来的 reactive formData
 const { value: phone, errorMessage: phoneErr } = useField('phone');
 const { value: code, errorMessage: codeErr } = useField('code');
 
@@ -82,7 +80,6 @@ const countText = computed(() =>
 );
 
 const handleGetCode = async () => {
-  // 【关键点】获取验证码前，只触发手机号的单独校验
   const { valid } = await validateField('phone');
 
   if (!valid) return; // 如果手机号校验没通过，不往下走
