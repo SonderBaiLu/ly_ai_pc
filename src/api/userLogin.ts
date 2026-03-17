@@ -30,3 +30,12 @@ export const loginByPwd = (
 export const teamLogin = (payload: { userName: string, pwd: string }) => {
     return request.post('/v1/sonLogin/loginByPwd', payload) as unknown as Promise<ApiResponse<any>>
 }
+// 用户验证手机号更变密码（登录页忘记密码）
+export const changePwdBySms = (payload: {
+    mobile: string,
+    verifyCode: number,
+    newPwd: number,
+    newPwdAgain: number
+}) => {
+    return request.post('/v1/pwd/changePwdBySms', payload) as unknown as Promise<any>
+}

@@ -25,7 +25,7 @@
         <div class="form-group">
           <label>{{ t('bindPhoneModal.codeLabel') }}</label>
           <div class="input-wrapper code-wrapper" :class="{ 'has-error': codeErr }">
-            <input v-model="code" type="text" :placeholder="t('bindPhoneModal.codePlaceholder')" maxlength="6" />
+            <input v-model="code" type="text" :placeholder="t('bindPhoneModal.codePlaceholder')" maxlength="4" />
             <button class="get-code-btn" :class="{ disabled: isCounting }" :disabled="isCounting"
               @click="handleGetCode">
               {{ countText }}

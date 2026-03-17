@@ -16,18 +16,24 @@
           <div class="input-wrapper">
             <span class="prefix">+86</span>
             <span class="divider"></span>
-            <input type="text" class="form-input" placeholder="请输入手机号" />
+            <input type="number" maxlength="11"  v-model="formData.phone"  class="form-input" placeholder="请输入手机号" />
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">验证码</label>
           <div class="input-wrapper">
-            <input type="text" class="form-input" placeholder="请输入验证码" />
-            <button class="get-code-btn">获取验证码</button>
+            <input maxlength="4" v-model="formData.code" type="number" class="form-input" placeholder="请输入验证码" />
+            <button @click='GetSmSCode' :disabled="!formData.phone || isCounting" class="get-code-btn">
+              {{
+                isCounting
+                  ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
+                  : t('LoginPopUpPage.getVerificationCode')
+              }}
+            </button>
           </div>
         </div>
-
+        something
         <div class="form-group">
           <label class="form-label">
             新密码 <span class="label-hint">6-20个数字、字母组成</span>
@@ -65,20 +71,24 @@
           </div>
         </div>
 
-        <button class="submit-btn">重置密码</button>
+        <button @click="resetPassword()" class="submit-btn">重置密码</button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 // 密码显示切换状态
+import { changePwdBySms, getSmsCodeApi } from "@/api/userLogin";
 import { reactive, ref, computed } from "vue";
 const oneShowPersonalPwd = ref(false)
 const twoShowPersonalPwd = ref(false)
 // 表单数据
 const formData = reactive({
   phone: '',
+  code: '',
   password: '',
   twoPassword: '',
 })
@@ -90,6 +100,66 @@ const TwoPasswordInputType = computed(() => {
   return twoShowPersonalPwd.value ? 'text' : 'password';
 });
 
+// 短信验证码倒计时
+const isCounting = ref(false)
+const countdown = ref(120)
+let smsTimer: ReturnType<typeof setInterval> | null = null
+const GetSmSCode = async () => {
+  try {
+
+    const mobile = Number(formData.phone)
+    if (!formData.phone || !Number.isInteger(mobile)) {
+      ElMessage.warning("？")
+      return
+    }
+    const res = await getSmsCodeApi(mobile)
+    if (String((res as any).code) === '0000') {
+      ElMessage.success('验证码已发送')
+      // 启动 120s 倒计时
+      isCounting.value = true;
+      countdown.value = 120;
+      if (smsTimer) clearInterval(smsTimer)
+      smsTimer = setInterval(() => {
+        countdown.value -= 1
+        if (countdown.value <= 0) {
+          if (smsTimer) clearInterval(smsTimer)
+          smsTimer = null
+          isCounting.value = false
+        }
+      }, 1000)
+    }
+  } catch (e) {
+    console.error('getSmscode error', e)
+  }
+}
+
+
+const resetPassword = async () => {
+  //定义校验规则字典
+  const rules = [
+    { isInvalid: !formData.phone, msg: "请输入手机号" },
+    { isInvalid: !formData.code, msg: "请输入验证码" },
+    { isInvalid: !formData.password, msg: "请输入密码" },
+    { isInvalid: !formData.twoPassword, msg: "请再次输入密码" },
+    { isInvalid: formData.password !== formData.twoPassword, msg: "两次输入的密码不一致，请重新输入" },
+  ]
+  // 遍历校验
+  const errorRule = rules.find(rule => rule.isInvalid)
+  if (errorRule) {
+    ElMessage.warning(errorRule.msg)
+  }
+  try {
+    await changePwdBySms({
+      mobile: formData.phone,
+      verifyCode: Number(formData.code),
+      newPwd: Number(formData.password),
+      newPwdAgain: Number(formData.twoPassword)
+    })
+    ElMessage.success('修改成功')
+  } catch (e) {
+    console.error('login error', e)
+  }
+}
 </script>
 
 <style lang="scss" scoped>

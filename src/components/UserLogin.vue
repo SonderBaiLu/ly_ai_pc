@@ -1,51 +1,33 @@
 <template>
   <div class="login-overlay" @click.self="handleClose">
     <div class="login-modal">
+
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
             <img src="/src/assets/images/login_popup/ailog.png" alt="" />
           </span>
         </div>
-
-        <h1 class="main-title">
-          {{ t('LoginPopUpPage.mainTitle') }}
-        </h1>
-
+        <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') }}</h1>
         <div class="promo-box">
-          <span class="promo-text">
-            {{ t('LoginPopUpPage.promoText') }}
-          </span>
-          <span class="promo-value">
-            {{ t('LoginPopUpPage.promoValue') }}
-          </span>
+          <span class="promo-text">{{ t('LoginPopUpPage.promoText') }}</span>
+          <span class="promo-value">{{ t('LoginPopUpPage.promoValue') }}</span>
         </div>
-
         <ul class="feature-list">
           <li>
-            <span class="icon">
-              <img src="/src/assets/images/login_popup/layered.png" alt="" />
-            </span>
+            <span class="icon"><img src="/src/assets/images/login_popup/layered.png" alt="" /></span>
             <span>{{ t('LoginPopUpPage.simplifyDesign') }}</span>
           </li>
           <li>
-            <span class="icon">
-              <img src="/src/assets/images/login_popup/clothes.png" alt="" />
-            </span>
+            <span class="icon"><img src="/src/assets/images/login_popup/clothes.png" alt="" /></span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') }}</span>
           </li>
           <li>
-            <span class="icon">
-              <img src="/src/assets/images/login_popup/shopping.png" alt="" />
-            </span>
-            <span>
-              {{ t('LoginPopUpPage.loginRewards') }}
-            </span>
+            <span class="icon"><img src="/src/assets/images/login_popup/shopping.png" alt="" /></span>
+            <span>{{ t('LoginPopUpPage.loginRewards') }}</span>
           </li>
           <li>
-            <span class="icon">
-              <img src="/src/assets/images/login_popup/pen.png" alt="" />
-            </span>
+            <span class="icon"><img src="/src/assets/images/login_popup/pen.png" alt="" /></span>
             <span>{{ t('LoginPopUpPage.backToEssence') }}</span>
           </li>
         </ul>
@@ -73,7 +55,6 @@
         </div>
 
         <div class="method-content">
-          <!-- 扫码登录 -->
           <div v-if="accountType === 'personal' && loginMethod === 'qrcode'" class="qrcode-section">
             <div class="qrcode-container">
               <div class="qrcode-placeholder"></div>
@@ -85,24 +66,16 @@
                 </span>
                 <span>{{ t('LoginPopUpPage.wechatScanLogin') }}</span>
               </div>
-              <p class="sub-hint">
-                {{ t('LoginPopUpPage.subHint') }}
-              </p>
+              <p class="sub-hint">{{ t('LoginPopUpPage.subHint') }}</p>
             </div>
-
             <div class="invite-link-wrap qrcode-invite">
-              <a href="#" class="invite-link">
-                {{ t('LoginPopUpPage.inviteLink') }}
-              </a>
+              <a href="#" class="invite-link">{{ t('LoginPopUpPage.inviteLink') }}</a>
             </div>
           </div>
 
-          <!-- 手机号登录 -->
           <div v-if="accountType === 'personal' && loginMethod === 'phone'" class="form-section">
             <div class="input-block">
-              <label class="block-label">
-                {{ t('LoginPopUpPage.mobilePhoneNumber') }}
-              </label>
+              <label class="block-label">{{ t('LoginPopUpPage.mobilePhoneNumber') }}</label>
               <div class="input-wrapper phone-input-wrapper">
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
@@ -113,9 +86,7 @@
 
             <div v-if="phoneLoginType === 'code'" class="input-block">
               <div class="label-row">
-                <label class="block-label">
-                  {{ t('LoginPopUpPage.captcha') }}
-                </label>
+                <label class="block-label">{{ t('LoginPopUpPage.captcha') }}</label>
                 <div class="mode-switch-btn" @click="phoneLoginType = 'password'">
                   {{ t('LoginPopUpPage.passwordLogin') }}
                 </div>
@@ -124,55 +95,46 @@
                 <input type="text" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
-                  {{
-                    isCounting
-                      ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
-                      : t('LoginPopUpPage.getVerificationCode')
-                  }}
+                  {{ isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
+                    t('LoginPopUpPage.getVerificationCode') }}
                 </button>
               </div>
             </div>
 
             <div v-if="phoneLoginType === 'password'" class="input-block">
               <div class="label-row">
-                <label class="block-label">
-                  {{ t('LoginPopUpPage.passwordLabel') }}
-                </label>
+                <label class="block-label">{{ t('LoginPopUpPage.passwordLabel') }}</label>
                 <div class="link-group">
                   <a href="#" class="action-link" @click.prevent="phoneLoginType = 'code'">
                     {{ t('LoginPopUpPage.codeLogin') }}
                   </a>
                   <span class="link-divider"></span>
-                  <a href="#" class="action-link">
-                    {{ t('LoginPopUpPage.forgotPassword') }}
-                  </a>
+                  <a href="#" class="action-link">{{ t('LoginPopUpPage.forgotPassword') }}</a>
                 </div>
               </div>
-              <div class="input-wrapper">
+              <div class="input-wrapper" :class="{ 'has-error': pwdErrorMsg }">
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
-                  :placeholder="t('LoginPopUpPage.passwordPlaceholder')" />
+                  :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
                   <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
+              <div v-if="pwdErrorMsg" class="error-text">
+                {{ pwdErrorMsg }}
+              </div>
             </div>
 
             <div class="invite-link-wrap">
-              <a href="#" class="invite-link">
-                {{ t('LoginPopUpPage.inviteFill') }}
-              </a>
+              <a href="#" class="invite-link">{{ t('LoginPopUpPage.inviteFill') }}</a>
             </div>
             <button class="submit-btn" @click="handleSubmit">
               {{ t('LoginPopUpPage.loginOrRegister') }}
             </button>
           </div>
 
-          <!-- 团队登录 -->
           <div v-if="accountType === 'team'" class="form-section team-form-section">
             <div class="input-block">
-              <label class="block-label">
-                {{ t('LoginPopUpPage.teamAccountLabel') }}
-              </label>
+              <label class="block-label">{{ t('LoginPopUpPage.teamAccountLabel') }}</label>
               <div class="input-wrapper">
                 <input type="text" v-model="formData.teamAccount"
                   :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')" />
@@ -180,18 +142,16 @@
             </div>
 
             <div class="input-block">
-              <label class="block-label">
-                {{ t('LoginPopUpPage.teamPasswordLabel') }}
-              </label>
-              <div class="input-wrapper" :class="{ 'has-error': formError }">
+              <label class="block-label">{{ t('LoginPopUpPage.teamPasswordLabel') }}</label>
+              <div class="input-wrapper" :class="{ 'has-error': teamErrorMsg }">
                 <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
-                  :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" />
+                  :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" @input="clearTeamError" />
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
                   <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
-              <div v-if="formError" class="error-text">
-                {{ t('LoginPopUpPage.teamPasswordError') }}
+              <div v-if="teamErrorMsg" class="error-text">
+                {{ teamErrorMsg }}
               </div>
             </div>
 
@@ -215,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import { onUnmounted, reactive, ref } from 'vue' // 显式导入，防止偶尔的自动导入失效
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
@@ -224,16 +185,24 @@ import { useUserStore } from "@/stores/user"
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
-// 基础状态
+
+// === 基础状态 ===
 const accountType = ref<'personal' | 'team'>('personal')
 const loginMethod = ref<'qrcode' | 'phone'>('phone')
 const phoneLoginType = ref<'code' | 'password'>('code')
+
 // 密码显示切换状态
 const showPersonalPwd = ref(false)
 const showTeamPwd = ref(false)
+
 // 错误提示状态
-const formError = ref(false)
-// 表单数据
+const pwdErrorMsg = ref('')
+const teamErrorMsg = ref('')
+
+const clearPwdError = () => { pwdErrorMsg.value = '' }
+const clearTeamError = () => { teamErrorMsg.value = '' }
+
+// === 表单数据 ===
 const formData = reactive({
   phone: '',
   code: '',
@@ -241,14 +210,17 @@ const formData = reactive({
   teamAccount: '',
   teamPassword: '',
 })
+
 // 限制手机号只允许数字且最长 11 位
 const handlePhoneInput = () => {
   formData.phone = formData.phone.replace(/\D/g, '').slice(0, 11)
 }
-// 短信验证码倒计时
+
+// === 短信验证码逻辑 ===
 const isCounting = ref(false)
 const countdown = ref(120)
 let smsTimer: ReturnType<typeof setInterval> | null = null
+
 const GetSmSCode = async () => {
   const mobile = Number(formData.phone)
   if (!formData.phone || !Number.isInteger(mobile)) {
@@ -259,9 +231,7 @@ const GetSmSCode = async () => {
   try {
     const res = await getSmsCodeApi(mobile)
     if (String((res as any).code) === '0000') {
-      ElMessage.success(t('LoginPopUpPage.smsCodeSent') || '验证码已发送')
-
-      // 启动 120s 倒计时
+      ElMessage.success(t('LoginPopUpPage.smsCodeSent'))
       isCounting.value = true
       countdown.value = 120
       if (smsTimer) clearInterval(smsTimer)
@@ -274,6 +244,8 @@ const GetSmSCode = async () => {
           isCounting.value = false
         }
       }, 1000)
+    } else {
+      ElMessage.error((res as any).msg || '发送失败')
     }
   } catch (e) {
     console.error('getSmsCode error', e)
@@ -283,22 +255,24 @@ const GetSmSCode = async () => {
 const handleClose = () => {
   emit('close')
 }
+
+// === 个人登录提交 ===
 const handleSubmit = async () => {
   if (!formData.phone) {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
     return
   }
 
+  pwdErrorMsg.value = '' // 提交前重置报错
+
   try {
     if (phoneLoginType.value === 'code') {
-      // 验证码登录校验
       if (!formData.code) {
         ElMessage.warning(t('LoginPopUpPage.enterTheVerificationCode'))
         return
       }
       await userStore.loginWithSms(formData.phone, formData.code)
     } else {
-      // 密码登录校验
       if (!formData.password) {
         ElMessage.warning(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
         return
@@ -306,46 +280,48 @@ const handleSubmit = async () => {
       await userStore.loginWithPassword(formData.phone, formData.password)
     }
 
-    // 只要没报错抛出异常，走到这里就是成功
     ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
     emit('close')
 
-  } catch (e) {
-    console.error('login error', e)
+  } catch (e: any) {
+    const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
+    if (phoneLoginType.value === 'password') {
+      pwdErrorMsg.value = errorMsg // 渲染到输入框下方
+      console.log(errorMsg)
+    } else {
+      // 验证码登录直接顶部提示 使用拦截器的提示
+    }
   }
 }
 
 const handleTeamSubmit = async () => {
+  teamErrorMsg.value = '' // 提交前重置报错
+
+  if (!formData.teamAccount) {
+    ElMessage.warning(t('LoginPopUpPage.teamAccountPlaceholder'))
+    return
+  }
+  if (!formData.teamPassword) {
+    ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
+    return
+  }
+
   try {
-    if (!formData.teamAccount) {
-      ElMessage.warning(t('LoginPopUpPage.teamAccountPlaceholder'))
-      return
-    } else {
-      if (!formData.teamPassword) {
-        ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
-        return
-      } else {
-        await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
-      }
-    }
-    // 只要没报错抛出异常，走到这里就是成功
+    await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
     ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
     emit('close')
-  } catch (e) {
-    console.error('login error', e)
+  } catch (e: any) {
+    teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试' // 渲染到输入框下方
   }
 }
 
 onUnmounted(() => {
-  if (smsTimer) {
-    clearInterval(smsTimer)
-    smsTimer = null
-  }
+  if (smsTimer) clearInterval(smsTimer)
 })
 </script>
 
 <style scoped lang="scss">
-/* 基础遮罩与容器样式不变 */
+/* ====== 基础遮罩与容器样式 ====== */
 .login-overlay {
   position: fixed;
   inset: 0;
@@ -363,17 +339,14 @@ onUnmounted(() => {
   position: relative;
 }
 
-/* --- 左侧面板 --- */
+/* ====== 左侧面板 ====== */
 .left-panel {
   width: 592px;
   min-height: 627px;
   border-radius: 24px;
-  background: linear-gradient(135deg,
-      rgba(30, 58, 138, 1) 14.6%,
-      rgba(109, 40, 217, 1) 85.4%);
+  background: linear-gradient(135deg, rgba(30, 58, 138, 1) 14.6%, rgba(109, 40, 217, 1) 85.4%);
   padding-top: 20px;
   box-sizing: border-box;
-
   color: #fff;
   z-index: 2;
   box-shadow: 12px 0 30px rgba(0, 0, 0, 0.1);
@@ -384,8 +357,6 @@ onUnmounted(() => {
     gap: 10px;
     font-size: 24px;
     font-weight: 600;
-
-    /* 关键修改：精准定位 Logo (对应图4、图2) */
     margin-left: 29px;
     margin-bottom: 69px;
 
@@ -405,8 +376,6 @@ onUnmounted(() => {
     font-size: 40px;
     letter-spacing: 1px;
     line-height: 1.2;
-
-    /* 关键修改：统一左侧缩进，并控制到下方卡片的距离 */
     margin-left: 68px;
     margin-bottom: 40px;
   }
@@ -418,8 +387,6 @@ onUnmounted(() => {
     padding: 18px 24px;
     border-radius: 14px;
     backdrop-filter: blur(10px);
-
-    /* 关键修改：对应图3的左右边距标注 (68px / 76px) */
     margin-left: 68px;
     margin-right: 76px;
     margin-bottom: 50px;
@@ -438,8 +405,6 @@ onUnmounted(() => {
   .feature-list {
     list-style: none;
     padding: 0;
-
-    /* 关键修改：列表与上方卡片和标题保持左侧对齐 */
     margin-left: 68px;
     margin-right: 76px;
 
@@ -465,7 +430,7 @@ onUnmounted(() => {
   }
 }
 
-/* --- 右侧面板 --- */
+/* ====== 右侧面板 ====== */
 .right-panel {
   width: 480px;
   background: #fff;
@@ -476,7 +441,6 @@ onUnmounted(() => {
   flex-direction: column;
   z-index: 1;
   position: relative;
-  /* 防止 padding 撑开盒子，保证面板总宽固定为 480px */
   box-sizing: border-box;
 
   .close-btn {
@@ -504,7 +468,6 @@ onUnmounted(() => {
   align-self: center;
   margin-bottom: 35px;
   position: relative;
-  /* 为背景滑块定位 */
   z-index: 1;
 
   &::before {
@@ -513,7 +476,6 @@ onUnmounted(() => {
     top: 4px;
     left: 4px;
     width: calc(50% - 4px);
-    /* 一半的宽度 */
     height: calc(100% - 8px);
     background: #4a85f6;
     border-radius: 25px;
@@ -588,7 +550,6 @@ onUnmounted(() => {
   from {
     opacity: 0;
     transform: translateY(4px);
-    /* 从下方微距滑入 */
   }
 
   to {
@@ -658,7 +619,7 @@ onUnmounted(() => {
   }
 }
 
-/* 表单通用样式 */
+/* ====== 表单通用样式 ====== */
 .form-section {
   width: 328px;
   margin: 0 auto;
@@ -690,13 +651,11 @@ onUnmounted(() => {
         padding: 4px 10px;
         border-radius: 4px;
         cursor: pointer;
-        /* 鼠标悬停时显示为小爪子 */
         transition: all 0.3s;
         user-select: none;
 
         &:hover {
           background-color: #e5e5e5;
-          /* 鼠标悬浮背景变色 */
           color: #666;
         }
       }
@@ -738,8 +697,9 @@ onUnmounted(() => {
         border-color: #3bb1ff;
       }
 
-      &.has-error {
-        border-color: #ff4d4f;
+      &.has-error,
+      &.has-error:focus-within {
+        border-color: #ff4d4f !important;
       }
 
       input {
@@ -773,6 +733,7 @@ onUnmounted(() => {
       }
     }
 
+    /* 报错红字样式 */
     .error-text {
       color: #ff4d4f;
       font-size: 12px;
@@ -783,7 +744,6 @@ onUnmounted(() => {
   /* 特定输入框覆盖 */
   .phone-input-wrapper {
     margin-bottom: 24px;
-    /* 手机号的input和验证码input之间的间距 */
 
     .country-code {
       color: #adb3bd;
@@ -835,7 +795,7 @@ onUnmounted(() => {
   }
 }
 
-/* 手机号登录 和 扫码登录 "填写邀请码注册"  */
+/* 填写邀请码注册 */
 .invite-link-wrap {
   text-align: center;
   margin: 10px 0 20px 0;
@@ -845,7 +805,6 @@ onUnmounted(() => {
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
-    text-align: justify;
     border-radius: 24px;
     background-color: #fff;
     padding: 4px 12px;
