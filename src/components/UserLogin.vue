@@ -175,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, reactive, ref } from 'vue' // 显式导入，防止偶尔的自动导入失效
+import { onUnmounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
@@ -186,7 +186,73 @@ import { useUserStore } from "@/stores/user"
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
-
+// ----- 扫码登陆 ------------- 测试 --------
+const qrCodeImg = ref('') // 二维码图片源
+const currentTicket = ref('') // 这个是二维码的唯一凭证
+// WAITING：还没扫。
+// SCANNED：已扫码，但在手机上还没点确认
+// SUCCESS：登录成功。
+// EXPIRED：二维码过期了
+const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading') // 二维码当前状态
+let qrCodeTimer: ReturnType<typeof setInterval> | null = null
+// 初始化获取二维码
+const initQrCode = async () => {
+  qrStatus.value = 'loading';
+  if (qrCodeTimer) clearInterval(qrCodeTimer) // 清理定时器
+  try {
+    // 假设
+    // const res = await getWechatQrCodeApi()
+    qrCodeImg.value = "res.data.imgUrl"; // 获取后端给的图片地址
+    currentTicket.value = "rs.data.ticket";
+    qrStatus.value = 'waiting';
+    // 拿到 二维码之后 立刻开始轮询检查 二维码的状态
+  } catch (e) {
+    ElMessage.error('获取二维码失败，请重试')
+    qrStatus.value = 'expired'
+  }
+}
+// 轮询检查
+const startPolling = () => {
+  qrCodeTimer = setInterval(async () => {
+    try {
+      // 假设 
+      const res = "await checkScanStatusApi(currentTicket.value)";
+      const status = "scanned"//"res.data.status";
+      if (status === "scanned") {
+        // 用户手机扫了，但还没点确认
+        qrStatus.value = 'scanned'
+      } else if (status === "success") {
+        //登录成功
+        clearInterval(qrCodeTimer!)
+        qrCodeTimer = null
+        // 执行登录成功逻辑（存 token 等）
+        //userStore.setToken(res.data.token)
+        ElMessage.success('扫码登录成功')
+        emit('close') // 关闭弹窗
+      } else if (status === 'expired') {
+        // 二维码过期
+        clearInterval(qrCodeTimer!)
+        qrCodeTimer = null
+        qrStatus.value = 'expired'
+      }
+    } catch (e) {
+      console.error('查询状态异常', e)
+    }
+  }, 2000)
+}
+/* watch(loginMethod, (newMethod) => {
+  if (newMethod === 'qrcode') {
+    // 只要切到扫码登陆，就去请求二维码并轮询
+    initQrCode()
+  } else {
+    // 只要切换走 就杀死
+    if (qrCodeTimer) {
+      clearInterval(qrCodeTimer)
+      qrCodeTimer = null;
+    }
+  }
+})
+*/
 // === 基础状态 ===
 const accountType = ref<'personal' | 'team'>('personal')
 const loginMethod = ref<'qrcode' | 'phone'>('phone')
