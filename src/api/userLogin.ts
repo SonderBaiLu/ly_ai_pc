@@ -61,3 +61,4 @@ export const changePwdBySms = (payload: {
 export const getUserDetailsApi = () => {
     return request.get('/v1/user/getUserDetails')
 }
+

@@ -79,7 +79,6 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import { images } from '@/assets'
-
 const { t } = useI18n()
 
 interface Props {
@@ -112,34 +111,22 @@ const goToAgreement = () => {
 
 // 确认注销
 const handleConfirm = async () => {
+  // 勾选协议
   if (!agreed.value) {
     ElMessage.warning(t('writeOffModal.msgNeedAgree'))
     return
   }
-
-  const userId = userStore.userInfo?.userId
-  if (!userId) {
-    ElMessage.warning(t('writeOffModal.msgNoUser'))
-    return
-  }
-
-  try {
-    const res = await userApi.writeOff({ userId })
-    if (res.code === '0000') {
-      ElMessage.success(t('writeOffModal.msgSuccess'))
-      // 退出登录
-      await userStore.logout()
-      router.push('/login')
-      handleClose()
-    } else {
-      ElMessage.error(res.msg || t('writeOffModal.msgFail'))
-    }
-  } catch (error) {
-    console.error('注销账号失败:', error)
-    ElMessage.error(t('writeOffModal.msgError'))
+  const res = await userApi.usercancellation() as any;
+  if (res.code === '0000') {
+    ElMessage.success(t('writeOffModal.msgSuccess') || '账号已注销')
+    // 成功 之后 清理 本地数据
+    userStore.logout();
+    handleClose() // 关闭弹窗
+    router.push('/') // 注销之后返回主界面
+  } else {
+    ElMessage.error(res.msg || t('writeOffModal.msgFail') || '注销失败')
   }
 }
-
 const handleClose = () => {
   agreed.value = false
   dialogVisible.value = false

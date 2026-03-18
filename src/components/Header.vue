@@ -144,6 +144,7 @@ const modalStore = useModalStore()
 // 打开登录弹窗
 const showLoginModal = () => {
   modalStore.openLoginModal()
+  modalStore.openPersonalSettingsModal()
 }
 </script>
 

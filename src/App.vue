@@ -40,7 +40,7 @@ const handleSettingsSaved = () => {
 
 onMounted(() => {
   // 先自动打开一次个人设置弹窗，方便调试样式
-  modalStore.openPersonalSettingsModal()
+  // modalStore.openPersonalSettingsModal()
   // 自动打开一下注销弹窗
   // modalStore.openWriteOffModal()
   // 自动打开一下联系我们弹窗

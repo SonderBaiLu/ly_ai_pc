@@ -76,7 +76,6 @@ import { useModalStore } from '@/stores/modal'
 import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
 import { images } from '@/assets'
-
 interface Props {
   modelValue: boolean
 }
@@ -184,7 +183,7 @@ const handleSave = async () => {
       ElMessage.success('保存成功')
       // 刷新用户信息
       if (userData.value.mobile) {
-        await userStore.getUserInfo(userData.value.mobile)
+        // await userStore.getUserInfo(userData.value.mobile)
       }
       emit('saved')
       handleClose()

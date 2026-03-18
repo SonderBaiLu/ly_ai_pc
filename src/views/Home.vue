@@ -10,6 +10,7 @@
       <ModelSection />
       <StatsSection />
       <DesignMatrixSection />
+
     </main>
 
     <Footer />

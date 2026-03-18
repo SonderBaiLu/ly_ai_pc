@@ -19,8 +19,9 @@ export const userApi = {
   userCollect(params: any) {
     return request.post('/user/userCollect', params) as unknown as Promise<ApiResponse<{ collectId?: string | number }>>
   },
-  writeOff(params: any) {
-    return request.post('/user/writeOff', params) as unknown as Promise<ApiResponse<any>>
+  // 用户注销 
+  usercancellation() {
+    return request.get('/v1/login/userCancellation')
   },
   updateUserInfo(params: any) {
     return request.post('/user/updateUserInfo', params) as unknown as Promise<ApiResponse<any>>
