@@ -34,12 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Header from '@/components/Header.vue'
-import Footer from '@/components/Footer.vue'
-import CtaSection from '@/components/CtaSection.vue'
 import { images } from '@/assets'
 
 const router = useRouter()

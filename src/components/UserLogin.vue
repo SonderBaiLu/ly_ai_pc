@@ -215,7 +215,7 @@ const initQrCode = async () => {
 const startPolling = () => {
   qrCodeTimer = setInterval(async () => {
     try {
-      // 假设 
+      // 假设
       const res = "await checkScanStatusApi(currentTicket.value)";
       const status = "scanned"//"res.data.status";
       if (status === "scanned") {

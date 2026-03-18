@@ -42,11 +42,12 @@ body {
   // 项目蓝色主题色（从 SCSS 变量转换为 CSS Variables）
   --color-primary: #{$color-primary};
   --color-primary-light: #{$color-primary-light};
+  --el-color-primary: #{$color-primary-dark};
 
   // 暗黑主题背景和文字
-  --el-bg-color: #141414;
-  --el-bg-color-page: #0a0a0a;
-  --el-text-color-primary: rgba(255, 255, 255, 0.9);
+  --el-bg-color: #000000;
+  --el-bg-color-page: #000000;
+  --el-text-color-primary: rgba(255, 255, 255, 1);
   --el-text-color-regular: rgba(255, 255, 255, 0.8);
   --el-text-color-secondary: rgba(255, 255, 255, 0.6);
   --el-text-color-placeholder: rgba(255, 255, 255, 0.4);
@@ -123,29 +124,50 @@ body {
   font-size: $font-size-md;
   font-family: -regular;
   border: 1px solid rgba(255, 255, 255, 0.15);
+
+  .el-dialog__header {
+    padding: 0;
+  }
+
+  .el-dialog__footer {
+    padding: 0;
+  }
+
+  .el-dialog__body {
+    padding: 0;
+  }
 }
 
 /* 全局主题按钮样式：覆盖 Element Plus primary 按钮 */
+.el-button {
+  border-radius: 8px;
+}
+
+/* primary 按钮样式：渐变背景 + 白色文字 */
 .el-button--primary {
-  background: radial-gradient(0.5% 0.5% at 50% 50%,
-      rgba(23, 160, 225, 1) 0%,
-      rgba(112, 197, 237, 1) 100%);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: none;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
 }
 
-/* 悬停 / 激活 状态，保持同样渐变，略微加深或减透明 */
-.el-button--primary:hover,
-.el-button--primary:focus,
-.el-button--primary:active {
-  background: radial-gradient(0.5% 0.5% at 50% 50%,
-      rgba(23, 160, 225, 0.9) 0%,
-      rgba(112, 197, 237, 0.9) 100%);
-  border-color: transparent;
-  color: #fff;
-}
+/* 全局：primary 按钮禁用态黑色透明遮罩（统一“不可点击”视觉） */
+.el-button--primary.is-disabled,
+.el-button--primary.is-disabled:hover,
+.el-button--primary.is-disabled:focus,
+.el-button--primary.is-disabled:active {
+  position: relative;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  border: transparent !important;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
 
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+}
 
 /* 轮播图指示器主题色 */
 .el-carousel__indicators--outside .el-carousel__indicator.is-active button {

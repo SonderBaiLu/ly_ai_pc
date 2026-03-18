@@ -2,43 +2,35 @@
   <div class="thumbnail-gallery">
     <!-- 缩略图列表 -->
     <div ref="thumbnailListRef" class="thumbnail-list">
-      <div
-        v-for="(asset, index) in assets"
-        :key="asset.id || asset.taskId || asset.taskUuid || `thumbnail-${index}`"
-        class="thumbnail-item"
-        :class="[
+      <div v-for="(asset, index) in assets" :key="asset.id || asset.taskId || asset.taskUuid || `thumbnail-${index}`"
+        class="thumbnail-item" :class="[
           { active: index === currentIndex },
           { generating: asset.status === 2 },
           { failed: asset.status === 4 },
-        ]"
-        :draggable="asset.fileType !== 2"
-        @click="selectThumbnail(index)"
-        @dragstart="handleDragStart(asset, $event)"
-      >
+        ]" :draggable="asset.fileType !== 2" @click="selectThumbnail(index)"
+        @dragstart="handleDragStart(asset, $event)">
         <!-- 生成中状态 -->
         <div v-if="asset.status === 2" class="thumbnail-generating">
           <div class="generating-shimmer"></div>
-          <el-icon class="is-loading generating-icon"><Loading /></el-icon>
+          <el-icon class="is-loading generating-icon">
+            <Loading />
+          </el-icon>
         </div>
 
         <!-- 生成失败状态 -->
         <div v-else-if="asset.status === 4" class="thumbnail-failed">
-          <el-icon class="failed-icon"><Close /></el-icon>
+          <el-icon class="failed-icon">
+            <Close />
+          </el-icon>
         </div>
 
         <!-- 正常状态 -->
         <template v-else>
-          <LazyImage
-            :src="asset.imageUrl"
-            :alt="asset.prompt"
-            width="100%"
-            height="100%"
-            object-fit="cover"
-            :border-radius="0"
-          />
-          <div class="thumbnail-overlay">
+          <LazyImage :src="asset.imageUrl" :alt="asset.prompt" width="100%" height="100%" object-fit="cover"
+            :border-radius="0" />
+          <!-- <div class="thumbnail-overlay">
             <span class="asset-type">{{ asset.fileType === 2 ? '视频' : '图片' }}</span>
-          </div>
+          </div> -->
         </template>
       </div>
     </div>
@@ -186,9 +178,12 @@ defineExpose({
 
 <style lang="scss" scoped>
 .thumbnail-gallery {
-  width: 150px;
-  background-color: var(--bg-secondary);
-  border-left: 1px solid var(--border-color);
+  width: 98px;
+  margin-top: 17px;
+  background: $color-bg-dark-secondary;
+  border-radius: $border-radius-md;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px 0px 0px 0px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -198,10 +193,10 @@ defineExpose({
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--spacing-xxl) var(--spacing-md);
+  padding: 33px 9px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 5px;
   -webkit-overflow-scrolling: touch; // iOS 流畅滚动
 
   // 完全隐藏滚动条
@@ -214,11 +209,10 @@ defineExpose({
 }
 
 .thumbnail-item {
-  width: 100%;
-  height: 110px; // 固定高度，避免被挤压
-  min-height: 110px; // 确保最小高度
+  width: 80px;
+  height: 80px;
   flex-shrink: 0; // 不允许收缩
-  border-radius: var(--radius-sm);
+  border-radius: $border-radius-md;
   overflow: hidden;
   cursor: pointer;
   transition:
@@ -227,18 +221,16 @@ defineExpose({
     transform 0.2s ease;
   border: 2px solid transparent;
   position: relative;
-  background-color: var(--bg-tertiary);
   will-change: transform; // GPU加速
   transform: translateZ(0); // 启用硬件加速
 
   &:hover {
-    border-color: var(--primary-color);
+    border-color: $color-primary-dark;
     transform: scale(1.02) translateZ(0);
   }
 
   &.active {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 8px rgba(143, 80, 234, 0.4);
+    border-color: $color-primary-dark;
     transform: scale(1.02) translateZ(0);
   }
 
@@ -259,34 +251,34 @@ defineExpose({
 
   // 生成中状态样式
   &.generating {
-    border-color: var(--primary-color);
+    border-color: $color-primary-dark;
     opacity: 0.9;
   }
 
   // 失败状态样式
   &.failed {
     opacity: 0.6;
-    border-color: var(--danger-color, #f56c6c);
+    border-color: $color-bg-red;
   }
 }
 
-.thumbnail-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.7);
-  padding: var(--spacing-xs);
-  color: white;
-  font-size: var(--font-xs);
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+// .thumbnail-overlay {
+//   position: absolute;
+//   bottom: 0;
+//   left: 0;
+//   right: 0;
+//   background: rgba(0, 0, 0, 0.7);
+//   padding: $spacing-xs;
+//   color: white;
+//   font-size: $font-size-xs;
+//   text-align: center;
+//   opacity: 0;
+//   transition: opacity 0.3s ease;
 
-  .thumbnail-item:hover & {
-    opacity: 1;
-  }
-}
+//   .thumbnail-item:hover & {
+//     opacity: 1;
+//   }
+// }
 
 .asset-type {
   font-size: 10px;
@@ -311,12 +303,10 @@ defineExpose({
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(143, 80, 234, 0.2) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(143, 80, 234, 0.2) 50%,
+        rgba(255, 255, 255, 0) 100%);
     animation: shimmer 2s infinite;
   }
 
@@ -324,7 +314,7 @@ defineExpose({
     position: relative;
     z-index: 1;
     font-size: 24px;
-    color: var(--primary-color);
+    color: $color-primary-dark;
   }
 }
 
@@ -332,6 +322,7 @@ defineExpose({
   0% {
     left: -100%;
   }
+
   100% {
     left: 100%;
   }
@@ -348,29 +339,7 @@ defineExpose({
 
   .failed-icon {
     font-size: 24px;
-    color: var(--danger-color, #f56c6c);
-  }
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-  .thumbnail-gallery {
-    width: 100%;
-    height: 120px;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .thumbnail-list {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-
-  .thumbnail-item {
-    flex-shrink: 0;
-    width: 80px;
-    height: 80px;
+    color: $color-bg-red;
   }
 }
 </style>

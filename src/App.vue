@@ -4,7 +4,7 @@
       <router-view />
 
       <!-- 登录 -->
-      <!-- <UserLogin v-model="modalStore.showLoginModal" /> -->
+      <UserLogin v-if="modalStore.showLoginModal" @close="modalStore.closeLoginModal()" />
 
       <!-- 联系我们 -->
       <ContactModal v-model="modalStore.showContactUsModal" />

@@ -53,8 +53,24 @@ export interface AlipayQueryResult {
   [key: string]: any
 }
 
+export type PaymentMethod = {
+  id: string
+  channelCode: 'wechat_pay' | 'alipay' | 'apple_pay' | string
+  channelName: string
+  iconUrl?: string
+  description?: number | string
+  [key: string]: any
+}
+
 // 支付API接口
 export const paymentApi = {
+  /**
+   * 获取支付方式
+   * - GET /api/v1/payment/getPaymentMethod
+   */
+  getPaymentMethod: (): Promise<ApiResponse<PaymentMethod[]>> =>
+    request.get('/v1/payment/getPaymentMethod'),
+
   /**
    * 创建支付订单（统一下单）
    */

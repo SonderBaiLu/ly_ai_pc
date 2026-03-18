@@ -112,7 +112,7 @@ export function useTaskPolling(
   /**
    * 添加生成中状态的资产到列表
    */
-  const addGeneratingAsset = (taskId: string, taskType: string, queryType: string) => {
+  const addGeneratingAsset = (taskId: string, _taskType: string, queryType: string) => {
     const now = new Date()
     const generatingAsset: Asset = {
       id: taskId,

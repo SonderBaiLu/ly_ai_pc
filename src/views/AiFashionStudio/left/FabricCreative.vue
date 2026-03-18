@@ -1,100 +1,186 @@
 <template>
-  <div class="left-panel">
+  <div class="left-panel studio-left--btn-sm studio-left--select-card-bordered studio-left--bottom-sticky">
     <div class="panel-title">面料创拍</div>
 
     <div class="block">
-      <div class="block-title">上传面料图（必传）</div>
-      <div class="upload-right-action">
-        <el-button class="mini-btn pick-style-btn" size="small" @click="emit('coming-soon')">选择款型</el-button>
+      <div class="block-title flex align-center flex-between">
+        <div>
+          上传面料图<span class="required-mark">（必传）</span>
+        </div>
+        <el-button class="upload-btn" size="small" type="primary" plain
+          @click="emit('open-type-modal')">选择款型</el-button>
       </div>
-      <ImageUploadArea v-model:image-url="imageUrl" :image-icon="images.uploadIcon" image-type="main"
-        image-name="fabric" :show-actions="!!imageUrl" :clickable="true" area-height="150px"
-        placeholder-text="上传或拖拽1张图片" :show-history-tip="true" @upload="emit('coming-soon')"
-        @replace="emit('coming-soon')" @delete="emit('delete')" @show-history="emit('coming-soon')"
-        @drop-file="(p) => emit('drop-file', p)" />
-      <div v-if="taskResultId" class="sub-tip">已从我的资产引用（ID: {{ taskResultId }}）</div>
+      <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
+        :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
+        @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
+        @show-history="emit('coming-soon')" @drop-file="(p) => emit('drop-file', p)" />
+
+      <!-- 面料缩放设置（上传后展示；生成前会用 canvas 导出平铺+缩放后的纹理图） -->
+      <div v-if="imageUrl" class="fabric-scale-card">
+        <div class="fabric-scale-title">面料缩放设置</div>
+        <div class="fabric-scale-body">
+          <div class="fabric-scale-preview" :style="fabricPreviewStyle" />
+          <div class="fabric-scale-slider">
+            <div class="fabric-scale-slider-header flex align-center flex-between">
+              <div class="fabric-scale-label">缩放设置</div>
+              <div class="fabric-scale-value">{{ fabricScale }}x</div>
+            </div>
+            <el-slider v-model="fabricScale" :min="-4" :max="4" :step="1" :show-tooltip="false" />
+            <div class="fabric-scale-ticks flex align-center flex-between">
+              <span>-4x</span>
+              <span>0x</span>
+              <span>4x</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 款型选择回显 -->
+      <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
+        {{ typeText }}
+        <img class="select-del-icon" :src="images.tagDel" alt="" srcset="" @click.stop="emit('clear-type-selection')">
+      </div>
     </div>
 
+
     <div class="block">
-      <div class="block-title">生成图片类型（必选，单选）</div>
-      <div class="segmented segmented-3">
-        <button class="seg-btn" :class="{ active: outputType === 'flat' }" type="button" @click="outputType = 'flat'">
+      <div class="block-title">生成图片类型 <span class="required-mark">（必选，单选）</span></div>
+      <div class="ai-segmented">
+        <el-button :type="outputType === 'flat' ? 'primary' : 'default'" @click="outputType = 'flat'">
           平铺图
-        </button>
-        <button class="seg-btn" :class="{ active: outputType === 'model' }" type="button" @click="outputType = 'model'">
+        </el-button>
+        <el-button :type="outputType === 'model' ? 'primary' : 'default'" @click="outputType = 'model'">
           模特图
-        </button>
-        <button class="seg-btn" :class="{ active: outputType === '3d' }" type="button" @click="outputType = '3d'">
+        </el-button>
+        <el-button :type="outputType === '3d' ? 'primary' : 'default'" @click="outputType = '3d'">
           3D图
-        </button>
+        </el-button>
       </div>
     </div>
 
-    <div class="block">
-      <div class="block-title row-between">
-        <span>创意描述（选填）</span>
-        <div class="mini-actions">
-          <el-button class="mini-btn" size="small" @click="emit('coming-soon')">灵感调优</el-button>
-          <el-button class="mini-btn" size="small" @click="prompt = ''">全部清空</el-button>
-        </div>
-      </div>
-      <el-input v-model="prompt" type="textarea" :rows="6" maxlength="200" show-word-limit
-        placeholder="请输入完整的面料创意描述，建议包含类别、风格、材质、设计细节等关键信息，以生成精准的面料创拍效果。" />
-      <div class="try-line">
-        试一试：一位意大利时尚男模特（齐耳黑色短卷发，轮廓造型，超宽肩）
-        <span class="refresh" @click="emit('coming-soon')">换一换</span>
-      </div>
-    </div>
+    <CreativeDescription v-model:prompt="prompt" :optional="true"
+      placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。参考示例：该面料是一块米色毛呢面料，将面料生成一件无领米色长款宽松版型毛呢大衣，20岁欧洲短发女模特穿着，搭配毛衣和阔腿裤。" />
 
-    <div class="bottom-bar">
-      <div class="bar-left">
-        <div class="pill">LingImage 1.0</div>
-        <div class="pill">3:4</div>
-        <div class="pill">2K</div>
-        <div class="pill">1</div>
-      </div>
-      <div class="bar-right">
-        <div class="coin">
-          <img :src="images.coin" class="coin-icon" alt="" />
-          <span>50</span>
-        </div>
-        <el-button type="primary" class="gen-btn" @click="emit('coming-soon')">立即生成</el-button>
-      </div>
+    <!-- 底部参数以及生成按钮 -->
+    <div class="bottom-sticky">
+      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
+        button-text="立即生成" @show-params="() => emit('show-params')" @generate="handleGenerate" />
     </div>
-
-    <div class="footer-tip">内容由AI生成，禁止利用功能从事违法活动</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { images } from '@/assets'
+import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 
-const imageUrl = defineModel<string>('imageUrl', { default: '' })
+// const imageUrl = defineModel<string>('imageUrl', { default: '' })
+const imageUrl = ref('https://image-prod.chaotuishou.com/erp/2025/11/27/ML-38%E7%BB%B8%E7%BC%8E%E8%A3%85%E7%BD%AE.jpg')
 
-defineProps<{
+const props = defineProps<{
   taskResultId?: string | number
+  creationTypeSelection?: Partial<CreationTypeSelection>
 }>()
 
 const emit = defineEmits<{
   (e: 'drop-file', payload: any): void
   (e: 'delete'): void
   (e: 'coming-soon'): void
+  (e: 'show-params'): void
+  (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number }): void
+  (e: 'open-type-modal'): void
+  (e: 'clear-type-selection'): void
 }>()
 
 type OutputType = 'flat' | 'model' | '3d'
 const outputType = ref<OutputType>('flat')
 const prompt = ref('')
+const fabricScale = ref(0) // -4 ~ 4
+
+const typeText = computed(() => {
+  const s = props.creationTypeSelection
+  if (!s?.category || !s?.clothType || !s?.subKind) return ''
+  return `${s.category}-${s.clothType}-${s.subKind}`
+})
+
+// 将 -4~4 映射为倍率：2^(scale/2)（变化更平滑，也更像“纹理变大/变小”）
+const fabricMultiplier = computed(() => Math.pow(2, fabricScale.value / 2))
+
+const fabricPreviewStyle = computed(() => {
+  const url = String(imageUrl.value || '').trim()
+  if (!url) return {}
+  const base = 96 // 基础平铺尺寸（px）
+  const size = Math.max(16, Math.round(base * fabricMultiplier.value))
+  return {
+    backgroundImage: `url(${url})`,
+    backgroundRepeat: 'repeat',
+    backgroundPosition: 'center',
+    backgroundSize: `${size}px ${size}px`,
+  }
+})
+
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = (e) => reject(e)
+    img.src = src
+  })
+
+const exportTiledTextureFile = async (src: string, scale: number) => {
+  const img = await loadImage(src)
+  const multiplier = Math.pow(2, scale / 2)
+  const size = 1024 // 输出纹理尺寸：可按算法要求调整（1024/2048）
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D context unavailable')
+
+  // 纹理平铺单元尺寸：按倍率缩放
+  const baseTile = 256
+  const tile = Math.max(32, Math.round(baseTile * multiplier))
+
+  // 平铺绘制
+  for (let y = 0; y < size; y += tile) {
+    for (let x = 0; x < size; x += tile) {
+      ctx.drawImage(img, x, y, tile, tile)
+    }
+  }
+
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
+  })
+  const file = new File([blob], `fabric_texture_${size}_${scale}x.png`, { type: 'image/png' })
+  return { file, multiplier, size }
+}
+
+const handleGenerate = async () => {
+  const url = String(imageUrl.value || '').trim()
+  if (!url) return
+  isGenerating.value = true
+  try {
+    const { file, multiplier, size } = await exportTiledTextureFile(url, fabricScale.value)
+    emit('generate', { file, scale: fabricScale.value, multiplier, size })
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+// 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
+const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
+const coin = computed(() => 50)
+const isGenerating = ref(false)
 </script>
 
 <style scoped lang="scss">
-.left-panel {
-  color: $color-text-white;
-}
+@use '@/styles/_studio_left.scss';
 
-.panel-title {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-semibold;
-  margin-bottom: $spacing-lg;
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: $color-text-white;
 }
 
 .block {
@@ -102,145 +188,67 @@ const prompt = ref('')
   position: relative;
 }
 
-.block-title {
-  font-size: $font-size-sm;
-  color: $color-text-light;
-  margin-bottom: $spacing-sm;
-}
-
-.upload-right-action {
-  position: absolute;
-  right: 0;
-  top: -4px;
-}
-
-.row-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-sm;
-}
-
-.mini-actions {
-  display: inline-flex;
-  gap: $spacing-sm;
-}
-
-.mini-btn {
-  padding: 0 $spacing-md;
-  border-radius: $border-radius-lg;
-}
-
-.pick-style-btn {
-  height: 30px;
-  font-size: $font-size-xs;
-}
-
-.segmented {
-  display: grid;
-  gap: $spacing-md;
-}
-
-.segmented-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.seg-btn {
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.78);
-  cursor: pointer;
-  transition: all $transition-base;
-
-  &:hover {
-    border-color: rgba(112, 197, 237, 0.5);
-  }
-
-  &.active {
-    border-color: rgba(112, 197, 237, 0.9);
-    background: rgba(23, 160, 225, 0.14);
-    color: $color-text-white;
-    box-shadow: 0 0 0 2px rgba(23, 160, 225, 0.12) inset;
-  }
-}
-
-.sub-tip {
-  margin-top: $spacing-xs;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.try-line {
+.fabric-scale-card {
+  padding: 15px 13px 13px;
   margin-top: $spacing-sm;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.6);
+  border-radius: $border-radius-md;
+  background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: $font-size-md;
 
-  .refresh {
-    margin-left: $spacing-xs;
-    color: $color-primary;
-    cursor: pointer;
+  .fabric-scale-title {
+    font-family: Inter-medium;
+    margin-bottom: $spacing-sm;
   }
-}
 
-.bottom-bar {
-  margin-top: $spacing-xl;
-  padding: $spacing-md;
-  border-radius: $border-radius-xl;
-  background: rgba(6, 12, 26, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-md;
-}
+  .fabric-scale-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
 
-.bar-left {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
-}
 
-.pill {
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
+    .fabric-scale-preview {
+      width: 80px;
+      height: 80px;
+    }
 
-.bar-right {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-}
+    .fabric-scale-slider {
+      flex: 1;
+      min-width: 0;
 
-.coin {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  color: $color-primary;
-  font-weight: 600;
-}
+      :deep(.el-slider__button) {
+        width: 14px;
+        height: 14px;
+        border: none;
+        background: $color-primary;
+      }
 
-.coin-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
+      :deep(.el-slider__bar) {
+        height: 4px;
+        background: $color-primary;
+      }
 
-.gen-btn {
-  height: 44px;
-  padding: 0 22px;
-  border-radius: 12px;
-}
+      :deep(.el-slider__runway) {
+        height: 4px;
+        border-radius: 2px 2px 2px 2px;
+        background-color: rgba(255, 255, 255, 0.3);
+      }
 
-.footer-tip {
-  margin-top: $spacing-sm;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.45);
-  text-align: center;
+      .fabric-scale-label {
+        color: $color-text-gray;
+        margin-bottom: $spacing-sm;
+      }
+
+      .fabric-scale-value {
+        font-family: NotoSans-bold;
+        font-weight: $font-weight-bold;
+      }
+
+      .fabric-scale-ticks {
+        font-size: $font-size-xs;
+        color: $color-text-seven;
+      }
+    }
+  }
 }
 </style>

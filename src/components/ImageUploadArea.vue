@@ -1,5 +1,5 @@
 <template>
-  <div class="image-upload-area" :class="{ dragging: isDragging, 'has-description': showDesc && imageUrl }">
+  <div class="image-upload-area" :class="{ dragging: isDragging }">
     <!-- 图片上传区域 -->
     <div class="upload-area" :style="{ width: areaWidth, height: areaHeight }" @dragover.prevent="handleDragOver"
       @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop"
@@ -14,8 +14,14 @@
           <div v-if="showHistoryTip" class="placeholder-text-box">
             <span>从</span>
             <span class="history-link" @click.stop="handleShowHistory">历史创作</span>
-            <span>选择</span>
-            <span>支持 JPG/PNG</span>
+            <span>选择，</span>
+            <span v-if="historyMaxCount > 1">最多可选择{{ historyMaxCount }}张，</span>
+            <span v-if="historyMinSizeKB && historyMaxSizeMB">文件大小{{ historyMinSizeKB }}KB - {{ historyMaxSizeMB
+            }}MB之间，</span>
+            <span v-if="historyMinResolution">分辨率大于{{ historyMinResolution }}，</span>
+          </div>
+          <div class="placeholder-text-box" v-if="historyFormats && showHistoryTip">
+            <span>格式支持{{ historyFormats.join('/') }}</span>
           </div>
         </template>
         <!-- 上传中状态 -->
@@ -64,7 +70,7 @@
           <el-dropdown class="action-dropdown" trigger="hover" placement="top" popper-class="replace-dropdown-menu"
             @command="handleReplaceCommand">
             <div class="action-button">
-              <el-image :src="images.replace2" fit="contain" style="width: 16px; height: 16px" />
+              <el-image :src="images.replace" fit="contain" style="width: 16px; height: 16px" />
               <span>替换</span>
             </div>
             <template #dropdown>
@@ -80,19 +86,12 @@
           <el-divider direction="vertical" class="action-divider" />
 
           <div class="action-button" @click.stop="handleDelete(imageType, imageName)">
-            <el-image :src="images.delete2" fit="contain" style="width: 16px; height: 16px" />
+            <el-image :src="images.delete" fit="contain" style="width: 16px; height: 16px" />
             <span>删除</span>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- 描述内容区域 - 使用统一组件 -->
-    <CreativeDescription v-if="showDesc && imageUrl" v-model="localDescription" :placeholder="placeholder"
-      :max-length="maxLength" :show-background="false" :show-header="false" :show-movement="showMovement"
-      :movement-name="movementName" :textarea-height="textareaHeight"
-      border-radius="0 0 var(--radius-sm) var(--radius-sm)" @input="handleInput" @focus="handleFocus" @blur="handleBlur"
-      @movement="handleMovement(imageType, imageName)" />
   </div>
 </template>
 
@@ -161,7 +160,7 @@ const props = defineProps({
   // 区域高度
   areaHeight: {
     type: String,
-    default: '213px',
+    default: '109px',
   },
   // 是否显示操作按钮
   showActions: {
@@ -188,31 +187,6 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  // 是否显示文案描述
-  showDesc: {
-    type: Boolean,
-    default: false,
-  },
-  // 描述内容
-  modelValue: {
-    type: String,
-    default: '',
-  },
-  // 占位符文本
-  placeholder: {
-    type: String,
-    default: '描述您想生成的页面内容',
-  },
-  // 最大长度
-  maxLength: {
-    type: Number,
-    default: 200,
-  },
-  // 占位符样式
-  placeholderStyle: {
-    type: String,
-    default: 'color: #BDC3CE; padding-left: 40px;',
-  },
   // 是否启用拖拽
   enableDrag: {
     type: Boolean,
@@ -223,25 +197,35 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
-  // 是否显示运镜按钮
-  showMovement: {
-    type: Boolean,
-    default: false,
-  },
-  // 运镜名称
-  movementName: {
-    type: String,
-    default: '',
-  },
-  // 文本框高度
-  textareaHeight: {
-    type: String,
-    default: '130px',
-  },
   // 是否显示“历史创作”文案/入口
   showHistoryTip: {
     type: Boolean,
     default: true,
+  },
+  // 历史创作：最多选择几张
+  historyMaxCount: {
+    type: Number,
+    default: 6,
+  },
+  // 历史创作：文件大小下限（KB）
+  historyMinSizeKB: {
+    type: Number,
+    default: 20,
+  },
+  // 历史创作：文件大小上限（MB）
+  historyMaxSizeMB: {
+    type: Number,
+    default: 30,
+  },
+  // 历史创作：最小分辨率
+  historyMinResolution: {
+    type: String,
+    default: '400*400',
+  },
+  // 历史创作：允许的格式（用于展示）
+  historyFormats: {
+    type: Array as () => string[],
+    default: () => ['jpg', 'jpeg', 'png', 'webp'],
   },
   // 是否允许在替换菜单里显示历史创作
   enableHistoryReplace: {
@@ -252,7 +236,6 @@ const props = defineProps({
 
 // 定义事件
 const emit = defineEmits([
-  'update:modelValue',
   'upload', // 上传图片
   'replace', // 替换图片
   'delete', // 删除图片
@@ -260,11 +243,6 @@ const emit = defineEmits([
   'selection', // 分类选择
   'library-selection', // 库选择
   'update:imageUrl', // 更新图片URL
-  'input', // 输入事件
-  'focus', // 获得焦点
-  'blur', // 失去焦点
-  'movement', // 运镜
-  'clear', // 清空描述
   'drag-start', // 开始拖拽
   'drag-move', // 拖拽移动
   'drag-end', // 结束拖拽
@@ -272,8 +250,7 @@ const emit = defineEmits([
   'drop-file', // 拖拽文件上传
 ])
 
-// 本地描述内容
-const localDescription = ref(props.modelValue || '')
+// NOTE: 描述输入区已移除，这里不再维护 description 相关状态
 
 // 图片加载状态
 const imageLoaded = ref(false)
@@ -356,23 +333,6 @@ const handleDrop = (e: DragEvent) => {
     })
   }
 }
-
-// 监听外部传入的值变化
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    if (localDescription.value !== newVal) {
-      localDescription.value = newVal
-    }
-  }
-)
-
-// 监听本地值变化，向外部发送更新事件
-watch(localDescription, (newVal) => {
-  if (props.modelValue !== newVal) {
-    emit('update:modelValue', newVal)
-  }
-})
 
 // 监听图片URL变化，重置加载状态
 watch(
@@ -535,55 +495,6 @@ const handleMouseLeave = (_event: MouseEvent) => {
   // 这个事件现在由全局事件处理
 }
 
-// 处理输入事件
-const handleInput = (event: Event) => {
-  const target = event.target as HTMLTextAreaElement | null
-  const value = target?.value ?? localDescription.value
-  emit('input', {
-    value,
-    imageType: props.imageType,
-    imageName: props.imageName,
-  })
-}
-
-// 处理获得焦点事件
-const handleFocus = (event: Event) => {
-  emit('focus', {
-    imageType: props.imageType,
-    imageName: props.imageName,
-    event,
-  })
-}
-
-// 处理失去焦点事件
-const handleBlur = (event: Event) => {
-  emit('blur', {
-    value: localDescription.value,
-    type: props.imageType,
-    position: props.imageName,
-    event,
-  })
-}
-
-// 处理清空内容
-// 处理清空内容（目前未在模板中直接使用，保留以兼容外部可能的调用）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const handleClear = () => {
-  localDescription.value = ''
-  emit('clear', {
-    type: props.imageType,
-    position: props.imageName,
-  })
-}
-
-// 处理运镜
-const handleMovement = (type: string, position: string) => {
-  emit('movement', {
-    type,
-    position,
-  })
-}
-
 // 防抖：防止快速重复点击
 let uploadTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -671,16 +582,16 @@ onBeforeUnmount(() => {
 .image-upload-area {
   position: relative;
   transition: all 0.3s ease;
-  background-color: $color-bg-dark-secondary;
+  background-color: $color-bg-black;
   border-radius: $spacing-sm;
   overflow: clip; // 使用 clip 代替 hidden，避免影响拖拽
   box-sizing: border-box;
-  border: 2px solid transparent; // 默认透明边框，防止dragging时尺寸变化
+  border: 2px dashed transparent; // 默认透明边框，防止dragging时尺寸变化
 
   &.dragging {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    border-color: var(--primary-color);
+    border-color: $color-primary-dark;
     border-style: dashed;
   }
 }
@@ -688,7 +599,7 @@ onBeforeUnmount(() => {
 /* 图片上传区域 */
 .upload-area {
   position: relative;
-  height: 213px;
+  height: 109px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -706,9 +617,9 @@ onBeforeUnmount(() => {
     justify-content: center;
     width: 100%;
     height: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 2px dashed rgba(255, 255, 255, 0.15);
     border-radius: $spacing-sm;
-    background-color: $color-bg-dark-secondary;
+    background-color: $color-bg-black-secondary;
     text-align: center;
     color: $color-primary;
 
@@ -736,30 +647,14 @@ onBeforeUnmount(() => {
     }
 
     .placeholder-text-box {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      margin-top: var(--spacing-xs);
-      gap: var(--spacing-xs);
-      font-size: var(--font-xs);
+      margin-top: 6px;
+      font-size: $font-size-xxs;
       text-align: center;
+      color: $color-text-tip;
 
-      span {
-
-        &:nth-child(1),
-        &:nth-child(3) {
-          color: var(--text-placeholder);
-        }
-
-        &:nth-child(2) {
-          color: var(--primary-color);
-          cursor: pointer;
-        }
-
-        &:nth-child(4) {
-          color: var(--text-agree);
-        }
+      .history-link {
+        color: $color-primary-dark;
+        cursor: pointer;
       }
     }
   }
@@ -780,7 +675,7 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 0;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
       // 图片未加载完成时隐藏，避免闪烁
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
@@ -885,7 +780,7 @@ onBeforeUnmount(() => {
     top: 12px;
     z-index: 9;
     cursor: pointer;
-    background-color: var(--primary-dark) !important;
+    background-color: $color-primary-dark !important;
     border: none !important;
     padding: 7px 6px 8px 12px !important; // 左右padding平衡
 
@@ -907,8 +802,8 @@ onBeforeUnmount(() => {
     bottom: 0;
     width: 100%;
     height: 40px;
-    background: rgba(32, 27, 38, 0.8);
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    background-color: rgba(24, 24, 27, 0.2);
+    border-radius: 0 0 $border-radius-sm $border-radius-sm;
     z-index: 2;
     display: flex;
     align-items: center;
@@ -930,10 +825,10 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: var(--spacing-xs);
+      gap: $spacing-xs;
       height: 100%;
-      color: #fff;
-      font-size: var(--font-xs);
+      color: $color-text-white;
+      font-size: $font-size-xs;
       outline: none !important;
 
       &:hover {
@@ -949,15 +844,8 @@ onBeforeUnmount(() => {
     .action-divider {
       height: 18px;
       margin: 0;
-      border-color: var(--bg-tertiary);
+      border-color: rgba($color-text-white, 0.15);
     }
-  }
-}
-
-// 有描述区域时，上传区域只显示上方圆角
-.image-upload-area.has-description {
-  .upload-area {
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   }
 }
 </style>

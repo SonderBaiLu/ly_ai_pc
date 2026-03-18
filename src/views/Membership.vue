@@ -329,8 +329,6 @@ import { useUserStore } from '@/stores/user'
 import { membershipApi } from '@/api/membership'
 import { paymentApi } from '@/api/payment'
 import { images } from '@/assets'
-import PaymentModal from '@/components/PaymentModal.vue'
-import { resolveAvatarUrl } from '@/utils/avatar'
 
 const router = useRouter()
 
@@ -338,7 +336,9 @@ const router = useRouter()
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
 
-const avatarSrc = computed(() => resolveAvatarUrl(userInfo.value?.headImgUrl, images.avatar))
+const avatarSrc = computed(() =>
+  String(userInfo.value?.headImgUrl || '').trim() ? userInfo.value?.headImgUrl : images.avatar
+)
 
 // 潮币值明细弹窗
 const showInspirationModal = ref(false)
@@ -861,7 +861,7 @@ const getVipName = (plan: any) => {
 }
 
 // 原价文案：季度会员 894，年度会员 3576，先写死
-const getOriginalPrice = (plan: any, index: number) => {
+const getOriginalPrice = (_plan: any, index: number) => {
   // 免费版和月度不显示原价
   if (index <= 0) return ''
   // index 2 -> 季度，index 3 -> 年度（根据当前卡片顺序）
@@ -2029,7 +2029,7 @@ const getPurchaseButtonText = (plan: any) => {
 
   // 上半部分
   .tidecoin-top {
-    background: $color-bg-dark-card url('@/assets/images/logo_hui.png') no-repeat right 4px top 17px;
+    background: $color-bg-dark-card url('@/assets/images/logo.png') no-repeat right 4px top 17px;
     background-size: 144px 162px;
     padding: 20px;
     position: relative;

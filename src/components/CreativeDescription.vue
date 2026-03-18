@@ -2,88 +2,52 @@
   <div class="creative-description">
     <div v-if="showHeader" class="description-header">
       <div class="title-section">
-        <h4 v-if="showTitle" class="description-title">{{ title }}</h4>
-        <span v-if="optional && showTitle" class="optional-tag">（非必填）</span>
+        <span v-if="showTitle" class="description-title">{{ title }}</span>
+        <span v-if="optional && showTitle" class="required-mark">（选填）</span>
       </div>
       <div class="action-buttons">
-        <el-button class="action-btn" @click="handleAiAssistant">
-          <img :src="images.ai" alt="" />
-          AI助理
-        </el-button>
-        <el-button class="action-btn" type="primary" @click="handleInspirationLibrary">
-          <img :src="images.inspiration" alt="" />
-          灵感词库
-        </el-button>
+        <el-button class="action-btn" type="primary" @click="handleAiAssistant">灵感词词典</el-button>
+        <el-button class="action-btn action-btn-clear" type="primary" @click="handleClear">全部清空</el-button>
       </div>
     </div>
 
-    <div
-      v-if="showDescSection"
-      class="description-section"
-      :class="{
-        'with-background': showBackground,
-        'no-background': !showBackground,
-      }"
-      :style="showBackground ? { borderRadius: borderRadius } : {}"
-    >
-      <div class="input-wrapper" :style="!showBackground ? { borderRadius: borderRadius } : {}">
-        <!-- 标签展示区 -->
-        <div v-if="inspirationWords && inspirationWords.length > 0" class="tags-container">
-          <el-tag
-            v-for="tag in inspirationWords"
-            :key="tag.id"
-            closable
-            size="default"
-            class="inspiration-tag"
-            @close="handleRemoveTag(tag.id)"
-          >
-            {{ tag.name }}
-          </el-tag>
-        </div>
+    <div v-if="showDescSection" class="description-section">
 
-        <!-- 文本输入区 -->
-        <div
-          class="description-textarea"
-          :class="{ 'has-content': localDescription, 'is-focused': isFocused }"
-        >
-          <img
-            v-show="localDescription === '' || !localDescription"
-            class="edit-icon"
-            :src="images.edit"
-            alt="编辑"
-          />
-          <textarea
-            id="textarea"
-            v-model="localDescription"
-            name="textarea"
-            :placeholder="placeholder"
-            :maxlength="maxLength"
-            class="description-input"
-            :style="{ height: textareaHeight }"
-            style="resize: none"
-            @input="handleInput"
-            @focus="handleFocus"
-            @blur="handleBlur"
-            @dragover.prevent.stop
-            @drop.prevent.stop
-          />
+      <!-- 标签展示区 -->
+      <div v-if="inspirationWords && inspirationWords.length > 0" class="tags-container">
+        <div class="inspiration-tag" v-for="tag in inspirationWords" :key="tag.id" @click="handleRemoveTag(tag.id)">
+          {{ tag.name }}
+          <img class="tag-del-icon" :src="images.tagDel" alt="" srcset="">
         </div>
+      </div>
+
+      <!-- 文本输入区 -->
+      <div class="description-textarea" :class="{ 'has-content': localDescription, 'is-focused': isFocused }">
+        <img v-show="localDescription === '' || !localDescription" class="edit-icon" :src="images.editText" alt="编辑" />
+        <textarea id="textarea" v-model="localDescription" name="textarea" :placeholder="placeholder"
+          :maxlength="maxLength" class="description-input" :style="{ height: textareaHeight }" style="resize: none"
+          @input="handleInput" @focus="handleFocus" @blur="handleBlur" @dragover.prevent.stop @drop.prevent.stop />
         <div class="description-footer">
-          <!-- 左侧运镜按钮 -->
-          <div class="movement-button">
-            <div v-if="showMovement" @click="handleMovement">
-              <img :src="images.movement" />
-              <span>{{ movementName || '运镜' }}</span>
-            </div>
-          </div>
-
-          <!-- 右侧字数统计和清空 -->
+          <!-- 右侧字数统计 -->
           <div class="footer-right">
             <span class="char-count">{{ localDescription.length }}/{{ maxLength }}</span>
-            <img class="clear-img" :src="images.clear" alt="清空" @click="handleClear" />
           </div>
         </div>
       </div>
+    </div>
+    <!-- 试一试示例行 -->
+    <div v-if="showTryLine && currentExample" class="try-line">
+      <span class="try-label">试一试：</span>
+      <div class="try-marquee" @click="handleShuffle">
+        <div class="try-track">
+          <span class="try-text">{{ currentExample }}</span>
+          <span class="try-separator" aria-hidden="true"></span>
+          <span class="try-text">{{ currentExample }}</span>
+        </div>
+      </div>
+      <span class="try-refresh" title="换一换" @click="handleShuffle">
+        <img :src="images.refreshTry" alt="" class="refresh-icon" />
+      </span>
     </div>
   </div>
 </template>
@@ -112,14 +76,10 @@ interface Props {
   placeholderStyle?: string
   // 灵感词数组
   inspirationWords?: InspirationItem[]
-  // 是否显示"(非必填)"标签
+  // 是否显示"(选填)"标签
   optional?: boolean
   // 是否显示背景色
   showBackground?: boolean
-  // 是否显示运镜按钮
-  showMovement?: boolean
-  // 运镜名称
-  movementName?: string
   // 是否显示头部（标题和按钮）
   showHeader?: boolean
   // 文本框高度
@@ -130,6 +90,12 @@ interface Props {
   showDescSection?: boolean
   // 是否显示标题区域
   showTitle?: boolean
+  // 是否显示“试一试”示例行
+  showTryLine?: boolean
+  // “试一试”示例文案列表
+  tryExamples?: string[]
+  // 自动轮播间隔（毫秒）
+  tryIntervalMs?: number
 }
 
 // 定义事件接口
@@ -141,7 +107,6 @@ interface Emits {
   (e: 'input', event: Event): void
   (e: 'focus', event: Event): void
   (e: 'blur', event: Event): void
-  (e: 'movement'): void
 }
 
 // 定义组件属性
@@ -151,16 +116,21 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '描述您想生成的页面内容',
   maxLength: 200,
   placeholderStyle: '',
-  inspirationWords: () => [],
+  inspirationWords: () => [{ id: '1', name: '灵感词1' }],
   optional: false,
   showBackground: true,
-  showMovement: false,
-  movementName: '',
   showHeader: true,
   textareaHeight: '130px',
-  borderRadius: 'var(--radius-sm)',
+  borderRadius: '8px',
   showDescSection: true,
   showTitle: true,
+  showTryLine: true,
+  tryExamples: () => [
+    '一位意大利时尚男模特（齐耳黑色短卷发，轮廓造型，超宽肩）',
+    '一件未来感银色机能风外套，带有多口袋与金属拉链细节，背景是霓虹灯城市夜景',
+    '一条法式复古碎花连衣裙，广角镜头拍摄，在夏日花园中自然摇曳',
+  ],
+  tryIntervalMs: 10000,
 })
 
 // 定义事件
@@ -170,6 +140,10 @@ const emit = defineEmits<Emits>()
 const localDescription = ref(props.modelValue)
 // 跟踪输入框是否获得焦点
 const isFocused = ref(false)
+
+// ===== 试一试示例逻辑（纯 CSS 跑马灯，只在点击时切换文案）=====
+const currentIndex = ref(0)
+const currentExample = computed(() => props.tryExamples?.[currentIndex.value] || '')
 
 // 监听外部传入的值变化
 watch(
@@ -209,20 +183,10 @@ const handleBlur = (event: Event) => {
   emit('blur', event)
 }
 
-// 处理运镜按钮点击
-const handleMovement = () => {
-  emit('movement')
-}
-
 // 处理AI助理点击
 const handleAiAssistant = (): void => {
   // PC端路由跳转
   emit('ai-assistant')
-}
-
-// 处理灵感词库点击
-const handleInspirationLibrary = (): void => {
-  emit('inspiration-library')
 }
 
 // 处理清空内容
@@ -235,118 +199,111 @@ const handleRemoveTag = (id: string): void => {
   const newWords = props.inspirationWords?.filter((item) => item.id !== id) || []
   emit('update:inspirationWords', newWords)
 }
+
+const handleShuffle = () => {
+  if (!props.tryExamples || props.tryExamples.length === 0) return
+  currentIndex.value = (currentIndex.value + 1) % props.tryExamples.length
+}
+
+onMounted(() => {
+  // 默认显示第一条，不做自动轮播，避免滚动过程中自动换文案
+})
 </script>
 
 <style lang="scss" scoped>
 .creative-description {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
 
   .description-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 15px;
 
     .title-section {
-      .description-title {
-        display: inline-block;
-        color: var(--text-primary);
-        font-size: var(--font-lg);
-        font-weight: 600;
+      font-family: Inter-medium;
+      font-size: $font-size-md;
+      font-weight: $font-weight-medium;
+
+      .required-mark {
+        color: $color-primary;
       }
-    }
-    .optional-tag {
-      color: var(--text-placeholder);
-      font-size: var(--font-sm);
-      font-weight: 400;
     }
 
     .action-buttons {
       display: flex;
+      align-items: center;
 
       .action-btn {
-        color: var(--text-secondary);
-        font-size: var(--font-sm);
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
+        width: 66px;
+        height: 23px;
+        border-radius: $spacing-xs;
+        background: $color-primary-dark;
+        color: $color-text-white;
+        font-family: NotoSans-regular;
+        border: none;
+        cursor: pointer;
+        font-size: $font-size-xs;
+      }
 
-        img {
-          width: 14px;
-          height: 14px;
-          margin-right: var(--spacing-xs);
-        }
+      .action-btn-clear {
+        margin-left: 8px;
+        background: $color-bg-dark-clear;
+        color: $color-text-desc-secondary;
       }
     }
   }
 
   .description-section {
-    // 文本输入和标签容器始终有背景
-    .input-wrapper {
-      background: var(--bg-card);
-      padding: var(--spacing-md);
-      // border-radius 由 prop 动态控制
-    }
-
-    // 整体容器可选背景
-    &.with-background {
-      background: var(--bg-card);
-      padding: var(--spacing-md);
-      // border-radius 由 prop 动态控制
-
-      .input-wrapper {
-        background: transparent;
-        padding: 0;
-      }
-    }
-
-    // 无背景模式（紧贴父容器时使用）
-    &.no-background {
-      .input-wrapper {
-        background: var(--bg-card);
-        padding: 12px var(--spacing-md);
-      }
-    }
 
     .tags-container {
       display: flex;
       flex-wrap: wrap;
       gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-md);
+      margin-bottom: $spacing-sm;
 
-      :deep(.inspiration-tag) {
-        background-color: var(--bg-tertiary);
-        border: none;
-        color: var(--primary-color);
+      .inspiration-tag {
+        position: relative;
+        padding: 6px 7px;
+        border-radius: 4px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: $color-text-gray;
+        font-size: $font-size-sm;
+        text-align: center;
+        font-family: NotoSans-regular;
+        border: 1px solid $color-primary;
+        cursor: pointer;
 
-        .el-tag__close {
-          color: var(--primary-color);
-          transition: all 0.3s ease;
-
-          &:hover {
-            background-color: var(--primary-color);
-            color: #fff;
-            transform: scale(1.1);
-          }
+        .tag-del-icon {
+          position: absolute;
+          right: -5px;
+          top: -5px;
+          width: 10px;
+          height: 10px;
         }
       }
     }
 
     .description-textarea {
       position: relative;
-      margin-bottom: var(--spacing-md);
+      font-size: $font-size-md;
+      text-align: center;
+      font-family: PingFangSC-regular;
+      background-color: $color-bg-dark-secondary;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px;
+      border-radius: 8px;
 
       // 编辑图标
       .edit-icon {
         position: absolute;
-        left: 0;
-        top: 3px;
+        left: 10px;
+        top: 11px;
         width: 16px;
         height: 16px;
-        opacity: 0.6;
-        pointer-events: none;
-        z-index: 1;
-        transition: opacity 0.2s ease;
       }
 
       .description-input {
@@ -354,15 +311,14 @@ const handleRemoveTag = (id: string): void => {
         background: transparent;
         border: none;
         outline: none;
-        color: var(--text-primary);
-        font-size: var(--font-sm);
-        line-height: 1.8;
+        color: $color-text-white;
+        font-size: $font-size-sm;
         resize: none;
         font-family: inherit;
 
         &::placeholder {
           padding-left: 20px;
-          color: var(--text-placeholder);
+          color: $color-text-gray;
         }
 
         &:focus {
@@ -373,39 +329,82 @@ const handleRemoveTag = (id: string): void => {
 
     .description-footer {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      .movement-button {
-        color: var(--text-primary);
-        font-size: var(--font-md);
-        line-height: 1;
-        cursor: pointer;
-
-        img {
-          width: 20px;
-          height: 20px;
-          margin-right: var(--spacing-xs);
-          vertical-align: middle;
-        }
-      }
+      justify-content: flex-end;
 
       .footer-right {
         display: flex;
         align-items: center;
-        gap: var(--spacing-xs);
         cursor: pointer;
       }
 
       .char-count {
-        font-size: var(--font-sm);
-        color: var(--text-clear);
+        font-size: $font-size-sm;
+        color: $color-text-placeholder-gray;
+        font-family: NotoSans-regular;
       }
+    }
+  }
 
-      .clear-img {
-        width: 14px;
-        height: 14px;
+  // 「试一试」示例条（独立 bar）
+  .try-line {
+    display: flex;
+    align-items: center;
+    padding: 16px 8px 16px 10px;
+    margin-top: 8px;
+    border-radius: 8px;
+    background-color: $color-bg-dark-secondary;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: $font-size-sm;
+    font-family: NotoSans-regular;
+
+    .try-label {
+      flex: 0 0 auto;
+      color: $color-text-white;
+    }
+
+    .try-marquee {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .try-track {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      animation: tryMarquee 15s linear infinite;
+      color: $color-text-tip;
+      cursor: pointer;
+    }
+
+    .try-separator {
+      display: inline-block;
+      flex: 0 0 auto;
+      width: 32px;
+    }
+
+    .try-refresh {
+      flex: 0 0 auto;
+      cursor: pointer;
+      margin-left: 6px;
+
+      .refresh-icon {
+        width: 16px;
+        height: 16px;
       }
+    }
+  }
+
+  @keyframes tryMarquee {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
     }
   }
 }

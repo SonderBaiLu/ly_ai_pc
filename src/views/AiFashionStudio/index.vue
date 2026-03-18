@@ -42,36 +42,52 @@
           <!-- 左侧参数面板 -->
           <section class="param-panel">
             <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="refImageUrl"
-              :task-result-id="refImageTaskResultId" @drop-file="handleDropFile" @delete="handleRefDelete"
-              @coming-soon="showComingSoon" />
+              :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.aiFashion"
+              @open-type-modal="() => openTypeModal('aiFashion')"
+              @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams" />
             <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="refImageUrl"
-              :task-result-id="refImageTaskResultId" @drop-file="handleDropFile" @delete="handleRefDelete"
-              @coming-soon="showComingSoon" />
+              :task-result-id="refImageTaskResultId"
+              :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
+              @open-type-modal="() => openTypeModal('fabricCreative')"
+              @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+              @generate="handleFabricGenerate" />
             <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="refImageUrl"
-              :task-result-id="refImageTaskResultId" @drop-file="handleDropFile" @delete="handleRefDelete"
-              @coming-soon="showComingSoon" />
+              :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
+              @open-type-modal="() => openTypeModal('sketchToReal')"
+              @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams" />
             <RealToSketch v-else v-model:image-url="refImageUrl" :task-result-id="refImageTaskResultId"
-              @drop-file="handleDropFile" @delete="handleRefDelete" @coming-soon="showComingSoon" />
+              :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
+              @open-type-modal="() => openTypeModal('realToSketch')"
+              @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams" />
           </section>
 
-          <!-- 中间结果列表（先用现成组件空态占位） -->
+          <!-- 结果列表（主图 + 缩略图） -->
           <section class="result-panel">
             <MainImageDisplay ref="mainImageRef" :assets="assets" :current-index="currentIndex"
               :has-more-data="hasMoreData" :loading="loading" :loading-more="loadingMore"
               @asset-click="(idx) => (currentIndex = idx as any)" @scroll-change="handleScrollChange"
               @load-more="showComingSoon" @view-detail="showComingSoon" @collect="showComingSoon"
               @download="showComingSoon" @delete="showComingSoon" @refresh="showComingSoon" />
-          </section>
 
-          <!-- 右侧缩略图栏（先占位） -->
-          <aside class="thumb-rail">
             <ThumbnailGallery ref="thumbnailRef" :assets="assets" :current-index="currentIndex"
               :has-more-data="hasMoreData" :loading="(loading || loadingMore) as any"
               @thumbnail-click="handleThumbnailClick" @scroll-sync="handleScrollSync" @load-more="showComingSoon" />
-          </aside>
+          </section>
         </div>
       </main>
     </div>
+
+    <!-- 模型参数弹窗（父层统一管理，子组件只负责触发 show-params） -->
+    <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="imageDefaultParams"
+      :algorithm-models="imageAlgorithmModels" @confirm="handleImageParamsConfirm" @close="handleImageParamsClose" />
+
+    <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
+    <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
+      @confirm="handleTypeConfirm" />
   </div>
 </template>
 
@@ -80,6 +96,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
 import type { Asset } from '@/composables/useTaskPolling'
+import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import Fashion from './left/Fashion.vue'
 import SketchToReal from './left/SketchToReal.vue'
 import RealToSketch from './left/RealToSketch.vue'
@@ -91,6 +108,106 @@ const route = useRoute()
 const leftMenu = ref<LeftMenuKey>('aiFashion')
 const isFabricEntry = route.query.mode === 'fabricCreative'
 const showComingSoon = () => ElMessage.warning('暂未开放')
+
+// FabricCreative 生成：先预留接口（子组件会产出“平铺+缩放后的纹理图文件”）
+const handleFabricGenerate = (payload: any) => {
+  // TODO: 接口联调时，将 payload.file 上传/随请求提交给算法
+  console.log('[fabricCreative] generate payload:', payload)
+  showComingSoon()
+}
+
+// ==================== 款型选择弹窗（父层统一管理） ====================
+const showTypeModal = ref(false)
+const activeTypeMenu = ref<LeftMenuKey>('aiFashion')
+
+const creationTypeSelectionByMenu = reactive<Record<LeftMenuKey, Partial<CreationTypeSelection>>>({
+  aiFashion: {},
+  sketchToReal: {},
+  realToSketch: {},
+  fabricCreative: {},
+})
+
+const activeCreationTypeSelection = computed(() => creationTypeSelectionByMenu[activeTypeMenu.value] || {})
+
+const openTypeModal = (menu: LeftMenuKey) => {
+  activeTypeMenu.value = menu
+  showTypeModal.value = true
+}
+
+const clearTypeSelection = (menu: LeftMenuKey) => {
+  creationTypeSelectionByMenu[menu] = {}
+}
+
+const handleTypeConfirm = (v: CreationTypeSelection) => {
+  creationTypeSelectionByMenu[activeTypeMenu.value] = v
+}
+
+// ==================== 图片参数弹窗（父层统一管理） ====================
+const showImageParamPopup = ref(false)
+
+// 默认回显： [算法名称, 参数1, 参数2, ...]
+const imageDefaultParams = ref<string[]>(['LingImage 1.0', '3:4', '2K', '1'])
+
+// 先用本地 mock 数据跑通弹窗展示；后续接接口时替换这里的数据即可
+const imageAlgorithmModels = ref<any[]>([
+  {
+    id: 1,
+    code: 'lingimage-1.0',
+    name: 'LingImage 1.0',
+    algorithmDesc: '视觉专业级生成模型',
+    imageUrl: images.imgVideo,
+    isVip: 0,
+    isDefault: 1,
+    paramGroups: [
+      {
+        type: 1,
+        params: [
+          { templateName: '9:16', templateDesc: '竖屏/产品标准比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '3:4', templateDesc: '竖屏/产品标准比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '2:3', templateDesc: '竖屏/产品标准比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '1:1', templateDesc: '方图/标准比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '3:2', templateDesc: '横图/标准比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '4:3', templateDesc: '横图/标准比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '16:9', templateDesc: '横屏/宽屏比例', imageUrl: images.imgVideo, isVip: 0 },
+          { templateName: '21:9', templateDesc: '横屏/宽屏比例', imageUrl: images.imgVideo, isVip: 1 },
+        ],
+      },
+      {
+        type: 4,
+        params: [
+          { templateName: '2K', templateDesc: '', isVip: 0 },
+          { templateName: '4K', templateDesc: '', isVip: 1 },
+        ],
+      },
+      {
+        type: 5,
+        params: [
+          { templateName: '1', templateDesc: '', isVip: 0 },
+          { templateName: '2', templateDesc: '', isVip: 0 },
+          { templateName: '3', templateDesc: '', isVip: 0 },
+          { templateName: '4', templateDesc: '', isVip: 1 },
+        ],
+      },
+    ],
+  },
+])
+
+const openImageParams = () => {
+  showImageParamPopup.value = true
+}
+
+const handleImageParamsConfirm = (result: any) => {
+  // ImageParamPopup 的 result: { algorithmName, paramList: [{templateName,...}, ...] }
+  const algorithmName = String(result?.algorithmName || '').trim()
+  const paramNames: string[] = Array.isArray(result?.paramList)
+    ? result.paramList.map((p: any) => String(p?.templateName || '').trim()).filter(Boolean)
+    : []
+  imageDefaultParams.value = [algorithmName || imageDefaultParams.value[0], ...paramNames]
+}
+
+const handleImageParamsClose = (_result: any) => {
+  // 关闭时不强制更新；需要更新走 confirm 即可
+}
 
 // ==================== 右侧：我的资产（列表 + 缩略图） ====================
 // 先用本地 mock 数据跑通交互；后续接接口时替换 assets 的赋值即可
@@ -196,98 +313,94 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .studio-page {
-  min-height: 100vh;
-  background: $color-bg-dark;
-}
-
-.studio-body {
-  display: flex;
-  padding-top: $spacing-md;
-}
-
-.left-rail {
-  width: 92px;
-  margin-left: $spacing-md;
-  background: rgba(9, 17, 37, 0.8);
-  border-radius: $border-radius-xl;
-  padding: $spacing-md $spacing-sm;
+  height: 100vh;
+  background: $color-bg-black;
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
-}
 
-.rail-item {
-  padding: $spacing-md $spacing-sm;
-  border-radius: $border-radius-lg;
-  cursor: pointer;
-  color: $color-text-gray;
-  text-align: center;
-  transition: all $transition-base;
+  .studio-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden; // 固定整页高度，只让内部区域滚动
 
-  &.active {
-    border: 1px solid rgba(112, 197, 237, 0.6);
-    background: rgba(23, 160, 225, 0.12);
-    color: $color-text-white;
-  }
-}
+    .left-rail {
+      width: 95px;
+      margin-top: 17px;
+      background: $color-bg-dark-secondary;
+      padding: $spacing-2xl-md 0;
+      border-radius: 0px 8px 0px 0px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
 
-.rail-icon {
-  width: 44px;
-  height: 44px;
-  margin: 0 auto $spacing-xs;
-  display: grid;
-  place-items: center;
+      .rail-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        border: 1px solid transparent;
+        border-radius: $border-radius-md;
+        cursor: pointer;
+        color: $color-text-light-secondary;
+        text-align: center;
+        transition: all $transition-base;
 
-  img {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-  }
-}
+        &.active {
+          background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+          border-color: $color-primary;
+          color: $color-primary;
+        }
 
-.rail-text {
-  font-size: $font-size-xs;
-  line-height: 1.2;
-}
+        .rail-icon {
+          width: 35px;
+          height: 35px;
+          margin: 0 auto $spacing-xs;
+          display: grid;
+          place-items: center;
 
-.studio-main {
-  flex: 1;
-  padding: 0 $spacing-md $spacing-md;
-}
+          img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+          }
+        }
 
-.studio-content {
-  display: grid;
-  grid-template-columns: 380px minmax(520px, 1fr) 260px;
-  gap: $spacing-md;
-}
+        .rail-text {
+          font-size: $font-size-sm;
+        }
+      }
+    }
 
-.param-panel {
-  background: rgba(9, 17, 37, 0.8);
-  border-radius: $border-radius-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: $spacing-lg;
-  min-height: calc(100vh - 120px);
-}
+    .studio-main {
+      flex: 1;
+      height: 100%;
+      background: $color-bg-black;
+      overflow: hidden;
 
-.result-panel {
-  background: rgba(9, 17, 37, 0.65);
-  border-radius: $border-radius-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  min-height: calc(100vh - 120px);
-}
+      .studio-content {
+        display: grid;
+        grid-template-columns: 480px 1fr;
+        height: 100%;
 
-.thumb-rail {
-  background: rgba(9, 17, 37, 0.8);
-  border-radius: $border-radius-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  min-height: calc(100vh - 120px);
-}
+        .param-panel {
+          padding: 17px 25px 0;
+          height: 100%;
+          overflow-y: auto;
+        }
 
-@media (max-width: 1280px) {
-  .studio-content {
-    grid-template-columns: 360px minmax(460px, 1fr) 240px;
+        .result-panel {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+      }
+    }
   }
 }
 </style>
