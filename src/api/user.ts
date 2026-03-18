@@ -26,6 +26,10 @@ export const userApi = {
   updateUserInfo(params: any) {
     return request.post('/user/updateUserInfo', params) as unknown as Promise<ApiResponse<any>>
   },
+  // 获取用户是否设置了密码 返回 true or false
+  getUserSetPwd() {
+    return request.get('/v1/pwd/isSetPwd')
+  }
 }
 
 export default userApi

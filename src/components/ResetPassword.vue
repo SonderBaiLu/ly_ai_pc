@@ -1,17 +1,17 @@
 <template>
   <div class="reset-password-overlay">
     <div class="reset-password-modal">
-      <button class="close-btn">
+      <button class="close-btn" @click="closeModal">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M1 1L13 13M1 13L13 1" stroke="#999999" stroke-width="1.5" stroke-linecap="round"
-            stroke-linejoin="round" />
+                stroke-linejoin="round" />
         </svg>
       </button>
 
-      <h2 class="modal-title">重置密码</h2>
+      <h2 class="modal-title">修改密码</h2>
 
       <div class="form-container">
-        <div class="form-group">
+        <div class="form-group" v-if="modeType === '0' || modeType === '1'">
           <label class="form-label">手机号</label>
           <div class="input-wrapper">
             <span class="prefix">+86</span>
@@ -20,20 +20,34 @@
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" v-if="modeType === '2'">
+          <label class="form-label">账号名</label>
+          <div class="input-wrapper disabled-wrapper">
+            <input type="text" v-model="formData.accountName" class="form-input" disabled />
+          </div>
+        </div>
+
+        <div class="form-group" v-if="modeType === '0'">
           <label class="form-label">验证码</label>
           <div class="input-wrapper">
             <input maxlength="4" v-model="formData.code" type="number" class="form-input" placeholder="请输入验证码" />
             <button @click='GetSmSCode' :disabled="!formData.phone || isCounting" class="get-code-btn">
               {{
                 isCounting
-                  ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
-                  : t('LoginPopUpPage.getVerificationCode')
+                    ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
+                    : t('LoginPopUpPage.getVerificationCode')
               }}
             </button>
           </div>
         </div>
-        something
+
+        <div class="form-group" v-if="modeType === '1' || modeType === '2'">
+          <label class="form-label">旧密码</label>
+          <div class="input-wrapper">
+            <input type="password" v-model="formData.oldPassword" class="form-input" placeholder="请输入旧密码" />
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label">
             新密码 <span class="label-hint">6-20个数字、字母组成</span>
@@ -41,7 +55,7 @@
           <div class="input-wrapper">
             <input :type="onePasswordInputType" v-model="formData.password" class="form-input" placeholder="请输入密码" />
             <span class="icon-eye" @click="oneShowPersonalPwd = !oneShowPersonalPwd">
-              <img :src="oneShowPersonalPwd ? iconEyeClose : iconEyesOpen" alt="" />
+              <img :src="oneShowPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" />
             </span>
           </div>
         </div>
@@ -50,14 +64,14 @@
           <label class="form-label">确认密码</label>
           <div class="input-wrapper">
             <input :type="TwoPasswordInputType" v-model="formData.twoPassword" class="form-input"
-              placeholder="请再次输入密码确认" />
+                   placeholder="请再次输入密码确认" />
             <span class="icon-eye" @click="twoShowPersonalPwd = !twoShowPersonalPwd">
-              <img :src="twoShowPersonalPwd ? iconEyeClose : iconEyesOpen" alt="" />
+              <img :src="twoShowPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" />
             </span>
           </div>
         </div>
 
-        <button @click="resetPassword()" class="submit-btn">重置密码</button>
+        <button @click="resetPassword" class="submit-btn">重置密码</button>
       </div>
     </div>
   </div>
@@ -65,19 +79,34 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
+import { reactive, ref, computed, onUnmounted } from "vue";
+import { ElMessage } from 'element-plus';
 import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
 import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 
-// 密码显示切换状态
+// 假设你的 API 文件导出了这些方法，你需要根据实际情况调整
 import { changePwdBySms, getSmsCodeApi } from "@/api/userLogin";
-import { reactive, ref, computed } from "vue";
+// import { changePwdByOldPwd } from "@/api/userLogin"; // 模式1和2可能需要的API
+
+const { t } = useI18n()
+
+// 有三种模式
+// 0 = "用户第一次手机号注册 没有密码时候弹窗"
+// 1 = "用户修改密码 有密码的时候"
+// 2 = "团队修改密码"
+// 这里设为 ref 方便你在父组件中通过 ref 或者 props 动态修改
+const modeType = ref<'0' | '1' | '2'>('2')
+
+// 密码显示切换状态
 const oneShowPersonalPwd = ref(false)
 const twoShowPersonalPwd = ref(false)
+
 // 表单数据
 const formData = reactive({
   phone: '',
+  accountName: '', // 账户名等待传值
   code: '',
+  oldPassword: '',
   password: '',
   twoPassword: '',
 })
@@ -93,18 +122,17 @@ const TwoPasswordInputType = computed(() => {
 const isCounting = ref(false)
 const countdown = ref(120)
 let smsTimer: ReturnType<typeof setInterval> | null = null
+
 const GetSmSCode = async () => {
   try {
-
     const mobile = Number(formData.phone)
-    if (!formData.phone || !Number.isInteger(mobile)) {
-      ElMessage.warning("？")
+    if (!formData.phone || !Number.isInteger(mobile) || String(mobile).length !== 11) {
+      ElMessage.warning("请输入正确的手机号")
       return
     }
     const res = await getSmsCodeApi(mobile)
     if (String((res as any).code) === '0000') {
       ElMessage.success('验证码已发送')
-      // 启动 120s 倒计时
       isCounting.value = true;
       countdown.value = 120;
       if (smsTimer) clearInterval(smsTimer)
@@ -122,35 +150,53 @@ const GetSmSCode = async () => {
   }
 }
 
-
+// 提交逻辑
 const resetPassword = async () => {
-  //定义校验规则字典
-  const rules = [
-    { isInvalid: !formData.phone, msg: "请输入手机号" },
-    { isInvalid: !formData.code, msg: "请输入验证码" },
-    { isInvalid: !formData.password, msg: "请输入密码" },
-    { isInvalid: !formData.twoPassword, msg: "请再次输入密码" },
-    { isInvalid: formData.password !== formData.twoPassword, msg: "两次输入的密码不一致，请重新输入" },
-  ]
-  // 遍历校验
-  const errorRule = rules.find(rule => rule.isInvalid)
-  if (errorRule) {
-    ElMessage.warning(errorRule.msg)
+  // 1. 公共校验：新密码
+  if (!formData.password) return ElMessage.warning("请输入密码");
+  if (!formData.twoPassword) return ElMessage.warning("请再次输入密码");
+  if (formData.password !== formData.twoPassword) {
+    return ElMessage.warning("两次输入的密码不一致，请重新输入");
   }
+
   try {
-    await changePwdBySms({
-      mobile: formData.phone,
-      verifyCode: Number(formData.code),
-      newPwd: Number(formData.password),
-      newPwdAgain: Number(formData.twoPassword)
-    })
+    // 2. 根据不同模式进行特定校验和 API 请求
+    if (modeType.value === '0') {
+      if (!formData.phone) return ElMessage.warning("请输入手机号");
+      if (!formData.code) return ElMessage.warning("请输入验证码");
+
+      await changePwdBySms({
+        mobile: formData.phone,
+        verifyCode: Number(formData.code),
+        newPwd: formData.password,       // 密码通常不转Number，依你后端接口而定
+        newPwdAgain: formData.twoPassword
+      });
+    }
+    else if (modeType.value === '1') {
+      if (!formData.phone) return ElMessage.warning("请输入手机号");
+      if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
+
+      // await changePwdByOldPwd({ mobile: formData.phone, oldPwd: formData.oldPassword, newPwd: formData.password })
+    }
+    else if (modeType.value === '2') {
+      if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
+
+      // await changePwdByOldPwd({ account: formData.accountName, oldPwd: formData.oldPassword, newPwd: formData.password })
+    }
+
     ElMessage.success('修改成功')
+    closeModal()
   } catch (e) {
-    console.error('login error', e)
+    console.error('reset error', e)
   }
 }
+
+const closeModal = () => {
+  // 触发关闭弹窗的事件
+  // emit('close')
+}
+
 onUnmounted(() => {
-  // 当组件被销毁时，如果定时器还在运行，就强行停掉它
   if (smsTimer) {
     clearInterval(smsTimer)
     smsTimer = null
@@ -166,9 +212,15 @@ onUnmounted(() => {
   min-height: 100vh;
   background-color: rgba(0, 0, 0, 0.6);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
 }
 
-//主体
+// 主体
 .reset-password-modal {
   position: relative;
   width: 407px;
@@ -230,7 +282,7 @@ onUnmounted(() => {
     }
   }
 
-  //输入框外层
+  // 输入框外层
   .input-wrapper {
     position: relative;
     display: flex;
@@ -246,7 +298,15 @@ onUnmounted(() => {
       border-color: #125474;
     }
 
-    //手机号前缀
+    &.disabled-wrapper {
+      background: #F5F7FA;
+      input {
+        color: #99A3B3;
+        cursor: not-allowed;
+      }
+    }
+
+    // 手机号前缀
     .prefix {
       font-size: 14px;
       color: #8D95A1;
@@ -259,7 +319,7 @@ onUnmounted(() => {
       margin: 0 12px;
     }
 
-    //内部输入框
+    // 内部输入框
     .form-input {
       flex: 1;
       height: 100%;
@@ -272,13 +332,17 @@ onUnmounted(() => {
       &::placeholder {
         color: #B0B8C6;
       }
+
+      &:disabled {
+        background: transparent;
+      }
     }
 
     .get-code-btn {
       height: 32px;
       padding: 0 16px;
-      background-color: rgba(184, 222, 240, 1);
-      color: rgba(255, 255, 255, 1);
+      background-color: #B8DEF0;
+      color: #FFFFFF;
       border: none;
       border-radius: 4px;
       font-size: 14px;
@@ -287,8 +351,13 @@ onUnmounted(() => {
       white-space: nowrap;
       transition: background-color 0.2s;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background: #A6D4E7;
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.8;
       }
     }
 
@@ -315,8 +384,8 @@ onUnmounted(() => {
   margin-top: 16px;
   width: 100%;
   height: 52px;
-  background: rgba(11, 80, 112, 1);
-  color: rgba(173, 179, 189, 1);
+  background: #0B5070;
+  color: #ADB3BD;
   border: none;
   border-radius: 10px;
   font-size: 16px;
@@ -326,6 +395,7 @@ onUnmounted(() => {
 
   &:hover {
     background: #0E425B;
+    color: #FFFFFF;
   }
 }
 </style>

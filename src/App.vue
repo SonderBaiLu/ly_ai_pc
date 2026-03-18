@@ -37,7 +37,6 @@ const modalStore = useModalStore()
 const handleSettingsSaved = () => {
   modalStore.closePersonalSettingsModal()
 }
-
 onMounted(() => {
   // 先自动打开一次个人设置弹窗，方便调试样式
   // modalStore.openPersonalSettingsModal()

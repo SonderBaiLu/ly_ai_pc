@@ -181,10 +181,12 @@ import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
 import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 import { getSmsCodeApi } from '@/api/userLogin'
 import { useUserStore } from "@/stores/user"
-
+import userApi from '@/api/user'
+const resetPwdRef = ref<InstanceType<typeof ResetPassword> | null>(null)
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
+import ResetPassword from '@/components/ResetPassword.vue' // 引入你的组件
 // ----- 扫码登陆 ------------- 测试 --------
 // const qrCodeImg = ref('') // 二维码图片源
 // const currentTicket = ref('') // 这个是二维码的唯一凭证
@@ -313,7 +315,7 @@ const GetSmSCode = async () => {
           if (smsTimer) clearInterval(smsTimer)
           smsTimer = null
           isCounting.value = false
-        }
+        } return
       }, 1000)
     } else {
       ElMessage.error((res as any).msg || '发送失败')
@@ -343,6 +345,14 @@ const handleSubmit = async () => {
         return
       }
       await userStore.loginWithSms(formData.phone, formData.code)
+      // 查询用户是否设置了密码 如果没有就弹出 设置密码弹窗
+      const setPwd = await userApi.getUserSetPwd()
+      if (setPwd.data.setPwd === false) {
+        // 弹出 设置密码的窗口
+        console.log('')
+        return
+      }
+
     } else {
       if (!formData.password) {
         ElMessage.warning(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
@@ -361,6 +371,7 @@ const handleSubmit = async () => {
       console.log(errorMsg)
     } else {
       // 验证码登录直接顶部提示 使用拦截器的提示
+
     }
   }
 }
