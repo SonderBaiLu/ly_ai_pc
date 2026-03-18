@@ -1,6 +1,24 @@
 import request from '@/utils/request'
 import type { ApiResponse } from '@/types'
 
+// 这个是 获取用户信息接口 获取得到的信息
+export interface UserDetailData {
+    userName: string
+    nickName: string
+    headImgUrl: string
+    language: string
+    vipType: number
+    vipLevel: number
+    expirationTime: string
+    wavePoints: number
+    vipPoints: number
+    buyPoints: number
+    giftPoints: number
+    desc: string | null
+    msgCount: string
+}
+
+
 // 获取验证码
 export const getSmsCodeApi = (mobile: number) => {
     return request.get('/v1/login/send/smsCode', {
@@ -38,4 +56,8 @@ export const changePwdBySms = (payload: {
     newPwdAgain: number
 }) => {
     return request.post('/v1/pwd/changePwdBySms', payload) as unknown as Promise<any>
+}
+// 登录成功后  获取用户信息
+export const getUserDetailsApi = () => {
+    return request.get('/v1/user/getUserDetails')
 }

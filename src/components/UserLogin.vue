@@ -123,7 +123,6 @@
                 {{ pwdErrorMsg }}
               </div>
             </div>
-
             <div class="invite-link-wrap">
               <a href="#" class="invite-link">{{ t('LoginPopUpPage.inviteFill') }}</a>
             </div>
@@ -187,15 +186,16 @@ const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
 // ----- 扫码登陆 ------------- 测试 --------
-const qrCodeImg = ref('') // 二维码图片源
-const currentTicket = ref('') // 这个是二维码的唯一凭证
+// const qrCodeImg = ref('') // 二维码图片源
+// const currentTicket = ref('') // 这个是二维码的唯一凭证
 // WAITING：还没扫。
 // SCANNED：已扫码，但在手机上还没点确认
 // SUCCESS：登录成功。
 // EXPIRED：二维码过期了
-const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading') // 二维码当前状态
-let qrCodeTimer: ReturnType<typeof setInterval> | null = null
+// const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading') // 二维码当前状态
+// let qrCodeTimer: ReturnType<typeof setInterval> | null = null
 // 初始化获取二维码
+/*
 const initQrCode = async () => {
   qrStatus.value = 'loading';
   if (qrCodeTimer) clearInterval(qrCodeTimer) // 清理定时器
@@ -211,7 +211,9 @@ const initQrCode = async () => {
     qrStatus.value = 'expired'
   }
 }
+*/
 // 轮询检查
+/*
 const startPolling = () => {
   qrCodeTimer = setInterval(async () => {
     try {
@@ -239,7 +241,9 @@ const startPolling = () => {
       console.error('查询状态异常', e)
     }
   }, 2000)
+
 }
+  */
 /* watch(loginMethod, (newMethod) => {
   if (newMethod === 'qrcode') {
     // 只要切到扫码登陆，就去请求二维码并轮询

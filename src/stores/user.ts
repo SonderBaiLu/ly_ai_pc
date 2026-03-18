@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-// 引入AIP接口
-import { loginBySmsCodeApi, loginByPwd, teamLogin } from '@/api/userLogin.ts'
+// 引入API接口
+import { loginBySmsCodeApi, loginByPwd, teamLogin, getUserDetailsApi } from '@/api/userLogin'
+
 export interface UserInfo {
   userId?: string | number
   phone?: string
@@ -18,42 +19,18 @@ export const useUserStore = defineStore('user', {
   getters: {
     isLoggedIn: (state) => !!state.token,
   },
+
   actions: {
-    // 保存 token和用户信息
-    setAuthData(token: string, userInfo: any) {
+    // 单独保存Token
+    setToken(token: string) {
       this.token = token
-      this.userInfo = userInfo
-
-      // 同步到本地存储
-      if (token) localStorage.setItem('token', token)
-      if (userInfo) localStorage.setItem('userInfo', JSON.stringify(userInfo))
-    },
-    //短信验证码登录
-    async loginWithSms(mobile: string, verifyCode: string) {
-      const res = await loginBySmsCodeApi({ mobile, verifyCode })
-      // 提取后端返回的数据
-      const { token, userInfo } = (res.data as any) || {}
-      // 调用 setAuthData 保存状态
-      this.setAuthData(token, userInfo)
-    },
-    // 密码登录
-    async loginWithPassword(mobile: string, pwd: string) {
-      const res = await loginByPwd({ mobile, pwd })
-      const { token, userInfo } = (res.data as any)
-      this.setAuthData(token, userInfo)
-    },
-    // 团队密码登录
-    async teamLogin(userName: string, pwd: string) {
-      const res = await teamLogin({ userName, pwd })
-      const { token, userInfo } = (res.data as any)
-      this.setAuthData(token, userInfo)
+      if (token) {
+        localStorage.setItem('token', token);
+      } else {
+        localStorage.removeItem('token')
+      }
     },
 
-
-    async getUserInfo(_phone: string) {
-      // TODO: 对接真实接口后替换
-      return this.userInfo
-    },
     setUserInfo(info: UserInfo | null) {
       this.userInfo = info
       if (info) {
@@ -62,12 +39,48 @@ export const useUserStore = defineStore('user', {
         localStorage.removeItem('userInfo')
       }
     },
-    logout() {
-      this.token = ''
-      this.userInfo = null
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-    },
-  },
-})
 
+    async getUserInfo() {
+      try {
+        const res = await getUserDetailsApi()
+        const detailInfo = res.data
+        this.setUserInfo(detailInfo)
+        return detailInfo
+      } catch (error) {
+        console.error('获取用户详细信息失败', error)
+        throw error
+      }
+    },
+
+    // 短信验证码登录
+    async loginWithSms(mobile: string, verifyCode: string) {
+      const res = await loginBySmsCodeApi({ mobile, verifyCode })
+      const tokenStr = res.data?.accessToken
+      this.setToken(tokenStr)
+      await this.getUserInfo()
+    },
+
+    // 密码登录
+    async loginWithPassword(mobile: string, pwd: string) {
+      const res = await loginByPwd({ mobile, pwd })
+      const tokenStr = res.data?.accessToken
+      this.setToken(tokenStr)
+
+      await this.getUserInfo()
+    },
+
+    // 团队密码登录
+    async teamLogin(userName: string, pwd: string) {
+      const res = await teamLogin({ userName, pwd })
+      const tokenStr = res.data?.accessToken
+      this.setToken(tokenStr)
+
+      await this.getUserInfo()
+    },
+
+    logout() {
+      this.setToken('')
+      this.setUserInfo(null)
+    }
+  }
+})
