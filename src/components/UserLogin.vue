@@ -413,14 +413,7 @@ const handleTeamSubmit = async () => {
   }
 }
 onUnmounted(() => {
-<<<<<<< HEAD
   if (smsTimer) clearInterval(smsTimer)
-=======
-  if (smsTimer) {
-    clearInterval(smsTimer)
-    smsTimer = null
-  }
->>>>>>> origin/dev
 })
 </script>
 

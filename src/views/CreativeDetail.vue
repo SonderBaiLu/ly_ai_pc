@@ -64,68 +64,8 @@
 
         <!-- 我的创作详情 -->
         <div v-if="pageTypeRef == 'assets'">
-<<<<<<< HEAD
-          <h5 class="section-title">{{ templateDetail?.typeName }}</h5>
-          <div v-if="requestParams" class="video-thumb-row">
-            <!-- AI视频-单图/模板动作 AI图片-指令改图/姿势裂变-->
-            <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
-            <!-- AI视频-尾帧 -->
-            <img v-if="requestParams.lastFrameUrl" :src="requestParams.lastFrameUrl" />
-            <!-- AI视频-多图成片 -->
-            <img v-for="item in requestParams.imageUrls" :key="item" :src="item" />
-
-            <!-- AI图片-商品展示 6 -->
-            <img v-if="requestParams.productItemUrl" :src="requestParams.productItemUrl" />
-            <!-- AI图片-穿搭调整-模特图 5 -->
-            <img v-if="templateDetail?.type == 5 && requestParams.flatSceneImageUrl"
-              :src="requestParams.flatSceneImageUrl" />
-
-            <!-- 万物穿戴-单视角/多视角 -->
-            <img v-if="requestParams.itemViewOneUrl" :src="requestParams.itemViewOneUrl" />
-            <img v-if="requestParams.itemViewTwoUrl" :src="requestParams.itemViewTwoUrl" />
-
-            <!-- 换模特换背景/只换模特/只换背景 -->
-            <img v-if="requestParams.clothesSceneUrl" :src="requestParams.clothesSceneUrl" />
-            <!-- 只换模特 -->
-            <img v-if="requestParams.clothesSceneUrlModel" :src="requestParams.clothesSceneUrlModel" />
-            <!-- 只换背景 -->
-            <img v-if="requestParams.clothesSceneUrlBg" :src="requestParams.clothesSceneUrlBg" />
-
-            <!-- AI试衣-自定义=>连体衣/上下装 -->
-            <img v-if="requestParams.upperFrontUrl" :src="requestParams.upperFrontUrl" />
-            <img v-if="requestParams.downFrontUrl" :src="requestParams.downFrontUrl" />
-            <img v-if="requestParams.frontDressUrl" :src="requestParams.frontDressUrl" />
-
-            <!-- AI试衣-平铺图=>连体衣/上下装正面背面 -->
-            <!-- AI试衣-平铺图=>上下装/上装正面 -->
-            <img v-if="requestParams.flatUpperFrontUrl" :src="requestParams.flatUpperFrontUrl" />
-            <!-- AI试衣-平铺图=>上下装/上装背面 -->
-            <img v-if="requestParams.flatUpperBackUrl" :src="requestParams.flatUpperBackUrl" />
-            <!-- AI试衣-平铺图=>上下装/下装正面 -->
-            <img v-if="requestParams.flatDownFrontUrl" :src="requestParams.flatDownFrontUrl" />
-            <!-- AI试衣-平铺图=>上下装/下装背面 -->
-            <img v-if="requestParams.flatDownBackUrl" :src="requestParams.flatDownBackUrl" />
-            <!-- AI试衣-平铺图=>连体衣正面 -->
-            <img v-if="requestParams.flatFrontDressUrl" :src="requestParams.flatFrontDressUrl" />
-            <!-- AI试衣-平铺图=>连体衣背面 -->
-            <img v-if="requestParams.flatBackDressUrl" :src="requestParams.flatBackDressUrl" />
-
-            <!-- AI试衣-挂拍图 => 正面/背面 -->
-            <img v-if="requestParams.hangingFrontUrl" :src="requestParams.hangingFrontUrl" />
-            <img v-if="requestParams.hangingBackUrl" :src="requestParams.hangingBackUrl" />
-
-            <!-- AI试衣-搭配图 => 一身搭-->
-            <img v-if="requestParams.mixedItemsUrl" :src="requestParams.mixedItemsUrl" />
-
-            <!-- AI试衣-人台图 => 正面/背面-->
-            <!-- 人台图 正面-->
-            <img v-if="requestParams.mannequinFrontUrl" :src="requestParams.mannequinFrontUrl"  />
-            <!-- 人台图 背面 -->
-            <img v-if="requestParams.mannequinBackUrl" :src="requestParams.mannequinBackUrl" />
-=======
           <div class="section-title">
             {{ isAiFashionStudioAssetsDetail ? studioModuleName : templateDetail?.typeName }}
->>>>>>> origin/dev
           </div>
 
           <!-- AI工作台（4类型）详情：完全使用四个左侧页面的展示结构（仅保留必要模块） -->
