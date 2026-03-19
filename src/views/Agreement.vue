@@ -10,12 +10,9 @@
       </el-tabs>
 
       <section class="agreement-card">
-        <!-- 这里先做占位：后续接接口/富文本内容时替换 -->
-        <div class="agreement-placeholder">
-          <div class="placeholder-title">{{ currentTabLabel }}</div>
-          <div class="placeholder-desc">
-            {{ activeType }} 协议内容待接入（可后续替换为富文本/markdown/iframe）。
-          </div>
+        <div class="agreement-body" v-loading="loading">
+          <div v-if="agreement?.content" class="agreement-content" v-html="agreement.content" />
+          <div v-else class="state-text">暂无内容</div>
         </div>
       </section>
     </main>
@@ -23,37 +20,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
-
-type AgreementType =
-  | 'USER_AGREEMENT'
-  | 'ANDROID_PRIVACY_POLICY'
-  | 'PAY_SERVICE_AGREEMENT'
-  | 'COIN_RULES_DESCRIPTION'
-  | string
+import { AGREEMENT_TABS, DEFAULT_AGREEMENT_TYPE, type AgreementType } from '@/constants/agreement'
+import { appApi, type AppAgreementContent } from '@/api/app'
 
 const route = useRoute()
 const router = useRouter()
 
-const tabs = [
-  { type: 'USER_AGREEMENT', label: '用户协议' },
-  { type: 'PAY_SERVICE_AGREEMENT', label: '付费服务协议' },
-  { type: 'ANDROID_PRIVACY_POLICY', label: '隐私政策' },
-  { type: 'WRITE_OFF_AGREEMENT', label: '注销协议' },
-  { type: 'SOCIAL_PUBLIC_CONVENTION', label: '社会公约' },
-  { type: 'RIGHTS_LIST', label: '权限列表' },
-  { type: 'COIN_RULES_DESCRIPTION', label: '灵衍值规则' },
-]
+const tabs = AGREEMENT_TABS
 
-const activeType = ref<AgreementType>(String(route.query.type || 'USER_AGREEMENT'))
+const activeType = ref<AgreementType>(String(route.query.type || DEFAULT_AGREEMENT_TYPE))
+const loading = ref(false)
+const agreement = ref<AppAgreementContent | null>(null)
 
 // URL -> UI
 watch(
   () => route.query.type,
   (type) => {
-    activeType.value = String(type || 'USER_AGREEMENT')
+    activeType.value = String(type || DEFAULT_AGREEMENT_TYPE)
   }
 )
 
@@ -61,15 +48,34 @@ watch(
 watch(
   activeType,
   (type) => {
-    const nextType = String(type || 'USER_AGREEMENT')
-    if (String(route.query.type || 'USER_AGREEMENT') === nextType) return
+    const nextType = String(type || DEFAULT_AGREEMENT_TYPE)
+    if (String(route.query.type || DEFAULT_AGREEMENT_TYPE) === nextType) return
     router.replace({ path: '/agreement', query: { type: nextType } })
   }
 )
 
-const currentTabLabel = computed(() => {
-  return tabs.find((t) => t.type === activeType.value)?.label || '协议'
-})
+const fetchAgreement = async (type: AgreementType) => {
+  loading.value = true
+  try {
+    const res = await appApi.getContent({ code: type })
+    agreement.value = res.data || null
+  } catch (e: any) {
+    agreement.value = null
+    ElMessage.error(e?.message || '加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(
+  () => activeType.value,
+  (type) => {
+    fetchAgreement(type)
+  },
+  { immediate: true }
+)
+
+// 协议页已精简为仅展示正文，这里不需要额外的 label 计算
 </script>
 
 <style scoped lang="scss">
@@ -132,19 +138,30 @@ const currentTabLabel = computed(() => {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.agreement-placeholder {
-  max-width: 980px;
+.agreement-body {
+  height: 100%;
+  padding: 22px;
+  overflow: auto;
 }
 
-.placeholder-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 10px;
+.agreement-content {
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.placeholder-desc {
+.agreement-content :deep(p) {
+  margin: 0 0 12px;
+}
+
+.agreement-content :deep(h1),
+.agreement-content :deep(h2),
+.agreement-content :deep(h3) {
+  margin: 18px 0 10px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.state-text {
+  padding: 18px 0;
   color: rgba(255, 255, 255, 0.6);
-  line-height: 1.7;
   font-size: 14px;
 }
 

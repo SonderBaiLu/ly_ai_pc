@@ -72,17 +72,26 @@ export const paymentApi = {
     request.get('/v1/payment/getPaymentMethod'),
 
   /**
-   * 创建支付订单（统一下单）
+   * 创建支付订单（统一下单 - 新接口）
+   * - POST /api/v1/payment/submit
    */
   createPaymentOrder: (data: PaymentOrderData): Promise<ApiResponse<PaymentOrderResponse>> =>
-    request.post('/api-order-payment/payment/create', data),
+    request.post('/v1/payment/submit', data),
 
   /**
-   * 查询支付宝订单详情
+   * 查询支付结果（新接口）
+   * - GET /api/v1/payment/query
    * @param orderNo 支付订单号
    */
-  queryAlipayOrder: (orderNo: string): Promise<ApiResponse<AlipayQueryResult>> =>
-    request.get('/api-order-payment/payment/order/query', { params: { orderNo } }),
+  queryPayment: (orderNo: string): Promise<ApiResponse<any>> =>
+    request.get('/v1/payment/query', { params: { orderNo } }),
+
+  /**
+   * 兼容旧方法名（内部已切换到新接口）
+   * @deprecated 请使用 queryPayment
+   */
+  queryAlipayOrder: (orderNo: string): Promise<ApiResponse<any>> =>
+    request.get('/v1/payment/query', { params: { orderNo } }),
 }
 
 export default paymentApi

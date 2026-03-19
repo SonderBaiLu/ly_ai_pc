@@ -44,7 +44,7 @@
       <div v-if="!isQrCodeExpired" class="vip-pay-footer-row">
         <div class="pay-channel">
           <img v-if="selectedMethod?.iconUrl" :src="selectedMethod.iconUrl" alt="" class="pay-icon" />
-          <img v-else :src="images.alipayPay" alt="" class="pay-icon" />
+          <img v-else :src="images.alipay" alt="" class="pay-icon" />
           <span>{{ selectedMethod?.channelName || '支付宝扫码支付' }}</span>
           <span v-if="payExpireText" class="expire-text">{{ payExpireText }}</span>
         </div>
@@ -275,7 +275,7 @@ const checkAlipayPayStatus = async () => {
   if (!currentPayOrderId) return
 
   try {
-    const res = await paymentApi.queryAlipayOrder(currentPayOrderId)
+    const res = await paymentApi.queryPayment(currentPayOrderId)
     // 当 code === '0000' 且 data === 1 时，支付成功
     const data = res.data as any
     if (res.code === '0000' && data === 1) {

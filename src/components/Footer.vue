@@ -59,8 +59,8 @@
       <div class="footer-bottom">
         <p class="copyright">{{ t('footer.copyright') }}</p>
         <div class="footer-links">
-          <a href="#" @click.prevent="goAgreement('ANDROID_PRIVACY_POLICY')">{{ t('footer.privacy') }}</a>
-          <a href="#" @click.prevent="goAgreement('USER_AGREEMENT')">{{ t('footer.userAgreement') }}</a>
+          <a href="#" @click.prevent="goAgreement(AGREEMENT_TYPES.PRIVACY_POLICY)">{{ t('footer.privacy') }}</a>
+          <a href="#" @click.prevent="goAgreement(AGREEMENT_TYPES.USER_AGREEMENT)">{{ t('footer.userAgreement') }}</a>
         </div>
       </div>
     </div>
@@ -72,6 +72,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useAuthGate } from '@/composables/useAuthGate'
+import { AGREEMENT_TYPES, type AgreementType } from '@/constants/agreement'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -85,7 +86,7 @@ const goAiFashion = (mode: StudioMode) => {
   })
 }
 
-const goAgreement = (type: string) => {
+const goAgreement = (type: AgreementType) => {
   router.push({ path: '/agreement', query: { type } })
 }
 

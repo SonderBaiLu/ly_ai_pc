@@ -1,0 +1,23 @@
+export const AGREEMENT_TYPES = {
+  USER_AGREEMENT: 'USER_AGREEMENT',
+  PAY_SERVICE_AGREEMENT: 'PAY_SERVICE_AGREEMENT',
+  PRIVACY_POLICY: 'PRIVACY_POLICY',
+  LOG_OFF_AGREEMENT: 'LOG_OFF_AGREEMENT',
+  SOCIAL_COVENANT: 'SOCIAL_COVENANT',
+  PERMISSION_LIST: 'PERMISSION_LIST',
+  COIN_RULES_DESCRIPTION: 'COIN_RULES_DESCRIPTION',
+} as const
+
+export type AgreementType = (typeof AGREEMENT_TYPES)[keyof typeof AGREEMENT_TYPES] | string
+
+export const AGREEMENT_TABS: Array<{ type: AgreementType; label: string }> = [
+  { type: AGREEMENT_TYPES.USER_AGREEMENT, label: '用户协议' },
+  { type: AGREEMENT_TYPES.PAY_SERVICE_AGREEMENT, label: '付费服务协议' },
+  { type: AGREEMENT_TYPES.PRIVACY_POLICY, label: '隐私政策' },
+  { type: AGREEMENT_TYPES.LOG_OFF_AGREEMENT, label: '注销协议' },
+  { type: AGREEMENT_TYPES.SOCIAL_COVENANT, label: '社区公约' },
+  { type: AGREEMENT_TYPES.PERMISSION_LIST, label: '权限列表' },
+  { type: AGREEMENT_TYPES.COIN_RULES_DESCRIPTION, label: '灵衍值规则说明' },
+]
+
+export const DEFAULT_AGREEMENT_TYPE: AgreementType = AGREEMENT_TYPES.USER_AGREEMENT
