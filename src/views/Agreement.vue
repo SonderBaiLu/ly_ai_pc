@@ -2,15 +2,12 @@
   <div class="agreement" :style="{ backgroundImage: `url(${images.homeBg})` }">
     <Header />
 
-    <main class="agreement-main container">
+    <main class="agreement-main">
       <h1 class="page-title">平台协议</h1>
 
-      <div class="tab-row">
-        <button v-for="tab in tabs" :key="tab.type" class="tab-item" type="button"
-          :class="{ active: activeType === tab.type }" @click="setType(tab.type)">
-          {{ tab.label }}
-        </button>
-      </div>
+      <el-tabs v-model="activeType" class="agreement-tabs">
+        <el-tab-pane v-for="tab in tabs" :key="tab.type" :label="tab.label" :name="tab.type" />
+      </el-tabs>
 
       <section class="agreement-card">
         <!-- 这里先做占位：后续接接口/富文本内容时替换 -->
@@ -26,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { images } from '@/assets'
 
@@ -50,76 +47,89 @@ const tabs = [
   { type: 'COIN_RULES_DESCRIPTION', label: '灵衍值规则' },
 ]
 
-const activeType = computed<AgreementType>(() => String(route.query.type || 'USER_AGREEMENT'))
+const activeType = ref<AgreementType>(String(route.query.type || 'USER_AGREEMENT'))
+
+// URL -> UI
+watch(
+  () => route.query.type,
+  (type) => {
+    activeType.value = String(type || 'USER_AGREEMENT')
+  }
+)
+
+// UI -> URL
+watch(
+  activeType,
+  (type) => {
+    const nextType = String(type || 'USER_AGREEMENT')
+    if (String(route.query.type || 'USER_AGREEMENT') === nextType) return
+    router.replace({ path: '/agreement', query: { type: nextType } })
+  }
+)
 
 const currentTabLabel = computed(() => {
   return tabs.find((t) => t.type === activeType.value)?.label || '协议'
 })
-
-const setType = (type: string) => {
-  router.replace({ path: '/agreement', query: { type } })
-}
 </script>
 
 <style scoped lang="scss">
 .agreement {
-  min-height: 100vh;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .agreement-main {
-  padding-top: 84px;
-  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: calc(100vh - 110px);
+  padding: 34px;
   color: $color-text-white;
 }
 
 .page-title {
-  font-size: 30px;
-  font-weight: 700;
-  margin: 0 0 18px;
-}
-
-.tab-row {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
   margin-bottom: 18px;
+  font-weight: 700;
+  font-size: 30px;
+  font-family: AlibabaPuHui-regular;
 }
 
-.tab-item {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.55);
-  padding: 10px 2px;
-  cursor: pointer;
-  position: relative;
-  font-size: 14px;
-}
+.agreement-tabs {
+  margin-bottom: 18px;
 
-.tab-item.active {
-  color: $color-primary;
-}
+  :deep(.el-tabs__item) {
+    color: #686D70;
+    font-size: $font-size-md;
+    height: 44px;
+    line-height: 44px;
+  }
 
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -6px;
-  height: 2px;
-  background: $color-primary;
-  border-radius: 2px;
+  :deep(.el-tabs__item:hover) {
+    color: #686D70;
+  }
+
+  :deep(.el-tabs__item.is-active) {
+    color: $color-primary-dark;
+    font-weight: 600;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    background: $color-primary-dark;
+    height: 2px;
+  }
+
+  :deep(.el-tabs__nav-wrap::after) {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
 }
 
 .agreement-card {
+  width: 100%;
+  flex: 1;
   border-radius: 16px;
-  padding: 28px;
-  min-height: 420px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  background-color: rgba(18, 18, 18, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .agreement-placeholder {
@@ -136,5 +146,19 @@ const setType = (type: string) => {
   color: rgba(255, 255, 255, 0.6);
   line-height: 1.7;
   font-size: 14px;
+}
+
+@media (max-width: 1024px) {
+  .agreement-main {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .agreement-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 </style>
