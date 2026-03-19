@@ -22,9 +22,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/MyCreations.vue'),
   },
   {
+    path: '/creative-detail/:id',
+    name: 'CreativeDetail',
+    component: () => import('../views/CreativeDetail.vue'),
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('../views/About.vue'),
+  },
+  {
+    path: '/agreement',
+    name: 'Agreement',
+    component: () => import('../views/Agreement.vue'),
   },
   {
     path: '/:pathMatch(.*)*',

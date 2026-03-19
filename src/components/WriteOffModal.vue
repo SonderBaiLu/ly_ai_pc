@@ -57,7 +57,7 @@
         </el-button>
         <div class="agreement-check">
           <label class="checkbox-label" @click="agreed = !agreed">
-            <img :src="agreed ? images.choose : images.chosseNo" alt="" class="checkbox-icon" />
+            <img :src="agreed ? images.chooseActive : images.chosseNo" alt="" class="checkbox-icon" />
             <span class="agreement-text">
               {{ t('writeOffModal.agreementPrefix') }}
               <span class="agreement-link" @click.stop="goToAgreement">
@@ -243,7 +243,7 @@ const handleClose = () => {
           .checkbox-icon {
             width: 18px;
             height: 18px;
-            margin-right: 9px;
+            margin-right: 8px;
             flex-shrink: 0;
             transition: all 0.2s ease;
           }

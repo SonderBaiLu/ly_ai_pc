@@ -30,7 +30,8 @@
         </div>
         <div v-else class="auth-buttons">
           <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
-          <span class="register-btn" @click="showLoginModal">{{ t('header.register') }}</span>
+          <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
+          }}</span>
         </div>
       </div>
     </div>
@@ -61,8 +62,10 @@
 
       <div class="nav-right nav-right--ai">
         <template v-if="isLoggedIn">
-          <span class="ai-link" role="button" tabindex="0" @click="router.push('/my-creations')"
-            @keydown.enter="router.push('/my-creations')">我的创作</span>
+          <span class="ai-link" role="button" tabindex="0" @click="enterModule(() => router.push('/my-creations'))"
+            @keydown.enter="enterModule(() => router.push('/my-creations'))">
+            我的创作
+          </span>
           <div class="ai-coin-pill">
             <img src="@/assets/images/coin.png" alt="Coin" class="coin-icon" />
             <span>50</span>
@@ -83,11 +86,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useModalStore } from '@/stores/modal'
+import { useAuthGate } from '@/composables/useAuthGate'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -102,8 +106,8 @@ const handleLanguageChange = (value: string) => {
   locale.value = value as 'zh' | 'en'
 }
 
-// 模拟登录状态
-const isLoggedIn = ref(false)
+const { isAuthed, enterModule } = useAuthGate()
+const isLoggedIn = computed(() => isAuthed.value)
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
@@ -119,12 +123,17 @@ const menuData = [
   { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
-const isAiDesignPage = computed(
-  () => route.name === 'AiDesign' || route.name === 'AiFashionStudio' || route.name === 'MyCreations'
-)
+// 规则：仅首页(Home)与关于(About)使用默认导航，其余页面统一使用“AI 专用导航”
+const isAiDesignPage = computed(() => route.name !== 'Home' && route.name !== 'About')
 
 const handleMenuClick = (item: { key: string; path?: string; query?: Record<string, any> }) => {
   if (item.path) {
+    // 首页模块入口：未登录统一弹登录弹窗；登录后正常跳转
+    if (item.path === '/ai-design' || item.path === '/ai-fashion' || item.path === '/my-creations') {
+      // 未登录统一先进 AI 设计工作台；登录后再按入口进入对应模块
+      enterModule(() => router.push({ path: item.path!, query: item.query }))
+      return
+    }
     router.push({ path: item.path, query: item.query })
     return
   }

@@ -1,5 +1,6 @@
 <template>
-  <div class="feature-card">
+  <div class="feature-card" role="button" tabindex="0" @click="emit('click')"
+    @keydown.enter="emit('click')">
     <div class="card-header">
       <span class="card-tag">{{ title }}</span>
       <img class="arrow-icon" src="@/assets/images/right_top.png" alt="arrow" />
@@ -25,6 +26,10 @@ interface Props {
 }
 
 defineProps<Props>()
+
+const emit = defineEmits<{
+  (e: 'click'): void
+}>()
 </script>
 
 <style scoped lang="scss">
@@ -33,6 +38,8 @@ defineProps<Props>()
   border-radius: $border-radius-xl;
   background-color: $color-bg-dark-card;
   border: 1px solid rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  user-select: none;
 
   .card-header {
     display: flex;

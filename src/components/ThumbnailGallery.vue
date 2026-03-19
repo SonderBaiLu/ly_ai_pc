@@ -11,17 +11,12 @@
         @dragstart="handleDragStart(asset, $event)">
         <!-- 生成中状态 -->
         <div v-if="asset.status === 2" class="thumbnail-generating">
-          <div class="generating-shimmer"></div>
-          <el-icon class="is-loading generating-icon">
-            <Loading />
-          </el-icon>
+          <!-- 使用动态图占位（缩略图尺寸） -->
         </div>
 
         <!-- 生成失败状态 -->
         <div v-else-if="asset.status === 4" class="thumbnail-failed">
-          <el-icon class="failed-icon">
-            <Close />
-          </el-icon>
+          <img class="failed-img" :src="images.fail1" alt="生成失败" />
         </div>
 
         <!-- 正常状态 -->
@@ -40,6 +35,7 @@
 <script setup lang="ts">
 // 自动导入：Vue API, Element Plus 图标
 import { type Asset } from '@/composables/useTaskPolling'
+import { images } from '@/assets'
 
 // 定义组件属性
 interface Props {
@@ -250,15 +246,10 @@ defineExpose({
   }
 
   // 生成中状态样式
-  &.generating {
-    border-color: $color-primary-dark;
-    opacity: 0.9;
-  }
-
-  // 失败状态样式
+  &.generating,
+  &.active,
   &.failed {
-    opacity: 0.6;
-    border-color: $color-bg-red;
+    border-color: $color-primary-dark;
   }
 }
 
@@ -280,66 +271,36 @@ defineExpose({
 //   }
 // }
 
-.asset-type {
-  font-size: 10px;
-  opacity: 0.9;
-}
+// .asset-type {
+//   font-size: 10px;
+//   opacity: 0.9;
+// }
 
 // 生成中缩略图
 .thumbnail-generating {
   width: 100%;
   height: 100%;
   position: relative;
-  background: linear-gradient(90deg, #2a2a3e 0%, #32324a 50%, #2a2a3e 100%);
-  background-size: 200% 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-
-  .generating-shimmer {
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(143, 80, 234, 0.2) 50%,
-        rgba(255, 255, 255, 0) 100%);
-    animation: shimmer 2s infinite;
-  }
-
-  .generating-icon {
-    position: relative;
-    z-index: 1;
-    font-size: 24px;
-    color: $color-primary-dark;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-
-  100% {
-    left: 100%;
-  }
+  background: url('@/assets/images/generating_80.gif') no-repeat center center;
+  background-size: 100% 100%;
 }
 
 // 失败缩略图
 .thumbnail-failed {
   width: 100%;
   height: 100%;
-  background-color: rgba(245, 108, 108, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
 
-  .failed-icon {
-    font-size: 24px;
-    color: $color-bg-red;
+  .failed-img {
+    width: 50%;
+    height: 50%;
+    object-fit: contain;
   }
 }
 </style>

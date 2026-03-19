@@ -89,7 +89,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { useAuthGate } from '@/composables/useAuthGate'
 import fabric1 from '@/assets/images/home/fabric1.png'
 import fabric2 from '@/assets/images/home/fabric2.png'
 import fabric3 from '@/assets/images/home/fabric3.png'
@@ -98,7 +99,9 @@ import fabric5 from '@/assets/images/home/fabric5.png'
 import fabric6 from '@/assets/images/home/fabric6.png'
 import fabric7 from '@/assets/images/home/fabric7.png'
 
-const { t, tm, locale } = useI18n()
+const { t, tm } = useI18n()
+const router = useRouter()
+const { enterModule } = useAuthGate()
 
 const fabricImage = fabric1
 const modelImage = fabric2
@@ -114,11 +117,8 @@ const thumbnails = [
 ]
 
 const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
+  // 面料创拍入口：未登录先进 AI 设计工作台；登录后进入对应模块
+  enterModule(() => router.push({ path: '/ai-fashion', query: { mode: 'fabricCreative' } }))
 }
 
 const steps = computed(() => (tm('fabricSection.steps') as string[]) || [])

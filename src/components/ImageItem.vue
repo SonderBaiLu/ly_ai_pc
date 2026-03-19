@@ -3,7 +3,7 @@
     <!-- 图片容器 -->
     <div class="image-container">
       <!-- 生成中状态 -->
-      <div v-if="imageData.status === 1 || imageData.status === 2" class="status-overlay">
+      <div v-if="imageData.status === 1 || imageData.status === 2" class="status-overlay is-generating">
         <el-icon class="is-loading status-icon">
           <Loading />
         </el-icon>
@@ -18,9 +18,7 @@
 
       <!-- 生成失败状态 -->
       <div v-else-if="imageData.status === 4" class="status-overlay">
-        <el-icon class="status-icon">
-          <Close />
-        </el-icon>
+        <img class="status-fail-img" :src="images.fail" alt="生成失败" />
         <span class="status-text">{{ t('myCreations.status.failed') }}</span>
       </div>
 
@@ -35,7 +33,7 @@
 
       <!-- 左上角VIP图标 -->
       <div v-if="showVip && !showSelect && isNormalStatus" class="vip-icon">
-        <img :src="images.vip4" alt="VIP" />
+        <img :src="images.vip" alt="VIP" />
       </div>
 
       <!-- 右上角收藏按钮 -->
@@ -49,7 +47,7 @@
         @click.stop="collectMode === 'both' ? handleCollect() : null">
         <img v-if="imageData.isCollect === 1 || imageData.collectId" :src="images.collectActive" alt="已收藏"
           class="favorite-icon" />
-        <img v-else :src="images.collectNo" alt="收藏" class="favorite-icon" />
+        <img v-else :src="images.collect" alt="收藏" class="favorite-icon" />
       </div>
 
       <!-- 预览按钮（支持左下角/右下角） -->
@@ -77,7 +75,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Loading, Close } from '@element-plus/icons-vue'
+import { Loading } from '@element-plus/icons-vue'
 import { COLLECT_TYPE, type CollectTypeValue } from '@/constants'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/stores/user'
@@ -357,8 +355,8 @@ const handleItemClick = () => {
   z-index: 5;
 
   img {
-    width: 48px;
-    height: auto;
+    width: 24px;
+    height: 24px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   }
 }
@@ -487,5 +485,17 @@ const handleItemClick = () => {
   .status-text {
     font-size: $font-size-md;
   }
+}
+
+.status-overlay.is-generating {
+  background: url('@/assets/images/generating_160.gif') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+.status-fail-img {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 7px;
+  object-fit: contain;
 }
 </style>

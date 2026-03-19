@@ -13,7 +13,7 @@
       <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
         :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
         @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-        @show-history="emit('coming-soon')" @drop-file="(p) => emit('drop-file', p)" />
+        @show-history="emit('coming-soon')" @drop-file="(p: File) => emit('drop-file', p)" />
 
       <!-- 面料缩放设置（上传后展示；生成前会用 canvas 导出平铺+缩放后的纹理图） -->
       <div v-if="imageUrl" class="fabric-scale-card">
@@ -58,8 +58,9 @@
       </div>
     </div>
 
-    <CreativeDescription v-model:prompt="prompt" :optional="true"
-      placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。参考示例：该面料是一块米色毛呢面料，将面料生成一件无领米色长款宽松版型毛呢大衣，20岁欧洲短发女模特穿着，搭配毛衣和阔腿裤。" />
+    <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
+      @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
+参考示例：该面料是一块米色毛呢面料，将面料生成一件无领米色长款宽松版型毛呢大衣，20岁欧洲短发女模特穿着，搭配毛衣和阔腿裤。" />
 
     <!-- 底部参数以及生成按钮 -->
     <div class="bottom-sticky">
@@ -79,7 +80,19 @@ const imageUrl = ref('https://image-prod.chaotuishou.com/erp/2025/11/27/ML-38%E7
 const props = defineProps<{
   taskResultId?: string | number
   creationTypeSelection?: Partial<CreationTypeSelection>
+  inspirationWords?: any[]
 }>()
+
+// 监听inspirationWords变化
+watch(
+  () => props.inspirationWords,
+  (newWords) => {
+    if (newWords) {
+      inspirationWords.value = newWords
+    }
+  },
+  { deep: true }
+)
 
 const emit = defineEmits<{
   (e: 'drop-file', payload: any): void
@@ -89,12 +102,25 @@ const emit = defineEmits<{
   (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number }): void
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
+  (e: 'inspiration-library'): void
+  (e: 'update:inspiration-words', words: any[]): void
 }>()
 
 type OutputType = 'flat' | 'model' | '3d'
 const outputType = ref<OutputType>('flat')
 const prompt = ref('')
+const inspirationWords = ref<any[]>([])
 const fabricScale = ref(0) // -4 ~ 4
+
+const updateInspirationWords = (words: any[]) => {
+  inspirationWords.value = words
+  emit('update:inspiration-words', words)
+}
+
+// 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
+const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '自适应', '2K', '1'])
+const coin = computed(() => 50)
+const isGenerating = ref(false)
 
 const typeText = computed(() => {
   const s = props.creationTypeSelection
@@ -108,7 +134,7 @@ const fabricMultiplier = computed(() => Math.pow(2, fabricScale.value / 2))
 const fabricPreviewStyle = computed(() => {
   const url = String(imageUrl.value || '').trim()
   if (!url) return {}
-  const base = 96 // 基础平铺尺寸（px）
+  const base = 80 // 基础平铺尺寸（px）
   const size = Math.max(16, Math.round(base * fabricMultiplier.value))
   return {
     backgroundImage: `url(${url})`,
@@ -166,11 +192,6 @@ const handleGenerate = async () => {
     isGenerating.value = false
   }
 }
-
-// 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
-const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
-const coin = computed(() => 50)
-const isGenerating = ref(false)
 </script>
 
 <style scoped lang="scss">

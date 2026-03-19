@@ -82,7 +82,7 @@
                   :disabled="selectedIds.length === 0">
                   <div class="menu-item-content">
                     <img
-                      :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collectActive : images.collectNo"
+                      :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collectActive : images.collect"
                       alt="收藏" class="menu-icon" />
                     <span>
                       {{
@@ -127,7 +127,7 @@
           :is-selected="selectedIds.includes(item.id)" :max-select="Infinity" :selected-count="selectedIds.length"
           :show-collect="true" :show-zoom="false" collectMode="collected-only" :show-title="false" @zoom="handleZoom"
           @click="() => handleItemClick(item)"
-          @select="({ imageData, isSelected }) => handleImageSelect(imageData.id, isSelected)" />
+          @select="({ imageData, isSelected }: { imageData: any; isSelected: boolean }) => handleImageSelect(imageData.id, isSelected)" />
       </div>
 
       <!-- 触底观察点：用于自动触发 loadMore -->

@@ -18,7 +18,7 @@
       <aside class="left-rail">
         <button v-for="(c, index) in categories" :key="c.key" type="button" class="category-item"
           :class="{ active: activeCategoryKey === c.key }" @click="activeCategoryKey = c.key">
-          <img :src="getCategoryIcon(index)" :alt="c.label" class="category-icon" />
+          <img :src="getCategoryIcon(index, c.key)" :alt="c.label" class="category-icon" />
           <span class="category-text">{{ c.label }}</span>
         </button>
       </aside>
@@ -46,7 +46,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
 import { images } from '@/assets'
 
 export type DesignFeatureSelection = Record<string, string[]>
@@ -70,9 +69,20 @@ const categoryIconKeys = [
   'designFeatures10',
 ] as const
 
-const getCategoryIcon = (index: number) => {
-  const key = categoryIconKeys[index] ?? categoryIconKeys[0]
-  return images[key as keyof typeof images]
+const activeCategoryIconKeys = [
+  'designActive1',
+  'designActive2',
+  'designActive3',
+  'designActive4',
+  'designActive5',
+  'designActive6',
+  'designActive7',
+  'designActive8',
+  'designActive9',
+  'designActive10',
+] as const
+const getCategoryIcon = (index: number, categoryKey: string) => {
+  return categoryKey === activeCategoryKey.value ? images[activeCategoryIconKeys[index] as keyof typeof images] : images[categoryIconKeys[index] as keyof typeof images]
 }
 
 const props = withDefaults(

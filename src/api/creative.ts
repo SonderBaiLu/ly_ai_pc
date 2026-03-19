@@ -27,6 +27,18 @@ export const creativeApi = {
   saveUserResource(params: any) {
     return request.post('/creative/saveUserResource', params) as unknown as Promise<ApiResponse<any>>
   },
+  /**
+   * 反馈：提交反馈记录
+   */
+  addFeedbackRecord(params: any) {
+    return request.post('/creative/addFeedbackRecord', params) as unknown as Promise<ApiResponse<any>>
+  },
+  /**
+   * 反馈：获取反馈配置（理由分类/选项）
+   */
+  findFeedbackConfig() {
+    return request.post('/creative/findFeedbackConfig') as unknown as Promise<ApiResponse<any>>
+  },
 }
 
 export default creativeApi

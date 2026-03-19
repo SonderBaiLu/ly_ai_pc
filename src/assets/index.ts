@@ -19,39 +19,49 @@ export const images = {
   againEdit: new URL('./images/again_edit.png', import.meta.url).href,
   againGenerate: new URL('./images/again_generate.png', import.meta.url).href,
   aboutBg: new URL('./images/about_bg.png', import.meta.url).href,
+  alipay: new URL('./images/alipay.png', import.meta.url).href,
 
   // C
   channel: new URL('./images/channel.png', import.meta.url).href,
   choose: new URL('./images/choose.png', import.meta.url).href,
   chosseNo: new URL('./images/choose_no.png', import.meta.url).href,
+  chooseActive: new URL('./images/choose_active.png', import.meta.url).href,
   close: new URL('./images/close.png', import.meta.url).href,
   closeCustomer: new URL('./images/close_customer.png', import.meta.url).href,
   closeDialog: new URL('./images/close_dialog.png', import.meta.url).href,
   closeParams: new URL('./images/close_params.png', import.meta.url).href,
+  closeWords: new URL('./images/close_words.png', import.meta.url).href,
+  closeFeedback: new URL('./images/close_feedback.png', import.meta.url).href,
+  closePay: new URL('./images/close_pay.png', import.meta.url).href,
   coin: new URL('./images/coin.png', import.meta.url).href,
+  copy: new URL('./images/copy.png', import.meta.url).href,
   comma: new URL('./images/comma.png', import.meta.url).href,
   checked: new URL('./images/checked.png', import.meta.url).href,
   checkedActive: new URL('./images/checked_active.png', import.meta.url).href,
   checkedNo: new URL('./images/checked_no.png', import.meta.url).href,
   clear: new URL('./images/clear.png', import.meta.url).href,
   certification: new URL('./images/certification.png', import.meta.url).href,
-  check1: new URL('./images/right.png', import.meta.url).href,
-  check2: new URL('./images/right.png', import.meta.url).href,
-  check3: new URL('./images/right.png', import.meta.url).href,
+  check: new URL('./images/check.png', import.meta.url).href,
+  check1: new URL('./images/check1.png', import.meta.url).href,
+  check2: new URL('./images/check2.png', import.meta.url).href,
+  check3: new URL('./images/check3.png', import.meta.url).href,
 
+  collect: new URL('./images/collect.png', import.meta.url).href,
   collectNo: new URL('./images/collect_no.png', import.meta.url).href,
   collectActive: new URL('./images/collect_active.png', import.meta.url).href,
 
   // D
+  date: new URL('./images/date.png', import.meta.url).href,
   designActive: new URL('./images/design_active.png', import.meta.url).href,
   designIcon: new URL('./images/design_icon.png', import.meta.url).href,
   douyin: new URL('./images/douyin.png', import.meta.url).href,
   down: new URL('./images/down.png', import.meta.url).href,
   del: new URL('./images/del.png', import.meta.url).href,
+  delIcon: new URL('./images/del_icon.png', import.meta.url).href,
   delete: new URL('./images/delete.png', import.meta.url).href,
   delMini: new URL('./images/del_mini.png', import.meta.url).href,
   download: new URL('./images/download.png', import.meta.url).href,
-  downloadIcon: new URL('./images/download.png', import.meta.url).href,
+  downloadIcon: new URL('./images/download_icon.png', import.meta.url).href,
   downloadMini: new URL('./images/download_mini.png', import.meta.url).href,
 
   design1: new URL('./images/home/design1.png', import.meta.url).href,
@@ -69,6 +79,15 @@ export const images = {
   designFeatures7: new URL('./images/design_features7.png', import.meta.url).href,
   designFeatures8: new URL('./images/design_features8.png', import.meta.url).href,
   designFeatures9: new URL('./images/design_features9.png', import.meta.url).href,
+  designActive1: new URL('./images/design_active1.png', import.meta.url).href,
+  designActive2: new URL('./images/design_active2.png', import.meta.url).href,
+  designActive3: new URL('./images/design_active3.png', import.meta.url).href,
+  designActive4: new URL('./images/design_active4.png', import.meta.url).href,
+  designActive5: new URL('./images/design_active5.png', import.meta.url).href,
+  designActive6: new URL('./images/design_active6.png', import.meta.url).href,
+  designActive7: new URL('./images/design_active7.png', import.meta.url).href,
+  designActive8: new URL('./images/design_active8.png', import.meta.url).href,
+  designActive9: new URL('./images/design_active9.png', import.meta.url).href,
 
   // E
   edit: new URL('./images/edit.png', import.meta.url).href,
@@ -81,6 +100,8 @@ export const images = {
   fabricActive: new URL('./images/fabric_active.png', import.meta.url).href,
   failFace: new URL('./images/fail_face.png', import.meta.url).href,
   favorite: new URL('./images/favorite.png', import.meta.url).href,
+  fail: new URL('./images/fail.png', import.meta.url).href,
+  fail1: new URL('./images/fail1.png', import.meta.url).href,
 
   // H
   homeBg: new URL('./images/home_bg.png', import.meta.url).href,
@@ -100,6 +121,7 @@ export const images = {
 
   // N
   noneData: new URL('./images/none_data.png', import.meta.url).href,
+  notice: new URL('./images/notice.png', import.meta.url).href,
 
   // P
   plus: new URL('./images/plus.png', import.meta.url).href,
@@ -119,16 +141,19 @@ export const images = {
   sketchIcon: new URL('./images/sketch_icon.png', import.meta.url).href,
   star: new URL('./images/star.png', import.meta.url).href,
   star2: new URL('./images/star2.png', import.meta.url).href,
+  subscription: new URL('./images/subscription.png', import.meta.url).href,
 
   // T
   together: new URL('./images/together.png', import.meta.url).href,
   tagDel: new URL('./images/tag_del.png', import.meta.url).href,
+  time: new URL('./images/time.png', import.meta.url).href,
 
   // U
   uploadIcon: new URL('./images/upload_icon.png', import.meta.url).href,
   uploadImg: new URL('./images/upload_img.png', import.meta.url).href,
 
   // V
+  vip: new URL('./images/vip.png', import.meta.url).href,
   visionBg: new URL('./images/vision_bg.png', import.meta.url).href,
 
   // W
@@ -136,38 +161,8 @@ export const images = {
   wechatCode1: new URL('./images/wechat_code1.png', import.meta.url).href,
   wechatCode2: new URL('./images/wechat_code2.png', import.meta.url).href,
   wechatCode3: new URL('./images/wechat_code3.png', import.meta.url).href,
-
-
-
-  // ===== 兼容历史 key（当前仓库缺失文件，先用占位图）=====
-  // MainImageDisplay
-  failVideoPrimary: new URL('./images/msg.png', import.meta.url).href,
-  failImgPrimary: new URL('./images/msg.png', import.meta.url).href,
-
-  // CreativeDetail 兼容 key
-  like: new URL('./images/star2.png', import.meta.url).href,
-  dislike: new URL('./images/star.png', import.meta.url).href,
-  vip: new URL('./images/star2.png', import.meta.url).href,
-
-  // ImageParamPopup / ImageUploadArea / PaymentModal / Membership 等
-  imgVideo: new URL('./images/logo.png', import.meta.url).href,
-  vip4: new URL('./images/star2.png', import.meta.url).href,
-  vipPrivilege: new URL('./images/star2.png', import.meta.url).href,
-  sort2: new URL('./images/arrow_icon.png', import.meta.url).href,
-  replace2: new URL('./images/edit.png', import.meta.url).href,
-  delete2: new URL('./images/close.png', import.meta.url).href,
-
-  // PaymentModal / SubscriptionManageModal
-  closePay: new URL('./images/close.png', import.meta.url).href,
-  alipayPay: new URL('./images/coin.png', import.meta.url).href,
-  subscription: new URL('./images/msg.png', import.meta.url).href,
-  copy: new URL('./images/comma.png', import.meta.url).href,
-
-  // InspirationValueModal
-  time: new URL('./images/refresh.png', import.meta.url).href,
-  warn: new URL('./images/msg.png', import.meta.url).href,
-  warning: new URL('./images/msg.png', import.meta.url).href,
-  date: new URL('./images/refresh.png', import.meta.url).href,
+  warn: new URL('./images/warn.png', import.meta.url).href,
+  warning: new URL('./images/warning.png', import.meta.url).href,
 } as const
 
 export default images

@@ -96,16 +96,20 @@
                 <div ref="cardsContainerRef" :class="['membership-cards-grid', { 'scroll-mode': needScrollMode }]"
                   @scroll="handleScroll">
                   <!-- 循环渲染会员卡片 -->
-                  <div v-for="(plan, index) in membershipPlansFromApi" :key="plan.id" class="membership-card"
+                  <div v-for="(plan, index) in membershipPlansFromApi"
+                    :key="(plan.id ?? plan.productCode ?? index) as any" class="membership-card"
                     :class="`theme-${index}`">
                     <div class="card-header">
                       <h3 class="card-title title">{{ getVipName(plan) }}</h3>
                       <div class="price-section">
-                        <span class="price">¥{{ plan.itemPrice }}</span>
+                        <span class="price">¥{{ plan.productDiscountPrice ?? plan.productPrice }}</span>
                         <span class="price-unit">{{ getPriceUnit(plan) }}</span>
+                        <span v-if="getDiscountText(plan)" class="discount-tag">{{ getDiscountText(plan) }}</span>
                         <!-- 显示原价（删除线） -->
-                        <span v-if="getOriginalPrice(plan, index)" class="original-price">
-                          {{ getOriginalPrice(plan, index) }}
+                        <span
+                          v-if="getDiscountText(plan) && plan.productPrice !== undefined && plan.productPrice !== null"
+                          class="original-price">
+                          ¥{{ plan.productPrice }}
                         </span>
                       </div>
                     </div>
@@ -129,17 +133,12 @@
                     </div>
 
                     <div class="card-features">
-                      <div v-for="(right, idx) in plan.vipRightsList" :key="idx" class="feature-item">
-                        <!-- <img
-                    :src="right.imgUrl || images.vipPrivilege"
-                    class="feature-icon"
-                    alt="权益图标"
-                    /> -->
-                        <img v-if="index === 0" :src="images.right" class="feature-icon" alt="" />
+                      <div v-for="(right, idx) in plan.privilegesListVOS" :key="idx" class="feature-item">
+                        <img v-if="index === 0" :src="images.check" class="feature-icon" alt="" />
                         <img v-if="index === 1" :src="images.check1" class="feature-icon" alt="" />
                         <img v-if="index === 2" :src="images.check2" class="feature-icon" alt="" />
                         <img v-if="index === 3" :src="images.check3" class="feature-icon" alt="" />
-                        <span>{{ right.rightName }}</span>
+                        <span>{{ right.privilegesName || right.privilegesCode }}</span>
                       </div>
                     </div>
                   </div>
@@ -176,7 +175,7 @@
 
                   <!-- 下半部分：更深背景 -->
                   <div class="tidecoin-bottom flex-between">
-                    <div class="tidecoin-price">¥ {{ plan.waveCoinPrice }}</div>
+                    <div class="tidecoin-price">¥ {{ plan.productPrice }}</div>
                     <el-button class="tidecoin-button" type="primary" @click.stop="handlePurchaseAction(plan)">
                       立即购买
                     </el-button>
@@ -302,14 +301,8 @@
           <div class="pay-summary">
             <span>需支付：</span>
             <span class="amount">
-              {{
-                Number(
-                  vipChangeDetail?.payAmount ??
-                  vipChangeDetail?.vipItemNew?.itemPrice ??
-                  selectedPlan?.itemPrice ??
-                  0
-                )
-              }}
+              {{ Number(vipChangeDetail?.payAmount ?? vipChangeDetail?.vipItemNew?.itemPrice ??
+                selectedPlan?.productPrice ?? 0) }}
             </span>
           </div>
           <el-button type="primary" size="large" class="confirm-btn" @click="confirmChangePlanPurchase">
@@ -326,7 +319,7 @@ defineOptions({ name: 'Membership' })
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { membershipApi } from '@/api/membership'
+import { membershipApi, type AppProduct } from '@/api/membership'
 import { paymentApi } from '@/api/payment'
 import { images } from '@/assets'
 
@@ -360,21 +353,8 @@ const activeTab = ref('membership')
 // 默认展示“基础版”，若用户是会员则按实际 vipType 展示对应内容
 const memberVersion = ref<number>(1)
 
-// 会员套餐数据（从API获取）
-type VipItem = {
-  id: string | number
-  itemName: string
-  itemPrice: number | string
-  itemDescList?: string[]
-  itemDesc?: string
-  vipRightsList?: Array<{ rightName: string; imgUrl?: string }>
-  itemUnit?: string | number
-  priceUnit?: string
-  tag?: string
-  [key: string]: any
-}
-
-const membershipPlansFromApi = ref<VipItem[]>([])
+// 会员套餐数据（直接使用接口返回字段）
+const membershipPlansFromApi = ref<AppProduct[]>([])
 
 // 潮币值套餐数据（从API加载）
 const tideCoinsPlans = ref<any[]>([])
@@ -432,15 +412,15 @@ const createVipPaymentOrder = async (plan?: any) => {
   }
 
   // 判断是潮币购买还是会员购买
-  const isCoinPurchase = purchaseType.value === 'coin' || !!targetPlan.coinCode
+  const isCoinPurchase = purchaseType.value === 'coin' || targetPlan.productKind === 'Points'
 
   // 根据购买类型构建不同的支付参数
   const payload: any = {
     userId: userInfo.value.userId || userInfo.value.logicId || userInfo.value.phone,
     paymentType: 0, // 0-支付宝
     orderType: isCoinPurchase ? 1 : 0, // 订单类型：0-开通会员 1-购买潮币
-    itemCode: isCoinPurchase ? targetPlan.itemCode || targetPlan.coinCode : targetPlan.itemCode,
-    itemId: targetPlan.id,
+    itemCode: targetPlan.productCode,
+    itemId: targetPlan.id ?? targetPlan.productCode,
     platformType: 0, // 默认PC端
     currencyType: 1, // 默认人民币
   }
@@ -471,16 +451,16 @@ const openPaymentForPlan = (plan: any) => {
   // 记录当前选择的套餐
   selectedPlan.value = plan
 
-  const isCoinPurchase = !!plan.coinCode
+  const isCoinPurchase = plan.productKind === 'Points'
 
   if (isCoinPurchase) {
     purchaseType.value = 'coin'
     payDialogTitle.value = '潮币充值'
-    initialPayAmount.value = Number(plan.waveCoinPrice) || 0
+    initialPayAmount.value = Number(plan.productPrice) || 0
   } else {
     purchaseType.value = 'membership'
     payDialogTitle.value = getVipName(plan) || '会员购买'
-    initialPayAmount.value = Number(plan.itemPrice) || 0
+    initialPayAmount.value = Number(plan.productPrice) || 0
   }
 
   showPayDialog.value = true
@@ -579,7 +559,7 @@ const handlePurchaseAction = async (plan: any) => {
   if (isFreePlan(plan)) return
 
   // 判断是潮币购买还是会员购买
-  const isCoinPurchase = !!plan.coinCode
+  const isCoinPurchase = plan.productKind === 'Points'
 
   // 会员购买前先调用 vipTip 接口，判断是否需要展示“会员变更计划”弹窗
   if (!isCoinPurchase && userInfo.value) {
@@ -634,31 +614,17 @@ const switchMemberVersion = (version: number) => {
 // 加载会员套餐数据（参考uniapp实现）
 const loadMembershipPlans = async () => {
   try {
-    const res = await membershipApi.vipInfoList({
-      vipType: memberVersion.value,
-      code: 'COMMON_PROBLEM',
-    })
-    console.log('会员套餐API响应:', res)
+    // 新接口：/api/v1/app/getAppProductList?productKind=vip
+    const res = await membershipApi.getAppProductList({ productKind: 'vip' })
 
     if (res.code === '0000' && res.data) {
-      // 获取vipItemList数组
-      const { vipItemList } = res.data as any
-      const plans = vipItemList || []
+      const products: AppProduct[] = Array.isArray(res.data) ? res.data : []
 
-      // 前端补充免费版套餐（后端暂无返回）
-      const hasFree = plans.some((p: any) => p.itemName === '免费版' || p.id === 'free')
-      const freePlan: VipItem = {
-        id: 'free',
-        itemName: '免费版',
-        itemPrice: 0,
-        vipRightsList: [{ rightName: '每月赠送50潮币', imgUrl: images.vipPrivilege }],
-        itemUnit: -1,
-        tag: 'free',
-        itemDesc: '每月赠送50潮币',
-      }
+      // memberVersion: 1 基础版 / 0 标准版（与 productType：1 基础 / 2 标准 对齐）
+      const targetProductType = memberVersion.value === 1 ? 1 : 2
+      const filtered = products.filter((p) => Number(p.productType) === targetProductType)
 
-      membershipPlansFromApi.value = hasFree ? plans : [freePlan, ...plans]
-      console.log('会员套餐数据已加载:', membershipPlansFromApi.value)
+      membershipPlansFromApi.value = filtered
     } else {
       console.error('获取会员套餐失败:', res.msg)
       ElMessage.error(res.msg || '获取会员套餐失败')
@@ -687,11 +653,10 @@ watch(
 // 加载潮币套餐数据
 const loadTideCoinPlans = async () => {
   try {
-    const res = await membershipApi.waveCoinList({})
+    // 新接口：/api/v1/app/getAppProductList?productKind=Points
+    const res = await membershipApi.getAppProductList({ productKind: 'Points' })
     if (res.code === '0000' && res.data) {
-      // 将API数据转换为显示格式
-      tideCoinsPlans.value = res.data as any
-      console.log('潮币套餐数据已加载:', tideCoinsPlans.value)
+      tideCoinsPlans.value = Array.isArray(res.data) ? res.data : []
     } else {
       console.error('获取潮币套餐失败:', res.msg)
       ElMessage.error(res.msg || '获取潮币套餐失败')
@@ -844,91 +809,35 @@ watch(
   }
 )
 
-// 价格单位：优先用 plan.itemUnit，否则按索引兜底
+// 价格单位：使用接口 productUnit
 const getPriceUnit = (plan: any) => {
-  if (plan.itemUnit === 0) return '/月'
-  if (plan.itemUnit === 1) return '/季'
-  if (plan.itemUnit === 2) return '/年'
+  // 商品单位：0个/普通会员 1月 2季度 3年度
+  if (plan.productUnit === 1) return '/月'
+  if (plan.productUnit === 2) return '/季'
+  if (plan.productUnit === 3) return '/年'
   return '/年'
 }
 // 会员名字
 const getVipName = (plan: any) => {
-  if (plan.itemUnit === -1) return '免费版'
-  if (plan.itemUnit === 0) return '月度会员'
-  if (plan.itemUnit === 1) return '季度会员'
-  if (plan.itemUnit === 2) return '年度会员'
-  return '会员版'
+  return plan.productName || ''
 }
 
-// 原价文案：季度会员 894，年度会员 3576，先写死
-const getOriginalPrice = (_plan: any, index: number) => {
-  // 免费版和月度不显示原价
-  if (index <= 0) return ''
-  // index 2 -> 季度，index 3 -> 年度（根据当前卡片顺序）
-  if (index === 2) return '¥894'
-  if (index === 3) return '¥3576'
-  return ''
+const getDiscountText = (plan: any) => {
+  const d = Number(plan?.productDiscount)
+  if (!d || Number.isNaN(d)) return ''
+  if (d >= 100) return ''
+  if (d <= 0) return ''
+  // 70 => 7折；75 => 7.5折
+  const zhe = d % 10 === 0 ? String(d / 10) : String((d / 10).toFixed(1)).replace(/\.0$/, '')
+  return `${zhe}折`
 }
 
-// 判断是否免费版
-const isFreePlan = (plan: any) => plan?.id === 'free' || plan?.itemName === '免费版'
-
-// 判断是否是当前套餐（根据用户的 vipType + effectUnit 与套餐匹配）
-const isCurrentPlan = (plan: any) => {
-  const userEffectUnit = userInfo.value?.effectUnit
-  const userVipType = userInfo.value?.vipType
-  const isVip = userInfo.value?.isVip === 1
-
-  // 免费版判断
-  if (isFreePlan(plan)) {
-    // 如果用户不是会员，或者 effectUnit === -1（永久/免费），则免费版是当前套餐
-    return !isVip || userEffectUnit === -1
-  }
-
-  // 如果用户不是会员，非免费版都不是当前套餐
-  if (!isVip) {
-    return false
-  }
-
-  // 永久会员（effectUnit === -1）只匹配免费版，不匹配其他套餐
-  if (userEffectUnit === -1) {
-    return false
-  }
-
-  const planItemUnit = plan?.itemUnit
-  const planVipType = plan?.vipType ?? plan?.vip_type
-
-  // 匹配：用户的 vipType + effectUnit 与套餐一致
-  // vipType: 区分标准 / 基础 / 高级会员
-  // effectUnit: -1永久（免费） 0月 1季度 2年
-  // itemUnit: 0月 1季 2年
-  if (userVipType === undefined || userVipType === null) {
-    return false
-  }
-
-  return userEffectUnit === planItemUnit && userVipType === planVipType
-}
+// 判断是否免费版（新字段下不做兜底免费版注入，因此默认都可购买）
+const isFreePlan = (_plan: any) => false
 
 // 获取购买按钮文案
 const getPurchaseButtonText = (plan: any) => {
-  const userEffectUnit = userInfo.value?.effectUnit
-
-  // 免费版套餐
-  if (isFreePlan(plan)) {
-    // 如果是免费永久会员（effectUnit === -1），显示"当前套餐"
-    if (userEffectUnit === -1) {
-      return '当前套餐'
-    }
-    // 如果是其他会员类型，显示"免费套餐"
-    return '免费套餐'
-  }
-
-  // 如果是当前套餐，显示"继续购买"
-  if (isCurrentPlan(plan)) {
-    return '继续购买'
-  }
-
-  // 其他情况显示"立即购买"
+  void plan
   return '立即购买'
 }
 </script>
@@ -1447,6 +1356,15 @@ const getPurchaseButtonText = (plan: any) => {
         font-size: 15px;
         color: $color-text-gray;
         text-decoration: line-through;
+      }
+
+      .discount-tag {
+        padding: 2px 6px;
+        font-size: 12px;
+        line-height: 16px;
+        border-radius: 6px;
+        color: #fff;
+        background: rgba(255, 77, 79, 0.95);
       }
     }
   }
