@@ -16,10 +16,13 @@ export const images = {
   arrowIcon: new URL('./images/arrow_icon.png', import.meta.url).href,
   avatar: new URL('./images/avatar.png', import.meta.url).href,
   avatarDefault: new URL('./images/avatar_default.png', import.meta.url).href,
+  avatarHeader: new URL('./images/avatar_header.png', import.meta.url).href,
   againEdit: new URL('./images/again_edit.png', import.meta.url).href,
   againGenerate: new URL('./images/again_generate.png', import.meta.url).href,
   aboutBg: new URL('./images/about_bg.png', import.meta.url).href,
   alipay: new URL('./images/alipay.png', import.meta.url).href,
+  arrowRight: new URL('./images/arrow_right.png', import.meta.url).href,
+
 
   // C
   channel: new URL('./images/channel.png', import.meta.url).href,
@@ -49,6 +52,8 @@ export const images = {
   collect: new URL('./images/collect.png', import.meta.url).href,
   collectNo: new URL('./images/collect_no.png', import.meta.url).href,
   collectActive: new URL('./images/collect_active.png', import.meta.url).href,
+
+  customer: new URL('./images/customer.png', import.meta.url).href,
 
   // D
   date: new URL('./images/date.png', import.meta.url).href,
@@ -95,6 +100,7 @@ export const images = {
   editWhite: new URL('./images/edit_white.png', import.meta.url).href,
   eye: new URL('./images/login_popup/eye.png', import.meta.url).href,
   eyeClose: new URL('./images/login_popup/eye_close.png', import.meta.url).href,
+  editMini: new URL('./images/edit_mini.png', import.meta.url).href,
 
   // F
   fabricActive: new URL('./images/fabric_active.png', import.meta.url).href,
@@ -109,9 +115,11 @@ export const images = {
 
   // L
   language: new URL('./images/language.png', import.meta.url).href,
+  languageBlack: new URL('./images/language_black.png', import.meta.url).href,
   logo: new URL('./images/logo.png', import.meta.url).href,
   logo2: new URL('./images/logo2.png', import.meta.url).href,
   logoMini: new URL('./images/logo.png', import.meta.url).href,
+  logout: new URL('./images/logout.png', import.meta.url).href,
 
   // M
   more: new URL('./images/more.png', import.meta.url).href,
@@ -125,6 +133,7 @@ export const images = {
 
   // P
   plus: new URL('./images/plus.png', import.meta.url).href,
+  product: new URL('./images/product.png', import.meta.url).href,
 
   // R
   realActive: new URL('./images/real_active.png', import.meta.url).href,
