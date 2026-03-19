@@ -68,7 +68,9 @@
               <p class="sub-hint">{{ t('LoginPopUpPage.subHint') }}</p>
             </div>
             <div class="invite-link-wrap qrcode-invite">
-              <a href="#" class="invite-link">{{ t('LoginPopUpPage.inviteLink') }}</a>
+              <a @click.prevent="openInviteLink" class="invite-link">
+                {{ t('LoginPopUpPage.inviteLink') }}
+              </a>
             </div>
           </div>
 
@@ -123,7 +125,9 @@
               </div>
             </div>
             <div class="invite-link-wrap">
-              <a href="#" class="invite-link">{{ t('LoginPopUpPage.inviteFill') }}</a>
+              <a @click.prevent="openInviteLink" class="invite-link">
+                {{ t('LoginPopUpPage.inviteFill') }}
+              </a>
             </div>
             <button class="submit-btn" @click="handleSubmit">
               {{ t('LoginPopUpPage.loginOrRegister') }}
@@ -170,8 +174,9 @@
       </div>
     </div>
     <Transition name="modal">
-      <ResetPassword v-if="isVisible" :mode="currentMode" @close="isVisible = false" />
+      <ResetPassword v-if="dialogs.isVisible" :mode="currentMode" @close="dialogs.isVisible = false" />
     </Transition>
+    <InvitationCode v-if="dialogs.invitation" @close="dialogs.isVisible = false" />
   </div>
 </template>
 
@@ -184,6 +189,7 @@ import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 import { getSmsCodeApi } from '@/api/userLogin'
 import { useUserStore } from "@/stores/user"
 import ResetPassword from '@/components/ResetPassword.vue'
+import InvitationCode from '@/components/InvitationCode.vue'
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
@@ -265,7 +271,11 @@ const loginMethod = ref<'qrcode' | 'phone'>('phone')
 const phoneLoginType = ref<'code' | 'password'>('code')
 
 // 定义控制弹窗显示的变量 重置密码组件
-const isVisible = ref(false)
+// 集中管理所有弹窗的显示状态
+const dialogs = reactive({
+  isVisible: false,
+  invitation: false,
+})
 const currentMode = ref('0')
 // 密码显示切换状态
 const showPersonalPwd = ref(false)
@@ -364,7 +374,6 @@ const handleSubmit = async () => {
         return
       }
       await userStore.loginWithPassword(formData.phone, formData.password)
-      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
     }
   } catch (e: any) {
     const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
@@ -377,7 +386,12 @@ const handleSubmit = async () => {
     }
   }
 }
-
+// 校验填写的邀请码
+const openInviteLink = () => {
+  // 打开 填写邀请码弹窗
+  dialogs.invitation = true
+  console.log(dialogs.invitation)
+}
 const handleTeamSubmit = async () => {
   teamErrorMsg.value = '' // 提交前重置报错
 
@@ -398,7 +412,6 @@ const handleTeamSubmit = async () => {
     teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试' // 渲染到输入框下方
   }
 }
-
 onUnmounted(() => {
   if (smsTimer) clearInterval(smsTimer)
 })

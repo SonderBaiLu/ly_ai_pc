@@ -83,12 +83,11 @@ import { reactive, ref, computed, onUnmounted } from "vue";
 import { ElMessage } from 'element-plus';
 import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
 import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
-
 // 假设你的 API 文件导出了这些方法，你需要根据实际情况调整
 import { changePwdBySms, getSmsCodeApi } from "@/api/userLogin";
 import userApi from '@/api/user';
-// import { changePwdByOldPwd } from "@/api/userLogin"; // 模式1和2可能需要的API
-
+import { useUserStore } from '@/stores/user';
+const userStore = useUserStore()
 const { t } = useI18n()
 
 // 有三种模式 
@@ -112,7 +111,7 @@ const twoShowPersonalPwd = ref(false)
 // 表单数据
 const formData = reactive({
   phone: '',
-  accountName: '', // 模式2下的默认或传入账号名
+  accountName: userStore.getUserInfo.length,
   code: '',
   oldPassword: '',
   onepassword: '',
@@ -194,7 +193,7 @@ const resetPassword = async () => {
     }
     else if (modeType.value === '2') {
       if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
-      // await changePwdByOldPwd({ account: formData.accountName, oldPwd: formData.oldPassword, newPwd: formData.password })
+      console.log('当前登录的用户是：', userStore)
     }
 
     ElMessage.success('修改成功')

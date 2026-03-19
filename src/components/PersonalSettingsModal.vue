@@ -207,7 +207,7 @@ const currentMode = ref('0')
 // 修改密码
 const updataPwd = () => {
   isVisible.value = true;
-  currentMode.value = '1';
+  currentMode.value = '2';
 }
 
 // 去注销/
