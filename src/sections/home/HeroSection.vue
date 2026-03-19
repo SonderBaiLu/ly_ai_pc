@@ -13,16 +13,14 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const router = useRouter()
 
 const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
+  // 首页「开始使用」：统一进入 AI 设计工作台
+  router.push('/ai-design')
 }
 </script>
 

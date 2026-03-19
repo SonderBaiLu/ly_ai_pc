@@ -43,34 +43,41 @@
           <section class="param-panel">
             <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.aiFashion"
-              @open-type-modal="() => openTypeModal('aiFashion')"
+              :inspiration-words="inspirationWords" @open-type-modal="() => openTypeModal('aiFashion')"
               @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams" />
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+              @inspiration-library="handleInspirationLibrary"
+              @update:inspiration-words="(words) => inspirationWords = words" />
             <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
-              @open-type-modal="() => openTypeModal('fabricCreative')"
+              :inspiration-words="inspirationWords" @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @generate="handleFabricGenerate" />
+              @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
+              @update:inspiration-words="(words) => inspirationWords = words" />
             <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
-              @open-type-modal="() => openTypeModal('sketchToReal')"
+              :inspiration-words="inspirationWords" @open-type-modal="() => openTypeModal('sketchToReal')"
               @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams" />
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+              @inspiration-library="handleInspirationLibrary"
+              @update:inspiration-words="(words) => inspirationWords = words" />
             <RealToSketch v-else v-model:image-url="refImageUrl" :task-result-id="refImageTaskResultId"
-              :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
+              :creation-type-selection="creationTypeSelectionByMenu.realToSketch" :inspiration-words="inspirationWords"
               @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams" />
+              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+              @inspiration-library="handleInspirationLibrary"
+              @update:inspiration-words="(words) => inspirationWords = words" />
           </section>
 
           <!-- 结果列表（主图 + 缩略图） -->
           <section class="result-panel">
             <MainImageDisplay ref="mainImageRef" :assets="assets" :current-index="currentIndex"
               :has-more-data="hasMoreData" :loading="loading" :loading-more="loadingMore"
-              @asset-click="(idx) => (currentIndex = idx as any)" @scroll-change="handleScrollChange"
-              @load-more="showComingSoon" @view-detail="showComingSoon" @collect="showComingSoon"
+              @asset-click="(idx: number) => (currentIndex = idx as any)" @scroll-change="handleScrollChange"
+              @load-more="showComingSoon" @view-detail="handleViewDetail" @collect="showComingSoon"
               @download="showComingSoon" @delete="showComingSoon" @refresh="showComingSoon" />
 
             <ThumbnailGallery ref="thumbnailRef" :assets="assets" :current-index="currentIndex"
@@ -88,15 +95,20 @@
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
     <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
       @confirm="handleTypeConfirm" />
+
+    <!-- 灵感词词典弹窗（父层统一管理） -->
+    <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData" :defaults="inspirationWords"
+      @confirm="handleInspirationConfirm" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
 import type { Asset } from '@/composables/useTaskPolling'
 import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
+import { useTemplateStore } from '@/stores/template'
 import Fashion from './left/Fashion.vue'
 import SketchToReal from './left/SketchToReal.vue'
 import RealToSketch from './left/RealToSketch.vue'
@@ -105,6 +117,8 @@ import Fabric from './left/FabricCreative.vue'
 type LeftMenuKey = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
 const route = useRoute()
+const router = useRouter()
+const templateStore = useTemplateStore()
 const leftMenu = ref<LeftMenuKey>('aiFashion')
 const isFabricEntry = route.query.mode === 'fabricCreative'
 const showComingSoon = () => ElMessage.warning('暂未开放')
@@ -114,6 +128,29 @@ const handleFabricGenerate = (payload: any) => {
   // TODO: 接口联调时，将 payload.file 上传/随请求提交给算法
   console.log('[fabricCreative] generate payload:', payload)
   showComingSoon()
+}
+
+// 查看详情：跳转到 CreativeDetail（左大图 + 右侧信息面板）
+const handleViewDetail = (index: number) => {
+  const list = assets.value || []
+  const item: any = list[index]
+  if (!item?.id) return
+
+  // 缓存列表数据，详情页可直接用来渲染 & 支持“上一张/下一张”
+  templateStore.setTemplateListData({
+    pageType: 'assets',
+    sourceTab: 'aiFashionStudio',
+    list,
+    currentIndex: index,
+    // 记录当前模块，详情页可用于 UI mock / 回跳
+    mode: leftMenu.value,
+  })
+
+  router.push({
+    name: 'CreativeDetail',
+    params: { id: String(item.id) },
+    query: { pageType: 'assets', sourceTab: 'aiFashionStudio', mode: leftMenu.value },
+  })
 }
 
 // ==================== 款型选择弹窗（父层统一管理） ====================
@@ -144,6 +181,9 @@ const handleTypeConfirm = (v: CreationTypeSelection) => {
 
 // ==================== 图片参数弹窗（父层统一管理） ====================
 const showImageParamPopup = ref(false)
+const showInspirationLibrary = ref(false)
+const inspirationWords = ref<any[]>([])
+
 
 // 默认回显： [算法名称, 参数1, 参数2, ...]
 const imageDefaultParams = ref<string[]>(['LingImage 1.0', '3:4', '2K', '1'])
@@ -169,7 +209,7 @@ const imageAlgorithmModels = ref<any[]>([
           { templateName: '3:2', templateDesc: '横图/标准比例', imageUrl: images.imgVideo, isVip: 0 },
           { templateName: '4:3', templateDesc: '横图/标准比例', imageUrl: images.imgVideo, isVip: 0 },
           { templateName: '16:9', templateDesc: '横屏/宽屏比例', imageUrl: images.imgVideo, isVip: 0 },
-          { templateName: '21:9', templateDesc: '横屏/宽屏比例', imageUrl: images.imgVideo, isVip: 1 },
+          { templateName: '21:9', templateDesc: '横屏/宽屏比例', imageUrl: images.imgVideo, isVip: 0 },
         ],
       },
       {
@@ -183,8 +223,8 @@ const imageAlgorithmModels = ref<any[]>([
         type: 5,
         params: [
           { templateName: '1', templateDesc: '', isVip: 0 },
-          { templateName: '2', templateDesc: '', isVip: 0 },
-          { templateName: '3', templateDesc: '', isVip: 0 },
+          { templateName: '2', templateDesc: '', isVip: 1 },
+          { templateName: '3', templateDesc: '', isVip: 1 },
           { templateName: '4', templateDesc: '', isVip: 1 },
         ],
       },
@@ -209,6 +249,58 @@ const handleImageParamsClose = (_result: any) => {
   // 关闭时不强制更新；需要更新走 confirm 即可
 }
 
+// ==================== 灵感词词典弹窗（父层统一管理） ====================
+const handleInspirationLibrary = () => {
+  showInspirationLibrary.value = true
+}
+
+const handleInspirationConfirm = (words: any[]) => {
+  inspirationWords.value = words
+  showInspirationLibrary.value = false
+}
+
+// 灵感词词典数据
+const libraryData = ref([
+  {
+    code: 'person_type',
+    title: '人物类型',
+    wordsList: [
+      { id: '1', name: '青年女性' },
+      { id: '2', name: '青年男性' },
+      { id: '3', name: '少年/少女' },
+      { id: '4', name: '中年女性' },
+      { id: '5', name: '中年男性' },
+      { id: '6', name: '儿童' },
+      { id: '7', name: '银发族' }
+    ]
+  },
+  {
+    code: 'person_action',
+    title: '人物动作',
+    wordsList: [
+      { id: '8', name: '站立' },
+      { id: '9', name: '坐姿' },
+      { id: '10', name: '行走' },
+      { id: '11', name: '跳跃' },
+      { id: '12', name: '手势' },
+      { id: '13', name: '转身' }
+    ]
+  },
+  {
+    code: 'camera_movement',
+    title: '基础运镜',
+    wordsList: [
+      { id: '14', name: '特写' },
+      { id: '15', name: '近景' },
+      { id: '16', name: '中景' },
+      { id: '17', name: '全景' },
+      { id: '18', name: '推镜' },
+      { id: '19', name: '拉镜' },
+      { id: '20', name: '摇镜' }
+    ]
+  }
+])
+
 // ==================== 右侧：我的资产（列表 + 缩略图） ====================
 // 先用本地 mock 数据跑通交互；后续接接口时替换 assets 的赋值即可
 const assets = ref<Asset[]>([
@@ -230,7 +322,7 @@ const assets = ref<Asset[]>([
     fileType: 1,
     prompt: 'AI服装设计-示例2',
     createTime: new Date().toISOString(),
-    status: 3,
+    status: 2,
   },
   {
     id: 'mock-3',
@@ -240,7 +332,7 @@ const assets = ref<Asset[]>([
     fileType: 1,
     prompt: 'AI服装设计-示例3',
     createTime: new Date().toISOString(),
-    status: 3,
+    status: 4,
   },
 ])
 

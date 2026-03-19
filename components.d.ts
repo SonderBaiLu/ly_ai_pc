@@ -35,14 +35,13 @@ declare module 'vue' {
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSlider: typeof import('element-plus/es')['ElSlider']
-    ElSpace: typeof import('element-plus/es')['ElSpace']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
-    ElTag: typeof import('element-plus/es')['ElTag']
     FabricSection: typeof import('./src/sections/home/FabricSection.vue')['default']
     FeatureCard: typeof import('./src/sections/home/FeatureCard.vue')['default']
     FeaturesSection: typeof import('./src/sections/home/FeaturesSection.vue')['default']
+    FeedbackModal: typeof import('./src/components/FeedbackModal.vue')['default']
     Footer: typeof import('./src/components/Footer.vue')['default']
     GallerySection: typeof import('./src/sections/home/GallerySection.vue')['default']
     GradientProgress: typeof import('./src/components/GradientProgress.vue')['default']
@@ -52,6 +51,7 @@ declare module 'vue' {
     ImageParamPopup: typeof import('./src/components/ImageParamPopup.vue')['default']
     ImageUploadArea: typeof import('./src/components/ImageUploadArea.vue')['default']
     InfiniteScrollLoader: typeof import('./src/components/InfiniteScrollLoader.vue')['default']
+    InspirationLibrary: typeof import('./src/components/InspirationLibrary.vue')['default']
     InspirationValueModal: typeof import('./src/components/InspirationValueModal.vue')['default']
     InvitationCode: typeof import('./src/components/InvitationCode.vue')['default']
     LazyImage: typeof import('./src/components/LazyImage.vue')['default']
@@ -74,7 +74,6 @@ declare module 'vue' {
     WriteOffModal: typeof import('./src/components/WriteOffModal.vue')['default']
   }
   export interface GlobalDirectives {
-    vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

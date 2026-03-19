@@ -68,12 +68,15 @@
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { images } from '@/assets'
+import { ref } from 'vue'
+import { useAuthGate } from '@/composables/useAuthGate'
 
 type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
 const activeTab = ref<'design' | 'fabric'>('design')
 const { t } = useI18n()
 const router = useRouter()
+const { requireAuth } = useAuthGate()
 
 const designCards: Array<{
   img: string
@@ -102,7 +105,10 @@ const designCards: Array<{
   ]
 
 const goToStudio = (mode: StudioMode) => {
-  router.push({ name: 'AiFashionStudio', query: { mode } })
+  // 点击模块入口时再做登录引导：未登录弹窗，已登录跳转
+  requireAuth(() => {
+    router.push({ name: 'AiFashionStudio', query: { mode } })
+  })
 }
 </script>
 

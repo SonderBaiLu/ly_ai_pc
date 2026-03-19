@@ -33,6 +33,13 @@ const size = 'default'
 // 全局弹窗状态
 const modalStore = useModalStore()
 
+// Element Plus 暗黑主题开关：需要给 html 加/删 dark 类（popper 等挂载到 body 才会跟着变）
+watchEffect(() => {
+  const root = document.documentElement
+  if (isDark.value) root.classList.add('dark')
+  else root.classList.remove('dark')
+})
+
 // 个人设置保存后的回调
 const handleSettingsSaved = () => {
   modalStore.closePersonalSettingsModal()

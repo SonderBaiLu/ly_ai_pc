@@ -40,13 +40,13 @@
           <div class="footer-nav">
             <div class="nav-column">
               <h4>{{ t('footer.nav.fashionDesign') }}</h4>
-              <a href="#" @click.prevent="showComingSoon">{{ t('footer.nav.aiFashionDesign') }}</a>
-              <a href="#" @click.prevent="showComingSoon">{{ t('footer.nav.sketchToReal') }}</a>
-              <a href="#" @click.prevent="showComingSoon">{{ t('footer.nav.realToSketch') }}</a>
+              <a href="#" @click.prevent="goAiFashion('aiFashion')">{{ t('footer.nav.aiFashionDesign') }}</a>
+              <a href="#" @click.prevent="goAiFashion('sketchToReal')">{{ t('footer.nav.sketchToReal') }}</a>
+              <a href="#" @click.prevent="goAiFashion('realToSketch')">{{ t('footer.nav.realToSketch') }}</a>
             </div>
             <div class="nav-column">
               <h4>{{ t('footer.nav.aiFabric') }}</h4>
-              <a href="#" @click.prevent="showComingSoon">{{ t('footer.nav.fabricCreative') }}</a>
+              <a href="#" @click.prevent="goAiFashion('fabricCreative')">{{ t('footer.nav.fabricCreative') }}</a>
             </div>
             <div class="nav-column">
               <h4>{{ t('footer.nav.help') }}</h4>
@@ -59,8 +59,8 @@
       <div class="footer-bottom">
         <p class="copyright">{{ t('footer.copyright') }}</p>
         <div class="footer-links">
-          <a href="#" @click.prevent="showComingSoon">{{ t('footer.privacy') }}</a>
-          <a href="#" @click.prevent="showComingSoon">{{ t('footer.userAgreement') }}</a>
+          <a href="#" @click.prevent="goAgreement('ANDROID_PRIVACY_POLICY')">{{ t('footer.privacy') }}</a>
+          <a href="#" @click.prevent="goAgreement('USER_AGREEMENT')">{{ t('footer.userAgreement') }}</a>
         </div>
       </div>
     </div>
@@ -70,8 +70,24 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { useAuthGate } from '@/composables/useAuthGate'
 
 const { t, locale } = useI18n()
+const router = useRouter()
+const { enterModule } = useAuthGate()
+
+type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
+
+const goAiFashion = (mode: StudioMode) => {
+  enterModule(() => {
+    router.push({ path: '/ai-fashion', query: { mode } })
+  })
+}
+
+const goAgreement = (type: string) => {
+  router.push({ path: '/agreement', query: { type } })
+}
 
 const showComingSoon = () => {
   ElMessage.info(

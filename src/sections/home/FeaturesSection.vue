@@ -9,24 +9,51 @@
         </el-radio-group>
       </div>
       <div v-if="activeTab === 0" class="cards-grid">
-        <FeatureCard :title="t('features.feature1Title')" :tag="t('features.feature1Tag')"
-          :description="t('features.feature1Desc')" :image="coat1" />
-        <FeatureCard :title="t('features.feature2Title')" :tag="t('features.feature2Tag')"
-          :description="t('features.feature2Desc')" :image="coat2" />
-        <FeatureCard :title="t('features.feature3Title')" :tag="t('features.feature3Tag')"
-          :description="t('features.feature3Desc')" :image="coat3" />
+        <FeatureCard
+          :title="t('features.feature1Title')"
+          :tag="t('features.feature1Tag')"
+          :description="t('features.feature1Desc')"
+          :image="coat1"
+          @click="goAiFashion('aiFashion')"
+        />
+        <FeatureCard
+          :title="t('features.feature2Title')"
+          :tag="t('features.feature2Tag')"
+          :description="t('features.feature2Desc')"
+          :image="coat2"
+          @click="goAiFashion('aiFashion')"
+        />
+        <FeatureCard
+          :title="t('features.feature3Title')"
+          :tag="t('features.feature3Tag')"
+          :description="t('features.feature3Desc')"
+          :image="coat3"
+          @click="goAiFashion('aiFashion')"
+        />
       </div>
 
-      <TransformRow v-else-if="activeTab === 1" :title="tabs[1]" :cards="sketchToRealCards" />
-      <TransformRow v-else :title="tabs[2]" :cards="realToSketchCards" />
+      <TransformRow
+        v-else-if="activeTab === 1"
+        :title="tabs[1]"
+        :cards="sketchToRealCards"
+        @card-click="goAiFashion('sketchToReal')"
+      />
+      <TransformRow
+        v-else
+        :title="tabs[2]"
+        :cards="realToSketchCards"
+        @card-click="goAiFashion('realToSketch')"
+      />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ElRadioGroup, ElRadioButton } from 'element-plus'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useAuthGate } from '@/composables/useAuthGate'
 import FeatureCard from './FeatureCard.vue'
 import TransformRow from './TransformRow.vue'
 import coat1 from '@/assets/images/home/design1.png'
@@ -46,6 +73,8 @@ import home11 from '@/assets/images/home/draw_line5.png'
 import home12 from '@/assets/images/home/draw_line6.png'
 
 const { t, tm } = useI18n()
+const router = useRouter()
+const { enterModule } = useAuthGate()
 const activeTab = ref(0)
 
 const tabs = computed(() => (tm('features.tabs') as string[]) || [])
@@ -61,6 +90,12 @@ const realToSketchCards = computed(() => [
   { title: t('features.realToSketchCard2Title'), leftImg: home10, rightImg: home9 },
   { title: t('features.realToSketchCard3Title'), leftImg: home12, rightImg: home11 },
 ])
+
+type FashionMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
+const goAiFashion = (mode: FashionMode) => {
+  // 未登录：先进 AI 设计工作台；登录后：进入对应 AI 服装设计模块
+  enterModule(() => router.push({ path: '/ai-fashion', query: { mode } }))
+}
 </script>
 
 <style scoped lang="scss">

@@ -47,6 +47,8 @@ body {
   // 暗黑主题背景和文字
   --el-bg-color: #000000;
   --el-bg-color-page: #000000;
+  // 弹层（dropdown / select / popper）常用 overlay 背景
+  --el-bg-color-overlay: rgba(10, 10, 10, 0.98);
   --el-text-color-primary: rgba(255, 255, 255, 1);
   --el-text-color-regular: rgba(255, 255, 255, 0.8);
   --el-text-color-secondary: rgba(255, 255, 255, 0.6);
@@ -64,48 +66,6 @@ body {
   --el-box-shadow-light: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
   --el-box-shadow-lighter: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   --el-box-shadow-dark: 0 2px 12px 0 rgba(0, 0, 0, 0.4);
-}
-
-// Element Plus Select 组件暗黑主题样式
-.el-select {
-  .el-select__wrapper {
-    background-color: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    color: #ffffff;
-  }
-
-  .el-tooltip__trigger {
-    padding: 0;
-    border: none !important;
-    border-radius: 8px;
-    box-shadow: none !important;
-
-    .el-input--suffix {
-      &:hover {
-        border-color: none;
-      }
-
-      &.is-focuse {
-        border-color: none;
-        box-shadow: none;
-      }
-    }
-
-    .el-select__selected-item {
-      color: #ffffff;
-    }
-
-    .el-select__placeholder {
-      color: #ffffff;
-    }
-
-    .el-select__suffix {
-      .el-select__caret {
-        color: #ffffff;
-      }
-    }
-  }
 }
 
 // ===================== Dialog 全局暗色主题样式 =====================
@@ -372,39 +332,6 @@ img {
   text-align: right;
 }
 
-@media (max-width: 640px) {
-  .container {
-    padding: 0 20px;
-  }
-}
-
-// Element Plus 下拉菜单全局样式（挂载到 body，需要全局样式）
-.el-select-dropdown {
-  background-color: rgba(9, 17, 37, 1);
-  border: none;
-  border-radius: 8px;
-  box-shadow: none;
-  padding: 8px;
-
-  .el-select-dropdown__item {
-    color: #ffffff;
-    background: transparent;
-    border-radius: 5px;
-    margin-bottom: 12px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    // 选中项：径向渐变按钮效果（无边框）
-    &.is-selected,
-    &:hover {
-      background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
-      color: #ffffff;
-    }
-  }
-}
-
 // FeaturesSection 组件的 RadioButton 样式
 .tabs-container {
   .el-radio-group {
@@ -438,11 +365,110 @@ img {
   }
 }
 
-@media (max-width: 640px) {
-  .tabs-container {
-    .el-radio-button__inner {
-      font-size: 14px;
-      padding: 10px 24px;
+// // ===================== Element Plus 下拉弹层（挂载到 body）暗黑样式 =====================
+// // 说明：Dropdown/Select 的 popper 不在组件 DOM 树内，必须写在全局样式里才会生效
+
+// Popper 容器（Dropdown / Tooltip / Select 等共用）
+.el-popper {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+
+  .el-dropdown-menu.el-dropdown-menu--default {
+    padding: 8px 6px 7px !important;
+    border-radius: 8px 8px 8px 8px !important;
+    background-color: #253035 !important;
+
+    .el-dropdown-menu__item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px 9px;
+      border-radius: 5px;
+      color: $color-text-white !important;
+      font-size: 10px;
+
+      .menu-icon {
+        width: 11px;
+        height: 11px;
+        object-fit: contain;
+      }
+
+      &:hover {
+        background-color: $color-primary-dark !important;
+      }
     }
   }
+
+  .el-popper__arrow {
+    display: none !important;
+  }
+}
+
+// ===================== Select（注意：下拉弹层 teleport 到 body）=====================
+
+// 触发框：去掉 hover/focus 的边框/阴影
+.el-select__wrapper {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+  color: $color-text-white;
+
+  &::placeholder {
+    color: $color-text-white;
+  }
+
+  &:hover,
+  &.is-focused,
+  &.is-focus {
+    box-shadow: none !important;
+    border-color: transparent !important;
+  }
+
+  .el-select__suffix {
+    .el-select__caret {
+      font-size: 0;
+    }
+  }
+}
+
+// 下拉弹层：必须直接命中 .el-select-dropdown（不能嵌套在 .el-select 里）
+.el-select-dropdown {
+  border-radius: 8px !important;
+  padding: 7px 12px !important;
+  background-color: rgba(9, 17, 37, 1) !important;
+  color: $color-text-white !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  font-family: Inter-medium !important;
+}
+
+.el-select-dropdown__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px !important;
+  margin-bottom: 7px !important;
+
+  &:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+.el-select__selected-item,
+.el-select__placeholder {
+  color: $color-text-white !important;
+}
+
+// 只保留选中态；hover 不高亮（如果你想 hover 高亮，把下面 hover 注释删掉即可）
+.el-select-dropdown__item.is-selected {
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.el-select-dropdown__item:hover {
+  background: $color-primary-dark !important;
+  color: $color-text-white !important;
 }

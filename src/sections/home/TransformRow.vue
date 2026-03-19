@@ -1,7 +1,8 @@
 <template>
   <div class="transform-block">
     <div class="transform-grid">
-      <div v-for="(card, index) in cards" :key="index" class="transform-card">
+      <div v-for="(card, index) in cards" :key="index" class="transform-card" role="button" tabindex="0"
+        @click="emit('card-click', index)" @keydown.enter="emit('card-click', index)">
         <div class="transform-card-header">
           <span class="transform-card-text">
             {{ card.title }}
@@ -34,6 +35,10 @@ defineProps<{
   title: string
   cards: CardItem[]
 }>()
+
+const emit = defineEmits<{
+  (e: 'card-click', index: number): void
+}>()
 </script>
 
 <style scoped lang="scss">
@@ -50,6 +55,8 @@ defineProps<{
       border-radius: $border-radius-xl;
       background-color: $color-bg-dark-card;
       border: 1px solid rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      user-select: none;
 
       .transform-card-header {
         display: flex;

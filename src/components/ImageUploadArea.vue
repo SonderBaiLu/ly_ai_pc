@@ -31,35 +31,7 @@
         <span class="uploading-text" v-if="showLoading">{{ loadingText }}</span>
       </div>
 
-      <!-- 库选择（左上角，参考样式） -->
-      <div v-if="libraryName" class="uploaded-library" @click.stop="handleLibrarySelection(imageType, imageName)">
-        <span class="library-name-text">{{ libraryName }}</span>
-        <img :src="images.arrow" class="library-arrow-icon" alt=">" />
-      </div>
       <div v-if="imageUrl" class="uploaded-image">
-        <!-- 片段/排序 -->
-        <div v-if="tagText" class="upload-sort">
-          <el-tag class="tag" type="info" effect="dark">{{ tagText }}</el-tag>
-          <el-icon class="drag-handle" :size="36" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
-            @touchend="handleTouchEnd" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
-            @mouseup="handleMouseUp" @mouseleave="handleMouseLeave">
-            <el-image :src="images.sort2" fit="contain" style="width: 18px; height: 18px" />
-          </el-icon>
-        </div>
-        <!-- 视角文案 -->
-        <el-tag v-if="angleText" class="uploaded-angle" type="info" effect="dark">
-          {{ angleText }}
-        </el-tag>
-        <!-- 分类选择（右上角，保留原有功能） -->
-        <el-tag v-if="cateName" class="uploaded-cate" type="info" effect="dark"
-          @click.stop="handleSelection(imageType, imageName)">
-          <el-space :size="5" alignment="center">
-            {{ cateName }}
-            <el-icon :size="24" :class="isDownOrUp ? 'arrow-rotated' : 'arrow-normal'">
-              <el-image :src="images.down" fit="contain" style="width: 24px; height: 24px" />
-            </el-icon>
-          </el-space>
-        </el-tag>
         <!-- 已上传的图片 -->
         <el-image :src="imageUrl" fit="contain" class="uploaded-img" :class="{ 'img-loaded': imageLoaded }"
           :preview-src-list="clickable ? [imageUrl] : []" :initial-index="0" :preview-teleported="true"
@@ -122,21 +94,6 @@ const props = defineProps({
     type: String,
     default: 'uploadedImage',
   },
-  // 分类名字
-  cateName: {
-    type: String,
-    default: '',
-  },
-  // 库选择名字（左上角显示）
-  libraryName: {
-    type: String,
-    default: '',
-  },
-  // 显示上下图标
-  isDownOrUp: {
-    type: Boolean,
-    default: false,
-  },
   // 加载状态
   showLoading: {
     type: Boolean,
@@ -176,26 +133,6 @@ const props = defineProps({
   imageMode: {
     type: String,
     default: 'aspectFit',
-  },
-  // 标签文案
-  tagText: {
-    type: String,
-    default: '',
-  },
-  // 视角文案
-  angleText: {
-    type: String,
-    default: '',
-  },
-  // 是否启用拖拽
-  enableDrag: {
-    type: Boolean,
-    default: true,
-  },
-  // 当前索引
-  index: {
-    type: Number,
-    default: 0,
   },
   // 是否显示“历史创作”文案/入口
   showHistoryTip: {
@@ -240,12 +177,7 @@ const emit = defineEmits([
   'replace', // 替换图片
   'delete', // 删除图片
   'preview', // 预览图片
-  'selection', // 分类选择
-  'library-selection', // 库选择
   'update:imageUrl', // 更新图片URL
-  'drag-start', // 开始拖拽
-  'drag-move', // 拖拽移动
-  'drag-end', // 结束拖拽
   'show-history', // 显示历史创作弹窗
   'drop-file', // 拖拽文件上传
 ])
@@ -255,12 +187,7 @@ const emit = defineEmits([
 // 图片加载状态
 const imageLoaded = ref(false)
 
-// 拖拽相关状态
 const isDragging = ref(false)
-const dragStartX = ref(0)
-const dragStartY = ref(0)
-const dragOffsetX = ref(0)
-const dragOffsetY = ref(0)
 
 // 拖拽上传处理函数
 const handleDragOver = (_e: DragEvent) => {
@@ -347,154 +274,6 @@ const handleImageLoad = () => {
   imageLoaded.value = true
 }
 
-// 开始拖拽
-const startDrag = (event: MouseEvent | TouchEvent) => {
-  if (!props.enableDrag || !props.tagText) return
-
-  event.preventDefault()
-  event.stopPropagation()
-
-  const isTouchEvent = (e: MouseEvent | TouchEvent): e is TouchEvent =>
-    'touches' in e && !!e.touches.length
-
-  const clientX = isTouchEvent(event) ? event.touches[0].clientX : event.clientX
-  const clientY = isTouchEvent(event) ? event.touches[0].clientY : event.clientY
-
-  isDragging.value = true
-  dragStartX.value = clientX
-  dragStartY.value = clientY
-  dragOffsetX.value = 0
-  dragOffsetY.value = 0
-
-  // 添加全局事件监听
-  if (typeof window !== 'undefined') {
-    window.addEventListener('touchmove', handleGlobalTouchMove, {
-      passive: false,
-    })
-    window.addEventListener('touchend', handleGlobalTouchEnd)
-    window.addEventListener('mousemove', handleGlobalMouseMove)
-    window.addEventListener('mouseup', handleGlobalMouseUp)
-  }
-
-  emit('drag-start', {
-    index: props.index,
-    startX: clientX,
-    startY: clientY,
-    imageType: props.imageType,
-    imageName: props.imageName,
-  })
-}
-
-// 全局触摸移动
-const handleGlobalTouchMove = (event: TouchEvent) => {
-  if (!isDragging.value) return
-
-  const currentX = event.touches[0].clientX
-  const currentY = event.touches[0].clientY
-
-  dragOffsetX.value = currentX - dragStartX.value
-  dragOffsetY.value = currentY - dragStartY.value
-
-  emit('drag-move', {
-    index: props.index,
-    offsetX: dragOffsetX.value,
-    offsetY: dragOffsetY.value,
-    imageType: props.imageType,
-    imageName: props.imageName,
-  })
-}
-
-// 全局触摸结束
-const handleGlobalTouchEnd = (event: TouchEvent) => {
-  if (!isDragging.value) return
-  event.preventDefault()
-  endDrag()
-}
-
-// 全局鼠标移动
-const handleGlobalMouseMove = (event: MouseEvent) => {
-  if (!isDragging.value) return
-  event.preventDefault()
-
-  dragOffsetX.value = event.clientX - dragStartX.value
-  dragOffsetY.value = event.clientY - dragStartY.value
-
-  emit('drag-move', {
-    index: props.index,
-    offsetX: dragOffsetX.value,
-    offsetY: dragOffsetY.value,
-    imageType: props.imageType,
-    imageName: props.imageName,
-  })
-}
-
-// 全局鼠标抬起
-const handleGlobalMouseUp = (event: MouseEvent) => {
-  if (!isDragging.value) return
-  event.preventDefault()
-  endDrag()
-}
-
-// 结束拖拽
-const endDrag = () => {
-  if (!isDragging.value) return
-
-  isDragging.value = false
-  dragOffsetX.value = 0
-  dragOffsetY.value = 0
-
-  // 移除全局事件监听
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('touchmove', handleGlobalTouchMove)
-    window.removeEventListener('touchend', handleGlobalTouchEnd)
-    window.removeEventListener('mousemove', handleGlobalMouseMove)
-    window.removeEventListener('mouseup', handleGlobalMouseUp)
-  }
-
-  emit('drag-end', {
-    index: props.index,
-    imageType: props.imageType,
-    imageName: props.imageName,
-  })
-}
-
-// 触摸开始
-const handleTouchStart = (event: TouchEvent) => {
-  if (!props.enableDrag || !props.tagText) return
-  startDrag(event)
-}
-
-// 触摸移动
-const handleTouchMove = (_event: TouchEvent) => {
-  if (!isDragging.value) return
-}
-
-// 触摸结束
-const handleTouchEnd = (_event: TouchEvent) => {
-  if (!isDragging.value) return
-}
-
-// 鼠标按下
-const handleMouseDown = (event: MouseEvent) => {
-  if (!props.enableDrag || !props.tagText) return
-  startDrag(event)
-}
-
-// 鼠标移动
-const handleMouseMove = (_event: MouseEvent) => {
-  // 这个事件现在由全局事件处理
-}
-
-// 鼠标抬起
-const handleMouseUp = (_event: MouseEvent) => {
-  // 这个事件现在由全局事件处理
-}
-
-// 鼠标离开
-const handleMouseLeave = (_event: MouseEvent) => {
-  // 这个事件现在由全局事件处理
-}
-
 // 防抖：防止快速重复点击
 let uploadTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -538,24 +317,6 @@ const handleDelete = (type: string, position: string) => {
   emit('delete', {
     type,
     position,
-  })
-}
-
-// 处理分类选择
-const handleSelection = (type: string, position: string) => {
-  emit('selection', {
-    type,
-    position,
-    cateName: props.cateName,
-  })
-}
-
-// 处理库选择
-const handleLibrarySelection = (type: string, position: string) => {
-  emit('library-selection', {
-    type,
-    position,
-    libraryName: props.libraryName,
   })
 }
 
@@ -654,7 +415,7 @@ onBeforeUnmount(() => {
 
       .history-link {
         color: $color-primary-dark;
-        cursor: pointer;
+          cursor: pointer;
       }
     }
   }
@@ -695,103 +456,6 @@ onBeforeUnmount(() => {
         user-select: none;
         -webkit-user-drag: none;
       }
-    }
-  }
-
-  // 片段/排序
-  .upload-sort {
-    position: absolute;
-    left: 0;
-    top: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 6px 0 6px 12px;
-    z-index: 9;
-    user-select: none;
-
-    .tag {
-      background: rgba(7, 7, 7, 0.8) !important;
-      border: none !important;
-      color: white !important;
-      backdrop-filter: blur(8px);
-      padding: 6px 12px !important;
-      font-size: 13px !important;
-    }
-
-    .drag-handle {
-      cursor: move;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: scale(1.1);
-      }
-    }
-  }
-
-  // 视角文案
-  .uploaded-angle {
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    z-index: 9;
-  }
-
-  // 库选择（左上角，参考样式：黑色背景，白色文字，右箭头）
-  .uploaded-library {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 9;
-    cursor: pointer;
-    background-color: #000000 !important;
-    border: none !important;
-    border-radius: var(--radius-sm) 0 var(--radius-sm) 0 !important;
-    padding: 6px 12px 6px 12px !important;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.9) !important;
-    }
-
-    .library-name-text {
-      font-size: 13px;
-      color: #ffffff;
-      font-weight: 400;
-      white-space: nowrap;
-    }
-
-    .library-arrow-icon {
-      width: 14px;
-      height: 14px;
-      object-fit: contain;
-      flex-shrink: 0;
-    }
-  }
-
-  // 分类选择（右上角，保留原有功能）
-  .uploaded-cate {
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    z-index: 9;
-    cursor: pointer;
-    background-color: $color-primary-dark !important;
-    border: none !important;
-    padding: 7px 6px 8px 12px !important; // 左右padding平衡
-
-    .arrow-rotated {
-      transform: rotate(180deg);
-      transition: transform 0.3s ease;
-    }
-
-    .arrow-normal {
-      transform: rotate(0deg);
-      transition: transform 0.3s ease;
     }
   }
 

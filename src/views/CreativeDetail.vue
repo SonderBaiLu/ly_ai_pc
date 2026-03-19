@@ -1,12 +1,14 @@
 <template>
   <!-- eslint-disable vue/html-indent -->
   <div class="template-detail-page">
+    <Header />
+
     <!-- 主要内容区域 -->
     <div class="main-content">
       <div ref="mediaContainerRef" class="media-container"
         :style="{ scrollBehavior: isInitialLoad ? 'auto' : 'smooth' }">
         <!--左侧返回按钮  -->
-        <el-button size="large" class="back-button" @click="handleBack">
+        <el-button class="back-button" type="default" @click="handleBack">
           <el-icon :size="20">
             <Back />
           </el-icon>
@@ -17,10 +19,12 @@
             :class="{ active: selectedThumbnail === index }">
             <div class="media-player flex-col-center" @click="handleImagePreview(index, item)">
               <!-- 媒体播放器 - 自动判断显示视频或图片 -->
-              <MediaPlayer :ref="(el) => setMediaPlayerRef(el, index)" :src="item.fileUrl"
-                :poster="item.imageUrl || item.imgUrl" :autoplay="isVideoType(item) && selectedThumbnail === index"
-                :loop="true" :controls="isVideoType(item)" :muted="true" :minimal-controls="true"
-                :image-only="isImageType(item)" object-fit="contain" poster-fit="contain" class="video-player" />
+              <!-- :poster="item.imageUrl || item.imgUrl" -->
+              <MediaPlayer :ref="(el: any) => setMediaPlayerRef(el, index)" :src="item.fileUrl"
+                poster="https://chao-tryon-dev.chaotuishou.com/images/2026/03/t2i_t2i_085ab023-51b7-4e92-a8e1-1c5664eca137_20260318_160916_0798b151.jpg"
+                :autoplay="isVideoType(item) && selectedThumbnail === index" :loop="true" :controls="isVideoType(item)"
+                :muted="true" :minimal-controls="true" :image-only="isImageType(item)" object-fit="contain"
+                poster-fit="contain" class="video-player" />
             </div>
             <div class="content-notice">
               内容由AI生成，禁止利用功能从事违法活动，请合理规范地使用生成内容
@@ -33,304 +37,148 @@
       <div class="info-panel">
         <!-- 顶部操作图标 -->
         <div class="info-actions">
-          <!-- 我的资产：显示多个操作图标 -->
-          <template v-if="pageTypeRef === 'assets'">
-            <el-dropdown trigger="click" placement="bottom-end" popper-class="template-detail-download-popper"
-              :hide-on-click="false" @command="(cmd: string) => handleDownloadCommand(cmd)"
-              @visible-change="handleDownloadMenuVisible">
-              <div class="btn-icon-wrapper" @click.stop>
-                <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
-                  <Loading />
-                </el-icon>
-                <img v-else :src="images.downloadIcon" class="btn-icon" alt="下载" />
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu class="download-menu">
-                  <el-dropdown-item command="download">
-                    <div class="menu-item-content">
-                      <img :src="images.download" alt="下载" class="menu-icon" />
-                      <span>下载</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item command="toggle-watermark" class="watermark-toggle-item">
-                    <div class="menu-item-content" @click.stop="handleWatermarkToggleChange(!removeWatermarkEnabled)">
-                      <el-switch v-model="removeWatermarkEnabled" active-color="#8f50ea" inactive-color="#201B26"
-                        @click.stop @change="handleWatermarkToggleChange" />
-                      <span>去除水印</span>
-                      <img :src="images.vip" alt="VIP" class="vip-icon" />
-                    </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <img :src="templateDetail?.isCollect === 1 ? images.collectActive : images.collectNo" class="btn-icon"
-              alt="" @click="handleAssetsCollect" />
-            <el-dropdown trigger="click" popper-class="template-detail-more-popper" @command="handleMoreCommand">
-              <img :src="images.more" class="btn-icon" alt="" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="report">
-                    <el-icon>
-                      <Bell />
-                    </el-icon>
-                    <span>反馈</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete">
-                    <el-icon>
-                      <Delete />
-                    </el-icon>
-                    <span>删除</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-          <!-- 其他模块：只显示喜欢按钮 -->
-          <template v-else>
-            <img :src="templateDetail?.isLike === 1 ? images.like : images.dislike" class="btn-icon" alt=""
-              @click="handleLikeToggle" />
-          </template>
+          <div class="btn-icon-wrapper" @click.stop="handleDownloadCommand('download')">
+            <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
+              <Loading />
+            </el-icon>
+            <img v-else :src="images.downloadIcon" class="btn-icon" alt="下载" />
+          </div>
+          <img :src="templateDetail?.isCollect === 1 ? images.collectActive : images.collectNo" class="btn-icon" alt=""
+            @click="handleAssetsCollect" />
+          <el-dropdown trigger="click" @command="handleMoreCommand">
+            <img :src="images.more" class="btn-icon" alt="" />
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="report">
+                  <img :src="images.notice" class="menu-icon" alt="" />
+                  <span>反馈</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="delete">
+                  <img :src="images.delIcon" class="menu-icon" alt="" />
+                  <span>删除</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
 
-        <!-- 我的资产详情 -->
+        <!-- 我的创作详情 -->
         <div v-if="pageTypeRef == 'assets'">
-          <h5 class="section-title">{{ templateDetail?.typeName }}</h5>
-          <div v-if="requestParams" class="video-thumb-row">
-            <!-- AI视频-单图/模板动作 AI图片-指令改图/姿势裂变-->
-            <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
-            <!-- AI视频-尾帧 -->
-            <img v-if="requestParams.lastFrameUrl" :src="requestParams.lastFrameUrl" />
-            <!-- AI视频-多图成片 -->
-            <img v-for="item in requestParams.imageUrls" :key="item" :src="item" />
-
-            <!-- AI图片-商品展示 6 -->
-            <img v-if="requestParams.productItemUrl" :src="requestParams.productItemUrl" />
-            <!-- AI图片-穿搭调整-模特图 5 -->
-            <img v-if="templateDetail?.type == 5 && requestParams.flatSceneImageUrl"
-              :src="requestParams.flatSceneImageUrl" />
-
-            <!-- 万物穿戴-单视角/多视角 -->
-            <img v-if="requestParams.itemViewOneUrl" :src="requestParams.itemViewOneUrl" />
-            <img v-if="requestParams.itemViewTwoUrl" :src="requestParams.itemViewTwoUrl" />
-
-            <!-- 换模特换背景/只换模特/只换背景 -->
-            <img v-if="requestParams.clothesSceneUrl" :src="requestParams.clothesSceneUrl" />
-            <!-- 只换模特 -->
-            <img v-if="requestParams.clothesSceneUrlModel" :src="requestParams.clothesSceneUrlModel" />
-            <!-- 只换背景 -->
-            <img v-if="requestParams.clothesSceneUrlBg" :src="requestParams.clothesSceneUrlBg" />
-
-            <!-- AI试衣-自定义=>连体衣/上下装 -->
-            <img v-if="requestParams.upperFrontUrl" :src="requestParams.upperFrontUrl" />
-            <img v-if="requestParams.downFrontUrl" :src="requestParams.downFrontUrl" />
-            <img v-if="requestParams.frontDressUrl" :src="requestParams.frontDressUrl" />
-
-            <!-- AI试衣-平铺图=>连体衣/上下装正面背面 -->
-            <!-- AI试衣-平铺图=>上下装/上装正面 -->
-            <img v-if="requestParams.flatUpperFrontUrl" :src="requestParams.flatUpperFrontUrl" />
-            <!-- AI试衣-平铺图=>上下装/上装背面 -->
-            <img v-if="requestParams.flatUpperBackUrl" :src="requestParams.flatUpperBackUrl" />
-            <!-- AI试衣-平铺图=>上下装/下装正面 -->
-            <img v-if="requestParams.flatDownFrontUrl" :src="requestParams.flatDownFrontUrl" />
-            <!-- AI试衣-平铺图=>上下装/下装背面 -->
-            <img v-if="requestParams.flatDownBackUrl" :src="requestParams.flatDownBackUrl" />
-            <!-- AI试衣-平铺图=>连体衣正面 -->
-            <img v-if="requestParams.flatFrontDressUrl" :src="requestParams.flatFrontDressUrl" />
-            <!-- AI试衣-平铺图=>连体衣背面 -->
-            <img v-if="requestParams.flatBackDressUrl" :src="requestParams.flatBackDressUrl" />
-
-            <!-- AI试衣-挂拍图 => 正面/背面 -->
-            <img v-if="requestParams.hangingFrontUrl" :src="requestParams.hangingFrontUrl" />
-            <img v-if="requestParams.hangingBackUrl" :src="requestParams.hangingBackUrl" />
-
-            <!-- AI试衣-搭配图 => 一身搭-->
-            <img v-if="requestParams.mixedItemsUrl" :src="requestParams.mixedItemsUrl" />
-
-            <!-- AI试衣-人台图 => 正面/背面-->
-            <!-- 人台图 正面-->
-            <img v-if="requestParams.mannequinFrontUrl" :src="requestParams.mannequinFrontUrl" />
-            <!-- 人台图 背面 -->
-            <img v-if="requestParams.mannequinBackUrl" :src="requestParams.mannequinBackUrl" />
+          <div class="section-title">
+            {{ isAiFashionStudioAssetsDetail ? studioModuleName : templateDetail?.typeName }}
           </div>
 
-          <!-- AI试衣-搭配图 => 鞋靴-->
-          <template v-if="requestParams && templateDetail?.type == 24">
-            <h5 class="section-title">鞋靴</h5>
-            <div class="video-thumb-row">
-              <img v-if="requestParams.shoesUrl" :src="requestParams.shoesUrl" />
+          <!-- AI工作台（4类型）详情：完全使用四个左侧页面的展示结构（仅保留必要模块） -->
+          <template v-if="isAiFashionStudioAssetsDetail">
+
+            <template v-if="detailModule === 'sketchToReal'">
+              <div class="section-title">线稿图</div>
+              <div v-if="requestParams" class="video-thumb-row">
+                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
+                <img v-for="item in requestParams.imageUrls" :key="item" :src="item" />
+              </div>
+            </template>
+
+            <template v-if="detailModule === 'realToSketch'">
+              <div class="section-title">实物图</div>
+              <div v-if="requestParams" class="video-thumb-row">
+                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
+              </div>
+            </template>
+
+            <template v-if="detailModule === 'fabricCreative'">
+              <div class="section-title">面料图</div>
+              <div v-if="requestParams" class="video-thumb-row">
+                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
+              </div>
+            </template>
+
+            <!-- 款型 / 类型 -->
+            <div class="section-title">款型</div>
+            <div class="param-input">
+              {{ requestParams?.category ? `${requestParams?.category || ''}-${requestParams?.clothType ||
+                ''}-${requestParams?.subKind || ''}`
+                : '—' }}
             </div>
+
+            <!-- AI服装设计：设计特征 -->
+            <template v-if="detailModule === 'aiFashion' && Array.isArray(requestParams?.features)">
+              <div class="section-title">设计特征</div>
+              <div class="tag-row">
+                <span v-for="(f, idx) in requestParams.features" :key="`${f}-${idx}`" class="tag">
+                  {{ f }}
+                </span>
+              </div>
+            </template>
+
+            <!-- 线稿转实物：线稿类型/风格/生成图片类型 -->
+            <template v-if="detailModule === 'sketchToReal'">
+              <div class="section-title">线稿类型</div>
+              <div class="tag-row">
+                <span v-if="requestParams?.sketchType" class="tag">{{ requestParams.sketchType }}</span>
+                <span v-else class="tag">—</span>
+              </div>
+
+              <div class="section-title">线稿风格</div>
+              <div class="tag-row">
+                <span v-if="requestParams?.sketchStyle" class="tag">{{ requestParams.sketchStyle }}</span>
+                <span v-else class="tag">—</span>
+              </div>
+
+              <div class="section-title">生成图片类型</div>
+              <div class="tag-row">
+                <span v-if="requestParams?.outputType" class="tag">{{ requestParams.outputType }}</span>
+                <span v-else class="tag">—</span>
+              </div>
+            </template>
+
+            <!-- 实物转线稿：线稿生成类型/风格 -->
+            <template v-if="detailModule === 'realToSketch'">
+              <div class="section-title">线稿生成类型</div>
+              <div class="tag-row">
+                <span v-if="requestParams?.lineType" class="tag">{{ requestParams.lineType }}</span>
+                <span v-else class="tag">—</span>
+              </div>
+
+              <div class="section-title">线稿生成风格</div>
+              <div class="tag-row">
+                <span v-if="requestParams?.lineStyle" class="tag">{{ requestParams.lineStyle }}</span>
+                <span v-else class="tag">—</span>
+              </div>
+            </template>
+
+            <!-- 面料创拍：生成图片类型 -->
+            <template v-if="detailModule === 'fabricCreative'">
+              <div class="section-title">生成图片类型</div>
+              <div class="tag-row">
+                <span v-if="requestParams?.outputType" class="tag">{{ requestParams.outputType }}</span>
+                <span v-else class="tag">—</span>
+              </div>
+            </template>
+
+            <template
+              v-if="(requestParams?.imageUrl || (Array.isArray(requestParams?.imageUrls) && requestParams.imageUrls.length)) && detailModule == 'aiFashion'">
+              <div class="section-title">参考图</div>
+              <div v-if="requestParams && isAiFashionStudioAssetsDetail" class="video-thumb-row">
+                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
+                <img v-for="item in requestParams.imageUrls" :key="item" :src="item" />
+              </div>
+            </template>
           </template>
 
-          <!-- AI图片-穿搭调整 => 连体衣/上下装 创意模板库:热门穿搭-连体衣/上下装 -->
-          <template v-if="
-            requestParams &&
-            (templateDetail?.type == 5 ||
-              templateDetail?.type == 27 ||
-              templateDetail?.type == 28)
-          ">
-            <h5 v-if="outfitAdjustmentTitle" class="section-title">
-              {{ outfitAdjustmentTitle }}
-            </h5>
-            <div class="video-thumb-row">
-              <img v-if="requestParams.flatFrontDressUrl" :src="requestParams.flatFrontDressUrl" />
-              <img v-if="requestParams.flatUpperFrontUrl" :src="requestParams.flatUpperFrontUrl" />
-              <img v-if="requestParams.flatDownFrontUrl" :src="requestParams.flatDownFrontUrl" />
-            </div>
-          </template>
 
-          <!-- 万物穿戴-单视角/多视角 =>穿戴参考 -->
-          <template v-if="requestParams && templateDetail?.type == 11">
-            <h5 class="section-title">穿戴参考</h5>
-            <div class="video-thumb-row">
-              <img v-for="item in requestParams.wearSceneUrl" :key="item" :src="item" />
-            </div>
-          </template>
-
-          <!-- 换模特换背景=>换模特换背景12/只换模特13/只换背景14 -->
-          <!-- AI试衣-平铺图 => 连体衣17/上下装18 模特非必填 -->
-          <!-- AI试衣-挂拍图19 模特非必填 -->
-
-          <!-- 模特 -->
-          <template v-if="
-            requestParams &&
-            (templateDetail?.type == 12 ||
-              templateDetail?.type == 13 ||
-              (templateDetail?.type == 17 && requestParams.modelImageUrl) ||
-              (templateDetail?.type == 18 && requestParams.modelImageUrl) ||
-              (templateDetail?.type == 19 && requestParams.modelImageUrl) ||
-              (templateDetail?.type == 20 && requestParams.modelImageUrl))
-          ">
-            <h5 class="section-title">模特</h5>
-            <div class="video-thumb-row">
-              <img v-if="requestParams.modelImageUrl" :src="requestParams.modelImageUrl" />
-              <img v-if="requestParams.modelImageUrlNew" :src="requestParams.modelImageUrlNew" />
-              <img v-if="requestParams.modelImageUrlOnly" :src="requestParams.modelImageUrlOnly" />
-            </div>
-          </template>
-
-          <!-- 姿势 -->
-          <template v-if="requestParams && templateDetail?.type == 24">
-            <h5 class="section-title">姿势</h5>
-            <div class="video-thumb-row">
-              <img v-for="item in requestParams.poseChooseImg" :key="item" :src="item" />
-            </div>
-          </template>
-
-          <!-- 模特场景 -->
-          <template v-if="
-            requestParams &&
-            (templateDetail?.type == 28 ||
-              templateDetail?.type == 27 ||
-              templateDetail?.type == 23 ||
-              templateDetail?.type == 24 ||
-              templateDetail?.type == 22 ||
-              templateDetail?.type == 20 ||
-              templateDetail?.type == 19 ||
-              (templateDetail?.type == 18 && requestParams.sceneImageUrl) ||
-              (templateDetail?.type == 17 && requestParams.sceneImageUrl) ||
-              templateDetail?.type == 14 ||
-              templateDetail?.type == 12)
-          ">
-            <h5 class="section-title">
-              {{ templateDetail?.type == 28 || templateDetail?.type == 27 ? '模特场景' : '场景' }}
-            </h5>
-            <div class="video-thumb-row">
-              <img v-for="item in requestParams.modelSceneUrl ||
-                requestParams.modelSceneUrlBg ||
-                requestParams.flatSceneImageUrl ||
-                (templateDetail?.type == 24
-                  ? requestParams?.sceneImageUrl.slice(0, 1)
-                  : requestParams?.sceneImageUrl) ||
-                requestParams?.multipleModels" :key="item" :src="item" />
-            </div>
-          </template>
-
-          <!-- AI试衣-自定义标签参数 -->
-          <template v-if="requestParams && (templateDetail?.type == 15 || templateDetail?.type == 16)">
-            <div class="video-thumb-row">
-              <el-button v-if="requestParams.gender" type="primary" class="btn" size="small">
-                {{ requestParams.gender }}
-              </el-button>
-              <el-button v-if="requestParams.age" type="primary" class="btn" size="small">
-                {{ requestParams.age }}
-              </el-button>
-              <el-button v-if="requestParams.skinToneCode" type="primary" class="btn" size="small">
-                <text class="skin-tone-code" :style="{ backgroundColor: requestParams.skinToneCode }"></text>
-              </el-button>
-              <el-button v-if="requestParams.bodyType" type="primary" class="btn" size="small">
-                {{ requestParams.bodyType }}
-              </el-button>
-              <el-button v-if="requestParams.composition" type="primary" class="btn" size="small">
-                {{ requestParams.composition }}
-              </el-button>
-              <el-button v-if="requestParams.angleCode" type="primary" class="btn" size="small">
-                {{ requestParams.angleCode }}
-              </el-button>
-            </div>
-          </template>
 
           <!-- 创意描述 -->
-          <div v-if="templateDetail?.type != 10 && templateDetail?.type != 2 && creativeDescription"
-            class="creative-description">
-            <div class="description-header">
-              <h5 class="section-label">创意描述</h5>
-              <el-icon v-if="creativeDescription" class="copy-icon" @click="copyDescription(creativeDescription)">
-                <CopyDocument />
-              </el-icon>
+          <div v-if="creativeDescription" class="creative-description">
+            <div class="flex-between">
+              <div>创意描述</div>
+              <img :src="images.copy" class="copy-icon" alt="" @click="copyDescription(creativeDescription)" />
             </div>
             <!-- 单个描述 -->
             <p v-if="creativeDescription" class="description-text">
               {{ creativeDescription }}
             </p>
-            <!-- 多图成片 -->
-            <template v-if="requestParams?.prompts">
-              <div v-for="(item, index) in requestParams?.prompts" :key="index">
-                <div class="description-header">
-                  <h5 class="section-label">
-                    创意描述-片段{{ numberToChinese(Number(index) + 1) }}
-                  </h5>
-                  <el-icon class="copy-icon" @click="copyDescription(item.value)">
-                    <CopyDocument />
-                  </el-icon>
-                </div>
-                <p class="description-text">
-                  {{ item.value }}
-                </p>
-              </div>
-            </template>
           </div>
-
-          <!-- AI视频-模板动作 -->
-          <template v-if="requestParams?.promptsListTitles && templateDetail?.type == 10">
-            <h5 class="section-title">参考动作</h5>
-            <div class="video-thumb-row">
-              <el-button v-for="item in requestParams.promptsListTitles" :key="item" type="primary" class="btn">
-                {{ item }}
-              </el-button>
-            </div>
-          </template>
-
-          <!-- AI图片-视角选择/模特姿势库 -->
-          <template v-if="
-            (templateDetail?.type == 2 || templateDetail?.type == 3) &&
-            requestParams?.poseChooseImg
-          ">
-            <h5 v-if="templateDetail?.type == 2" class="section-title">
-              {{ requestParams?.poseChooseKey == 'view_angle' ? '视角选择' : '模特姿势库' }}
-            </h5>
-            <h5 v-if="templateDetail?.type == 3" class="section-title">模特表情库</h5>
-            <div class="video-thumb-row">
-              <img v-for="item in requestParams.poseChooseImg" :key="item" :src="item" />
-            </div>
-          </template>
-
-          <!-- AI图片-商品场景 -->
-          <template v-if="templateDetail?.type == 6 && requestParams?.productSceneUrl">
-            <h5 class="section-title">商品场景</h5>
-            <div class="video-thumb-row">
-              <img v-for="item in requestParams.productSceneUrl" :key="item" :src="item" />
-            </div>
-          </template>
 
           <div v-if="
             requestParams &&
@@ -340,130 +188,48 @@
               requestParams.aspectRatio ||
               requestParams.quality)
           " class="tag-row">
-            <span v-if="requestParams.algorithmName" class="tag">
+            <span v-if="requestParams.algorithmName" class="params-tag">
               {{ requestParams.algorithmName }}
             </span>
-            <span v-if="requestParams.duration" class="tag">{{ requestParams.duration }}秒</span>
-            <span v-if="requestParams.resolution" class="tag">
+            <span v-if="requestParams.duration" class="params-tag">{{ requestParams.duration }}秒</span>
+            <span v-if="requestParams.resolution" class="params-tag">
               {{ requestParams.resolution }}
             </span>
-            <span v-if="requestParams.aspectRatio" class="tag">
+            <span v-if="requestParams.aspectRatio" class="params-tag">
               {{ requestParams.aspectRatio }}
             </span>
-            <span v-if="requestParams.quality" class="tag">
+            <span v-if="requestParams.quality" class="params-tag">
               {{ requestParams.quality }}
             </span>
-            <span class="tag">{{ isVideoType(templateDetail) ? '视频' : '图片' }}</span>
+            <span class="params-tag">{{ isVideoType(templateDetail) ? '视频' : '图片' }}</span>
           </div>
           <div v-if="templateDetail?.createTime" class="use-count">
-            {{ formatDateToChinese(templateDetail.createTime) }}
+            {{ templateDetail.createTime }}
           </div>
-        </div>
-
-        <!-- 创意模板详情模块 -->
-        <div v-if="pageTypeRef == 'template' || pageTypeRef == 'like'">
-          <!-- 穿戴饰物：上面展示穿戴饰物图，下面展示穿戴参考 -->
-          <template v-if="isWearAccessories">
-            <!-- 穿戴饰物图（单视角或多视角） -->
-            <div v-if="wearAccessoriesImages.length > 0">
-              <div class="section-title">穿戴饰物</div>
-              <div class="video-thumb-row">
-                <img v-for="(item, index) in wearAccessoriesImages" :key="item.id || index" :src="item.imgUrl"
-                  :alt="getImageSetLabel(item.closeType)" />
-              </div>
-            </div>
-            <!-- 穿戴参考（materialLibraryType: 1） -->
-            <div v-if="wearReferenceImages.length > 0">
-              <div class="section-title">穿戴参考</div>
-              <div class="video-thumb-row">
-                <img v-for="(item, index) in wearReferenceImages" :key="item.id || index"
-                  :src="item.materialImgUrl || item.imgUrl" alt="穿戴参考" />
-              </div>
-            </div>
-          </template>
-
-          <!-- 热门穿搭：上面展示上下装/连体衣，下面展示穿搭参考 -->
-          <template v-else-if="isPopularOutfit">
-            <!-- 上下装或连体衣 -->
-            <div v-if="outfitImages.length > 0">
-              <div class="section-title">热门穿搭</div>
-              <div class="video-thumb-row">
-                <img v-for="(item, index) in outfitImages" :key="item.id || index" :src="item.imgUrl"
-                  :alt="getImageSetLabel(item.closeType)" />
-              </div>
-            </div>
-            <!-- 穿搭参考/模特场景（materialLibraryType: 0） -->
-            <div v-if="sceneReferenceImages.length > 0">
-              <div class="section-title">模特场景</div>
-              <div class="video-thumb-row">
-                <img v-for="(item, index) in sceneReferenceImages.slice(0, 1)" :key="item.id || index"
-                  :src="item.materialImgUrl || item.imgUrl" alt="模特场景" />
-              </div>
-            </div>
-          </template>
-
-          <!-- 模特视频：分为单图和首尾帧两种展示方式 -->
-          <template v-else-if="isModelVideo">
-            <!-- 单图模式（closeType: 6） -->
-            <div v-if="modelVideoMode === 'single' && modelVideoSingleImage">
-              <div class="section-title">{{ templateDetail?.title }}</div>
-              <div class="video-thumb-row">
-                <img :src="modelVideoSingleImage.imgUrl" alt="单图" />
-              </div>
-            </div>
-            <!-- 首尾帧模式（closeType: 4, 5） -->
-            <div v-else-if="modelVideoMode === 'firstLastFrame'">
-              <div class="section-title">{{ templateDetail?.title }}</div>
-              <div class="video-thumb-row">
-                <img v-if="modelVideoFirstFrame" :src="modelVideoFirstFrame.imgUrl" alt="首帧" />
-                <img v-if="modelVideoLastFrame" :src="modelVideoLastFrame.imgUrl" alt="尾帧" />
-              </div>
-            </div>
-          </template>
-
-          <!-- 面料创拍：展示创意描述和复制功能 -->
-          <template v-else-if="isFabricShoot">
-            <div v-if="fabricShootDescription" class="creative-description">
-              <div class="section-title">{{ templateDetail?.title }}</div>
-              <div class="description-header">
-                <h5 class="section-label">创意描述</h5>
-                <el-icon class="copy-icon" @click="copyFabricShootDescription">
-                  <CopyDocument />
-                </el-icon>
-              </div>
-              <div class="description-bar">
-                <p class="description-text">{{ fabricShootDescription }}</p>
-              </div>
-            </div>
-          </template>
-          <div v-if="templateDetail?.algorithmName || templateDetail?.titleName" class="tag-row">
-            <span v-if="templateDetail?.algorithmName" class="tag">
-              {{ templateDetail.algorithmName }}
-            </span>
-            <span v-if="templateDetail?.titleName" class="tag">
-              {{ templateDetail.titleName }}
-            </span>
-          </div>
-          <!-- <div class="use-count">已被使用{{ templateDetail?.useCount }}次</div> -->
         </div>
 
         <!-- 操作按钮区 -->
         <div class="action-section">
           <div v-if="isImageType(templateDetail)" class="action-item">
             <div class="section-title">生成</div>
-            <div class="flex action-item-content">
-              <el-button size="large" type="primary" @click="handleAgainEdit">
+            <div class="flex-between">
+              <el-button class="action-btn" @click="handleAgainEdit">
                 <img :src="images.againEdit" alt="" class="action-icon" />
                 重新生成
               </el-button>
-              <el-button size="large" type="primary" @click="handleAgainGenerate">
-                <img :src="images.againGenerate" alt="" class="action-icon brand-watermark-icon" />
+              <el-button class="action-btn" @click="handleAgainGenerate">
+                <img :src="images.againGenerate" alt="" class="action-icon" />
                 再次生成
               </el-button>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- 右侧缩略图列表（统一组件 ThumbnailGallery） -->
+      <ThumbnailGallery class="thumbnail-gallery" ref="thumbnailRef" :assets="thumbnailAssets"
+        :current-index="selectedThumbnail" :has-more-data="hasMoreRelated" :loading="loadingRelated"
+        @thumbnail-click="handleThumbnailGalleryClick" @load-more="loadMoreRelated" />
     </div>
 
     <!-- 反馈弹窗 -->
@@ -481,18 +247,6 @@
     <!-- 图片预览 - 使用 Element Plus ImageViewer -->
     <el-image-viewer v-if="showImagePreview" :url-list="previewImageList" :initial-index="previewInitialIndex"
       :hide-on-click-modal="true" @close="handlePreviewClose" />
-
-    <!-- 右侧缩略图列表 -->
-    <div class="thumbnail-sidebar">
-      <div ref="thumbnailList" class="thumbnail-list">
-        <div v-for="(item, index) in relatedTemplates" :key="item.id" class="thumbnail-item"
-          :class="{ active: selectedThumbnail === index }" @click="selectThumbnail(index, item)">
-          <div class="thumbnail-image">
-            <img :src="item.lessenImg || item.imgUrl || item.imageUrl" :alt="item.title" />
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -500,7 +254,9 @@
 // Vue API 已自动导入
 import { images } from '@/assets'
 import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus'
-import { CopyDocument, Bell, Delete, Loading } from '@element-plus/icons-vue'
+import { Loading, Back } from '@element-plus/icons-vue'
+import ThumbnailGallery from '@/components/ThumbnailGallery.vue'
+import type { Asset } from '@/composables/useTaskPolling'
 import { creativeApi } from '@/api/creative'
 import { assetApi } from '@/api/asset'
 import { userApi } from '@/api/user'
@@ -556,7 +312,7 @@ const templateDetail = ref<CreativeTemplate | null>(null)
 const relatedTemplates = ref<CreativeTemplate[]>([])
 const selectedThumbnail = ref(0)
 const previousThumbnailIndex = ref(-1)
-const thumbnailList = ref<HTMLElement>()
+const thumbnailRef = ref<any>(null)
 const mediaContainerRef = ref<HTMLElement>()
 const mediaPlayerRefs = ref<any[]>([]) // MediaPlayer 组件引用数组
 const cateTitleRef = ref('')
@@ -584,6 +340,38 @@ const pageTypeRef = ref<string>('template')
 const sourceTabRef = ref<string>('')
 // 是否初始加载（用于控制滚动行为）
 const isInitialLoad = ref(true)
+
+// AI 工作台（AiFashionStudio）进入的资产详情：仅展示 4 种类型需要的信息，隐藏其它业务类型的多余回显
+const isAiFashionStudioAssetsDetail = computed(() => {
+  return pageTypeRef.value === 'assets' && sourceTabRef.value === 'aiFashionStudio'
+})
+
+// AI 工作台详情模块名（固定 4 类型）
+const studioModuleName = computed(() => {
+  const map: Record<DetailModule, string> = {
+    aiFashion: 'AI服装设计',
+    sketchToReal: '线稿转实物',
+    realToSketch: '实物转线稿',
+    fabricCreative: '面料创拍',
+  }
+  return map[detailModule.value]
+})
+
+// 缩略图组件数据：将 relatedTemplates 映射成统一的 Asset 结构（ThumbnailGallery 使用）
+const thumbnailAssets = computed<Asset[]>(() => {
+  return (relatedTemplates.value || []).map((t: any) => {
+    return {
+      id: t?.id,
+      taskId: t?.taskId,
+      taskUuid: t?.taskUuid,
+      imageUrl: t?.lessenImg || t?.imgUrl || t?.imageUrl || '',
+      fileUrl: t?.fileUrl || '',
+      fileType: t?.fileType ?? 1,
+      status: t?.status ?? 3,
+      prompt: t?.prompt || t?.title || '',
+    }
+  }) as unknown as Asset[]
+})
 
 const relatedPageParams = ref({
   current: 1,
@@ -615,36 +403,12 @@ const requestParams = computed(() => {
   }
 })
 
-// 判断是否为穿戴饰物类型
-const isWearAccessories = computed(() => {
-  if (!templateDetail.value) return false
-  const titleCode = (templateDetail.value as any).titleCode
-  const titleName = (templateDetail.value as any).titleName
-  return titleCode === 'wear_accessories' || titleName === '穿戴饰物'
-})
-
-// 判断是否为热门穿搭类型
-const isPopularOutfit = computed(() => {
-  if (!templateDetail.value) return false
-  const titleCode = (templateDetail.value as any).titleCode
-  const titleName = (templateDetail.value as any).titleName
-  return titleCode === 'popular_outfits' || titleName === '热门穿搭'
-})
-
-// 判断是否为模特视频类型
-const isModelVideo = computed(() => {
-  if (!templateDetail.value) return false
-  const titleCode = (templateDetail.value as any).titleCode
-  const titleName = (templateDetail.value as any).titleName
-  return titleCode === 'model_video' || titleName === '模特视频'
-})
-
-// 判断是否为面料创拍类型
+// 判断是否为面料创拍类型（用于模块路由跳转）
 const isFabricShoot = computed(() => {
   if (!templateDetail.value) return false
-  const titleCode = (templateDetail.value as any).titleCode
-  const titleName = (templateDetail.value as any).titleName
-  return titleCode === 'fabric_create' || titleName === '面料创拍'
+  const typeName = String((templateDetail.value as any).typeName || '')
+  const titleName = String((templateDetail.value as any).titleName || '')
+  return `${typeName} ${titleName}`.includes('面料创拍')
 })
 
 // 统一判断是否为视频类型（根据页面类型使用不同字段）
@@ -682,130 +446,7 @@ const isImageType = (item: any): boolean => {
   return !isVideoType(item)
 }
 
-// 模板的 imageSetList（用于显示具体内容）
-const templateImageSetList = computed(() => {
-  if (!templateDetail.value || !(templateDetail.value as any).imageSetList) {
-    return []
-  }
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  // 过滤出有 imgUrl 的项，并按 closeType 排序
-  return imageSetList
-    .filter((item: any) => item.imgUrl)
-    .sort((a: any, b: any) => {
-      // 按照 closeType 排序，确保显示顺序正确
-      // 热门穿搭：上装(1) -> 下装(2) -> 连体衣(3)
-      // 模特视频：单图(6) -> 首帧(4) -> 尾帧(5)
-      // 穿戴饰物：单视角(7) -> 多视角一(8) -> 多视角二(9)
-      return a.closeType - b.closeType
-    })
-})
-
-// 穿戴饰物图（单视角或多视角，closeType: 7, 8, 9）
-const wearAccessoriesImages = computed(() => {
-  return templateImageSetList.value.filter(
-    (item: any) => item.closeType === 7 || item.closeType === 8 || item.closeType === 9
-  )
-})
-
-// 穿戴参考（materialLibraryType: 1）
-const wearReferenceImages = computed(() => {
-  if (!templateDetail.value || !(templateDetail.value as any).imageSetList) {
-    return []
-  }
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  return imageSetList.filter((item: any) => item.materialLibraryType === 1)
-})
-
-// 热门穿搭图（上装、下装、连体衣，closeType: 1, 2, 3）
-const outfitImages = computed(() => {
-  return templateImageSetList.value.filter(
-    (item: any) => item.closeType === 1 || item.closeType === 2 || item.closeType === 3
-  )
-})
-
-// 穿搭参考/模特场景（materialLibraryType: 0）
-const sceneReferenceImages = computed(() => {
-  if (!templateDetail.value || !(templateDetail.value as any).imageSetList) {
-    return []
-  }
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  return imageSetList.filter((item: any) => item.materialLibraryType === 0)
-})
-
-// 模特视频模式（单图或首尾帧）
-const modelVideoMode = computed(() => {
-  if (!isModelVideo.value || !templateDetail.value) return 'single'
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  const hasFirstFrame = imageSetList.some((item: any) => item.closeType === 4)
-  const hasLastFrame = imageSetList.some((item: any) => item.closeType === 5)
-  return hasFirstFrame || hasLastFrame ? 'firstLastFrame' : 'single'
-})
-
-// 模特视频单图（closeType: 6）
-const modelVideoSingleImage = computed(() => {
-  if (!isModelVideo.value || !templateDetail.value) return null
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  const found = imageSetList.find(
-    (item: any) => item.closeType === 6 && (item.imgUrl || item.imageUrl)
-  )
-  if (!found) return null
-  // 确保返回的对象有 imgUrl 字段
-  return {
-    ...found,
-    imgUrl: found.lessenImg || found.imgUrl || found.imageUrl,
-  }
-})
-
-// 模特视频首帧（closeType: 4）
-const modelVideoFirstFrame = computed(() => {
-  if (!isModelVideo.value || !templateDetail.value) return null
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  const found = imageSetList.find(
-    (item: any) => item.closeType === 4 && (item.imgUrl || item.imageUrl)
-  )
-  if (!found) return null
-  // 确保返回的对象有 imgUrl 字段
-  return {
-    ...found,
-    imgUrl: found.lessenImg || found.imgUrl || found.imageUrl,
-  }
-})
-
-// 模特视频尾帧（closeType: 5）
-const modelVideoLastFrame = computed(() => {
-  if (!isModelVideo.value || !templateDetail.value) return null
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  const found = imageSetList.find(
-    (item: any) => item.closeType === 5 && (item.imgUrl || item.imageUrl)
-  )
-  if (!found) return null
-  // 确保返回的对象有 imgUrl 字段
-  return {
-    ...found,
-    imgUrl: found.lessenImg || found.imgUrl || found.imageUrl,
-  }
-})
-
-// 穿搭调整标题（连体衣/上下装/上装图/下装图）
-const outfitAdjustmentTitle = computed(() => {
-  if (!requestParams.value) return ''
-  const hasDress = !!requestParams.value.flatFrontDressUrl
-  const hasUpper = !!requestParams.value.flatUpperFrontUrl
-  const hasDown = !!requestParams.value.flatDownFrontUrl
-  if (hasDress) return '连体衣'
-  if (hasUpper && hasDown) return '上下装'
-  if (hasUpper) return '上装图'
-  if (hasDown) return '下装图'
-  return ''
-})
-
-// 面料创拍创意描述（closeType: 0 的 imageSetDesc）
-const fabricShootDescription = computed(() => {
-  if (!isFabricShoot.value || !templateDetail.value) return ''
-  const imageSetList = (templateDetail.value as any).imageSetList || []
-  const fabricItem = imageSetList.find((item: any) => item.closeType === 0)
-  return fabricItem?.imageSetDesc || ''
-})
+// （已移除）与 4 类型无关的模板 imageSetList/穿戴/热门穿搭/模特视频等详情渲染逻辑
 
 type DetailModule = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
@@ -869,23 +510,6 @@ const handleAgainGenerate = () => {
   })
 }
 
-// 获取 imageSet 的标签文本
-const getImageSetLabel = (closeType: number) => {
-  const labelMap: Record<number, string> = {
-    0: '面料创拍',
-    1: '上装',
-    2: '下装',
-    3: '连体衣',
-    4: '首帧',
-    5: '尾帧',
-    6: '图生视频',
-    7: '单视角',
-    8: '多视角一',
-    9: '多视角二',
-  }
-  return labelMap[closeType] || '图片'
-}
-
 // 统一的创意描述文本（用于复制等功能）
 const descriptionText = computed(() => {
   const params: any = requestParams.value
@@ -919,29 +543,6 @@ const creativeDescription = computed(() => {
     ''
   )
 })
-
-// 将数字转换为中文大写数字
-const numberToChinese = (num: number): string => {
-  const chineseNumbers = ['', '一', '二', '三', '四']
-  if (num >= 1 && num <= 4) {
-    return chineseNumbers[num]
-  }
-  // 如果超过4，返回原数字（可以根据需要扩展）
-  return String(num)
-}
-
-// 将日期格式转换为年月日格式（如：2025-12-05 -> 2025年12月05日）
-const formatDateToChinese = (dateStr: string | null | undefined): string => {
-  if (!dateStr) return ''
-  // 处理 YYYY-MM-DD 格式
-  const match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
-  if (match) {
-    const [, year, month, day] = match
-    return `${year}年${month.padStart(2, '0')}月${day.padStart(2, '0')}日`
-  }
-  // 如果格式不匹配，返回原字符串
-  return dateStr
-}
 
 // 详情请求并发控制：
 // - detailRequestToken: 每次发起详情请求递增，用于丢弃过期响应（用户快速切换缩略图时）
@@ -1338,10 +939,9 @@ const loadRelatedTemplates = async (isRefresh = false) => {
   }
 }
 
-// 加载更多相关模板
+// 加载更多（供右侧缩略图滚动触底触发）
 const loadMoreRelated = async () => {
   if (!hasMoreRelated.value || loadingRelated.value) return
-
   relatedPageParams.value.current++
   await loadRelatedTemplates(false)
 }
@@ -1351,6 +951,13 @@ const setMediaPlayerRef = (el: any, index: number) => {
   if (el) {
     mediaPlayerRefs.value[index] = el
   }
+}
+
+// 统一缩略图组件点击：转发到现有 selectThumbnail 逻辑
+const handleThumbnailGalleryClick = (index: number) => {
+  const item = relatedTemplates.value[index]
+  if (!item) return
+  selectThumbnail(index, item)
 }
 
 // 选择缩略图
@@ -1455,20 +1062,6 @@ const copyDescription = async (text?: string) => {
     return
   }
   const success = await copyToClipboard(textToCopy)
-  if (success) {
-    ElMessage.success('复制成功')
-  } else {
-    ElMessage.error('复制失败，请重试')
-  }
-}
-
-// 复制面料创拍描述
-const copyFabricShootDescription = async () => {
-  if (!fabricShootDescription.value) {
-    ElMessage.warning('暂无可复制的描述')
-    return
-  }
-  const success = await copyToClipboard(fabricShootDescription.value)
   if (success) {
     ElMessage.success('复制成功')
   } else {
@@ -1589,11 +1182,6 @@ const handleDownloadCommand = (command: string) => {
     // 点击整个按钮区域时切换开关状态
     handleWatermarkToggleChange(!removeWatermarkEnabled.value)
   }
-}
-
-// 处理下载菜单显示/隐藏
-const handleDownloadMenuVisible = (_visible: boolean) => {
-  // 菜单显示时可以做一些处理
 }
 
 // 处理去除水印开关变化
@@ -1780,16 +1368,7 @@ const handleDownload = async () => {
   }
 }
 
-// 右侧滚动监听
-const handleThumbnailScroll = (event: Event) => {
-  const target = event.target as HTMLElement
-  const { scrollTop, scrollHeight, clientHeight } = target
-
-  // 当滚动到底部附近时加载更多
-  if (scrollHeight - scrollTop - clientHeight < 100) {
-    loadMoreRelated()
-  }
-}
+// 右侧缩略图滚动由统一组件 `ThumbnailGallery` 内部处理
 
 // 标志：是否是用户主动点击缩略图触发的滚动（此时不应在滚动事件中加载详情）
 const isUserClickingThumbnail = ref(false)
@@ -1929,14 +1508,9 @@ const handleMediaContainerScroll = async (event: Event) => {
 
 // 同步右侧缩略图滚动
 const syncRightThumbnailScroll = (scrollPercentage: number) => {
-  if (!thumbnailList.value) return
-
-  const { scrollHeight, clientHeight } = thumbnailList.value
-  const maxScroll = scrollHeight - clientHeight
-
-  if (maxScroll > 0) {
-    const targetScrollTop = maxScroll * scrollPercentage
-    thumbnailList.value.scrollTop = targetScrollTop
+  const inst = thumbnailRef.value
+  if (inst && typeof inst.syncScroll === 'function') {
+    inst.syncScroll(scrollPercentage)
   }
 }
 
@@ -1969,64 +1543,7 @@ const syncMediaContainerToSelected = (instant = false) => {
 }
 
 // 切换喜欢状态（用于template和like页面）
-const handleLikeToggle = async () => {
-  if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
-    return
-  }
-  if (!templateDetail.value) return
-
-  try {
-    const isLiking = !templateDetail.value.isLike
-    const userId = userStore.userInfo?.userId
-    if (!userId) {
-      ElMessage.warning('请先登录')
-      return
-    }
-
-    // 获取当前的点赞数和 likeId
-    const currentUseLikes = templateDetail.value.useLikes || 0
-    const currentLikeId = templateDetail.value.likeId
-
-    const params: any = {
-      userId,
-      creativeTemplateId: templateDetail.value.id,
-      useLikes: currentUseLikes, // 传递当前的点赞数
-    }
-
-    // 如果存在 likeId，总是传递（取消喜欢时需要）
-    if (currentLikeId) {
-      params.likeId = currentLikeId
-    }
-
-    const response: any = await userApi.userLikes(params)
-    if (response.code === '0000') {
-      // 更新点赞状态
-      templateDetail.value.isLike = isLiking ? 1 : 0
-      // 更新点赞数
-      templateDetail.value.useLikes = currentUseLikes + (isLiking ? 1 : -1)
-
-      // 更新 likeId
-      if (isLiking && (response.data as any)?.likeId) {
-        templateDetail.value.likeId = (response.data as any).likeId
-      } else if (!isLiking) {
-        templateDetail.value.likeId = null
-      }
-
-      ElMessage.success(isLiking ? '喜欢成功' : '取消喜欢')
-
-      // 如果是弹窗模式，通知父组件更新列表状态
-      if (props.isModal) {
-        emit('likeChanged', templateDetail.value)
-      }
-    } else {
-      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
-    }
-  } catch (error) {
-    console.error('喜欢操作失败:', error)
-    ElMessage.error('网络开小差了~，请稍后再试')
-  }
-}
+// 当前详情页 UI 已不展示“喜欢”入口；为避免 noUnusedLocals 导致 build 失败，先移除该逻辑
 
 // 资产收藏操作（用于assets页面）
 const handleAssetsCollect = async () => {
@@ -2164,6 +1681,191 @@ onMounted(async () => {
   pageTypeRef.value = props.pageType || (route.query.pageType as string) || 'template'
   cateTitleRef.value = props.cateTitle || (route.query.cateTitle as string) || ''
   sourceTabRef.value = props.sourceTab || (route.query.sourceTab as string) || ''
+
+  // ===== 临时：AI服装设计详情先用静态数据展示（不调用接口）=====
+  // 触发条件：从 AI 工作台进入详情（assets + sourceTab=aiFashionStudio），或显式携带 ?mock=1
+  if (
+    (pageTypeRef.value === 'assets' && sourceTabRef.value === 'aiFashionStudio') ||
+    String(route.query.mock || '') === '1'
+  ) {
+    const now = new Date()
+    const dateText = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+      now.getDate()
+    ).padStart(2, '0')}`
+
+    // 兼容：如果从 AiFashionStudio 来，通常会带 query.mode（aiFashion / sketchToReal / realToSketch / fabricCreative）
+    // 若未带，兜底使用当前详情的 typeName/titleName 关键词
+    const normalizeMode = (v: any): DetailModule => {
+      const raw = String(v || '').trim()
+      if (raw === 'aiFashion' || raw === 'sketchToReal' || raw === 'realToSketch' || raw === 'fabricCreative') {
+        return raw
+      }
+      if (raw.includes('线稿转实物')) return 'sketchToReal'
+      if (raw.includes('实物转线稿')) return 'realToSketch'
+      if (raw.includes('面料')) return 'fabricCreative'
+      return 'aiFashion'
+    }
+
+    // 优先级：URL query.mode > 缓存列表 mode > 兼容字段(detailModule/module)
+    const cachedMode = (templateStore.getTemplateListData() as any)?.mode
+    const mode = normalizeMode(route.query.mode || cachedMode || route.query.detailModule || route.query.module)
+
+    const buildMockRequestParam = (m: DetailModule) => {
+      const common = {
+        // 参数 tag（右侧“LingImage 1.0 / 3:4 / 2K / 图片”）
+        algorithmName: 'LingImage 1.0',
+        aspectRatio: '3:4',
+        resolution: '2K',
+        quality: '图片',
+        // 款型
+        category: '女装',
+        clothType: '上装',
+        subKind: m === 'sketchToReal' ? '卫衣' : 'T恤',
+        // 时间
+        createTime: dateText,
+      }
+
+      if (m === 'sketchToReal') {
+        return {
+          ...common,
+          // 参考图（线稿输入）
+          imageUrl: images.aiDesign1,
+          imageUrls: [images.aiDesign1],
+          // 线稿转实物专属字段（右侧展示用）
+          sketchType: '黑白线稿',
+          sketchStyle: '轮廓线稿',
+          outputType: '平铺图',
+          // 创意描述
+          prompt: '黑白线稿转写实服装，上衣卫衣，布料质感清晰，高清细节，写实光影',
+          creativeDescription: '黑白线稿转写实服装，上衣卫衣，布料质感清晰，高清细节，写实光影',
+        }
+      }
+
+      if (m === 'realToSketch') {
+        return {
+          ...common,
+          imageUrl: images.design2,
+          imageUrls: [images.design2],
+          lineType: '黑白线稿',
+          lineStyle: '轮廓线稿',
+          prompt: '实物照片生成黑白线稿，保留结构比例与关键褶皱',
+          creativeDescription: '实物照片生成黑白线稿，保留结构比例与关键褶皱',
+        }
+      }
+
+      if (m === 'fabricCreative') {
+        return {
+          ...common,
+          imageUrl: images.design3,
+          imageUrls: [images.design3],
+          outputType: '模特图',
+          prompt: '面料创拍，突出面料纹理与垂坠感，商业级布料质感',
+          creativeDescription: '面料创拍，突出面料纹理与垂坠感，商业级布料质感',
+        }
+      }
+
+      // aiFashion
+      return {
+        ...common,
+        // 参考图（右侧“参考图”区域）
+        imageUrl: images.design1,
+        imageUrls: [images.design1],
+        // 款型/设计特征（用于右侧展示）
+        features: ['A型', '白色', '牛仔面料', '小香风'],
+        // 创意描述
+        prompt: '无领 米白色 长款 宽松版型 毛呢大衣，20岁欧洲短发女模特穿着，时尚街拍，高清细节',
+        creativeDescription:
+          '无领 米白色 长款 宽松版型 毛呢大衣，20岁欧洲短发女模特穿着，时尚街拍，高清细节',
+      }
+    }
+
+    const buildMockList = (m: DetailModule) => {
+      // 左侧/右侧多图预览：保证 MediaPlayer 的 :src 有值（图片用 fileUrl 传入）
+      const baseId = String(route.params.id || 'mock')
+      if (m === 'sketchToReal') {
+        return [
+          {
+            id: `${baseId}-sketch`,
+            typeName: '线稿转实物',
+            titleName: '线稿转实物',
+            fileType: 1,
+            imageUrl: images.aiDesign1,
+            imgUrl: images.aiDesign1,
+            fileUrl: images.aiDesign1,
+          },
+          {
+            id: `${baseId}-real-1`,
+            typeName: '线稿转实物',
+            titleName: '线稿转实物',
+            fileType: 1,
+            imageUrl: images.design2,
+            imgUrl: images.design2,
+            fileUrl: images.design2,
+          },
+          {
+            id: `${baseId}-real-2`,
+            typeName: '线稿转实物',
+            titleName: '线稿转实物',
+            fileType: 1,
+            imageUrl: images.design4,
+            imgUrl: images.design4,
+            fileUrl: images.design4,
+          },
+        ]
+      }
+      // 其它类型先给 1 张即可（后续需要多图再扩展）
+      return [
+        {
+          id: `${baseId}-${m}-1`,
+          typeName:
+            m === 'realToSketch'
+              ? '实物转线稿'
+              : m === 'fabricCreative'
+                ? '面料创拍'
+                : 'AI服装设计',
+          titleName:
+            m === 'realToSketch'
+              ? '实物转线稿'
+              : m === 'fabricCreative'
+                ? '面料创拍'
+                : 'AI服装设计',
+          fileType: 1,
+          imageUrl: m === 'realToSketch' ? images.design2 : m === 'fabricCreative' ? images.design3 : images.design1,
+          imgUrl: m === 'realToSketch' ? images.design2 : m === 'fabricCreative' ? images.design3 : images.design1,
+          fileUrl: m === 'realToSketch' ? images.design2 : m === 'fabricCreative' ? images.design3 : images.design1,
+        },
+      ]
+    }
+
+    const list = buildMockList(mode)
+    const mockRequestParam = buildMockRequestParam(mode)
+
+    const mockDetail: any = {
+      ...list[0],
+      createTime: dateText,
+      requestParam: JSON.stringify(mockRequestParam),
+      isCollect: 0,
+      isLike: 0,
+    }
+
+    templateDetail.value = mockDetail
+    // 让列表项也带上 requestParam/createTime，避免切换缩略图时右侧回显丢字段
+    relatedTemplates.value = list.map((it: any, idx: number) => {
+      return {
+        ...it,
+        createTime: dateText,
+        requestParam: JSON.stringify(mockRequestParam),
+        isCollect: 0,
+        isLike: 0,
+        // 让第 0 张当作“主详情”
+        id: it.id || `${mockDetail.id}-${idx}`,
+      }
+    })
+    selectedThumbnail.value = 0
+    isDataReady.value = true
+    isInitialLoad.value = false
+    return
+  }
 
   console.log(
     '[详情页] pageType:',
@@ -2374,11 +2076,6 @@ onMounted(async () => {
 
   // 添加滚动监听
   nextTick(() => {
-    const thumbnailListElement = thumbnailList.value
-    if (thumbnailListElement) {
-      thumbnailListElement.addEventListener('scroll', handleThumbnailScroll)
-    }
-
     // 添加左侧媒体容器滚动监听
     const mediaContainerElement = mediaContainerRef.value
     if (mediaContainerElement) {
@@ -2389,11 +2086,6 @@ onMounted(async () => {
 
 // 组件卸载时移除监听
 onUnmounted(() => {
-  const thumbnailListElement = thumbnailList.value
-  if (thumbnailListElement) {
-    thumbnailListElement.removeEventListener('scroll', handleThumbnailScroll)
-  }
-
   const mediaContainerElement = mediaContainerRef.value
   if (mediaContainerElement) {
     mediaContainerElement.removeEventListener('scroll', handleMediaContainerScroll)
@@ -2406,15 +2098,19 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .template-detail-page {
-  display: flex;
+  // 页面本身不滚动：Header 固定占位，下方内容在内部容器滚动
   height: 100vh;
-  background-color: var(--primary-dark);
-  color: var(--text-primary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: $color-bg-black;
+  color: $color-text-white;
   position: relative;
 
   .main-content {
-    flex: 1;
     display: flex;
+    flex: 1;
+    min-height: 0; // 允许子元素正确计算滚动高度（避免双滚动条）
     overflow: hidden;
 
     .media-container {
@@ -2422,44 +2118,21 @@ onUnmounted(() => {
       flex-direction: column;
       flex: 1;
       height: 100%;
-      gap: var(--spacing-md);
-      background: var(--primary-dark);
-      padding: 0;
+      gap: $spacing-md;
       position: relative;
       overflow-y: auto;
       overflow-x: hidden;
       scroll-snap-type: y mandatory;
       scroll-behavior: smooth;
 
-      // assets 页面：不滚动
       .back-button {
-        position: fixed;
-        top: 43px;
+        position: absolute;
+        top: 21px;
         left: 21px;
         width: 36px;
         height: 36px;
-        background: var(--primary-dark) !important;
+        z-index: 999999;
         border: none;
-        border-radius: var(--radius-md);
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-        pointer-events: auto;
-
-        &:hover {
-          background: var(--bg-secondary) !important;
-          color: var(--primary-hover);
-        }
-
-        &:focus {
-          color: var(--primary-hover);
-        }
-
-        &:active {
-          color: var(--primary-hover);
-        }
       }
 
       // 媒体滚动容器
@@ -2473,8 +2146,8 @@ onUnmounted(() => {
       // 可滚动，每个item占满一屏
       .media-item {
         width: 100%;
-        height: 100vh;
-        min-height: 100vh;
+        height: 100%;
+        min-height: 100%;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
@@ -2483,7 +2156,7 @@ onUnmounted(() => {
         scroll-snap-align: start;
         scroll-snap-stop: always;
         position: relative;
-        padding-top: 60px;
+        padding-top: 21px;
         box-sizing: border-box;
       }
 
@@ -2497,20 +2170,6 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-
-        // 左侧媒体区域加载中背景改为纯黑
-        :deep(.lazy-image-wrapper) {
-          background-color: #000000;
-        }
-
-        // 懒加载 loading 蒙层改为纯黑，并去掉高亮闪动
-        :deep(.lazy-image-loading) {
-          background-color: #000000 !important;
-
-          &::after {
-            display: none;
-          }
-        }
 
         .video-player {
           width: 100%;
@@ -2529,15 +2188,15 @@ onUnmounted(() => {
         .main-image {
           max-width: 100%;
           object-fit: contain;
-          border-radius: var(--radius-lg);
+          border-radius: $border-radius-lg;
         }
       }
 
       .content-notice {
         padding: 21px 0 25px;
         text-align: center;
-        font-size: var(--font-sm);
-        color: var(--text-six);
+        font-size: $font-size-sm;
+        color: $color-text-white;
         flex-shrink: 0;
       }
     }
@@ -2548,49 +2207,20 @@ onUnmounted(() => {
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      padding: 43px 20px 39px;
+      padding: 30px 15px 66px;
       position: relative;
-      background: var(--bg-secondary);
-
-      .detail-loading-overlay {
-        position: absolute;
-        left: 20px;
-        right: 20px;
-        top: 92px; // 约等于顶部 actions + margin
-        z-index: 2;
-        pointer-events: none;
-      }
-
-      .detail-loading {
-        min-height: 240px;
-        border-radius: var(--radius-md);
-        background: rgba(63, 56, 71, 0.18);
-        padding: 16px 12px;
-        margin-bottom: 16px;
-      }
-
-      .detail-loading-icon {
-        font-size: 18px;
-        color: var(--text-six);
-      }
-
-      .detail-loading-text {
-        margin-top: 8px;
-        margin-bottom: 10px;
-        font-size: var(--font-sm);
-        color: var(--text-six);
-      }
-
-      .detail-loading-skeleton {
-        --el-skeleton-color: rgba(255, 255, 255, 0.08);
-        --el-skeleton-to-color: rgba(255, 255, 255, 0.14);
-      }
+      // 纯黑主题：右侧信息区使用黑底 + 轻描边分隔
+      background: $color-bg-dark-secondary;
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      color: $color-text-white;
+      font-size: $font-size-md;
 
       .info-actions {
         display: flex;
         align-items: start;
         justify-content: flex-end;
-        gap: var(--spacing-sm);
+        gap: $spacing-md;
         margin-bottom: 29px;
 
         .btn-icon {
@@ -2613,206 +2243,124 @@ onUnmounted(() => {
 
       // 标题
       .section-title,
-      .section-label {
-        font-size: var(--font-md);
-        color: var(--text-third);
-        font-weight: normal;
+      .param-input,
+      .tag-row {
+        margin-bottom: $spacing-sm-xs;
       }
 
-      .section-title {
-        margin-bottom: var(--spacing-s);
+      .param-input {
+        padding: 16px 10px;
       }
 
       .copy-icon {
+        width: 18px;
+        height: 18px;
         cursor: pointer;
       }
 
       .video-thumb-row {
         display: flex;
         align-items: center;
-        gap: var(--spacing-sm);
+        gap: $spacing-sm;
         flex-wrap: wrap;
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: 15px;
 
         img {
           width: 80px;
           height: 80px;
           object-fit: cover;
-          border-radius: var(--radius-md);
-        }
-
-        .btn {
-          margin: 0 5px 5px 0;
-          background: linear-gradient(90deg,
-              rgba(204, 166, 244, 1) 0%,
-              rgba(192, 126, 255, 1) 53%,
-              rgba(204, 166, 244, 1) 99%);
-
-          .skin-tone-code {
-            width: 34px;
-            height: 14px;
-            border-radius: 4px;
-          }
+          border-radius: $border-radius-md;
         }
       }
     }
 
     .creative-description {
-      margin-bottom: var(--spacing-lg);
-
-      .description-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin: var(--spacing-s) 0;
-
-        .copy {
-          width: 12px;
-          height: 12px;
-        }
-      }
+      margin-bottom: $spacing-md;
 
       .description-text {
-        font-size: var(--font-md);
+        margin-top: $spacing-sm-xs;
         line-height: 23px;
-        color: var(--text-primary);
         word-break: break-word;
         white-space: pre-wrap;
         -webkit-user-select: text;
         user-select: text;
-      }
-
-      .description-bar {
-        padding: 0 var(--spacing-md);
+        color: $color-text-gray;
+        text-align: justify;
+        font-family: NotoSans-regular;
       }
     }
 
     .tag-row {
       display: flex;
       align-items: center;
-      gap: var(--spacing-sm);
+      gap: 5px;
       flex-wrap: wrap;
-      margin-top: var(--spacing-s);
 
       .tag {
-        padding: 6px;
-        line-height: 1;
-        border-radius: 4px;
-        background-color: rgba(63, 56, 71, 0.31);
-        color: var(--text-tag);
-        font-size: var(--font-md);
-        border: 1px solid rgba(216, 180, 254, 0.3);
+        padding: 6px 10px 5px;
       }
+    }
+
+    .param-input,
+    .tag {
+      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: $color-text-gray;
+      font-family: -regular;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .params-tag {
+      padding: 3px 6px;
+      border-radius: 4px;
+      background-color: rgba(150, 221, 255, 0.15);
+      font-size: $font-size-sm;
+      text-align: center;
+      font-family: -regular;
+      border: 1px solid rgba(150, 221, 255, 1);
     }
 
     .use-count {
       font-size: 8px;
-      color: var(--text-tag);
+      color: $color-text-tags;
       margin-top: 5px;
+    }
+
+    .thumbnail-gallery {
+      border: none;
+      background: transparent;
+      margin-top: 0;
     }
   }
 
   .action-section {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: $spacing-xs;
     margin-top: auto;
 
     .action-item {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
+
+      .action-btn {
+        width: 120px;
+        height: 27px;
+        border-radius: 4px;
+        background-color: rgba(18, 18, 18, 1);
+        font-size: 14px;
+        color: $color-text-white;
+        text-align: center;
+        font-family: PingFangSC-regular;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
 
       .action-icon {
-        height: 19px;
-        width: auto;
+        height: 16px;
+        width: 16px;
         object-fit: contain;
-        margin-right: var(--spacing-xs);
-      }
-
-      .brand-watermark-icon {
-        width: 22px;
-        height: 22px;
+        margin-right: 6px;
+        box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.4);
       }
     }
-  }
-
-  .action-item-content {
-    display: flex;
-    gap: var(--spacing-sm);
-  }
-
-  // 会员专属功能按钮（右上角显示会员标识）
-  .vip-feature-btn {
-    position: relative;
-
-    .el-button.el-button--primary.el-button--large {
-      width: 100%;
-    }
-
-    .vip-badge {
-      position: absolute;
-      top: -9px;
-      right: -10px;
-      width: 19px;
-      height: 19px;
-      object-fit: contain;
-      pointer-events: none;
-    }
-  }
-
-  .thumbnail-sidebar {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .thumbnail-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 43px 9px;
-    background-color: var(--bg-card);
-  }
-
-  .thumbnail-item {
-    display: flex;
-    gap: var(--spacing-sm);
-    border-radius: var(--radius-md);
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: var(--spacing-sm);
-
-    &.active {
-      border-color: var(--primary-color);
-    }
-  }
-
-  .thumbnail-image {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    flex-shrink: 0;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-}
-
-// 提升详情页内下拉菜单在弹窗中的层级，避免被对话框遮挡
-:deep(.template-detail-download-popper) {
-  z-index: 11050 !important;
-}
-
-// “更多”菜单使用默认 popper class，这里统一提高层级（仅作用于详情页内）
-:deep(.el-dropdown__popper) {
-  &.template-detail-more-popper {
-    z-index: 11050 !important;
   }
 }
 </style>

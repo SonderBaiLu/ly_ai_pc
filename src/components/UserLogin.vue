@@ -350,7 +350,7 @@ onUnmounted(() => {
   if (smsTimer) {
     clearInterval(smsTimer)
     smsTimer = null
-}
+  }
 })
 </script>
 
@@ -743,6 +743,7 @@ onUnmounted(() => {
       border-radius: 8px;
       height: 49px;
       padding: 0 16px;
+      background: #ffffff;
       transition: 0.3s;
 
       &:focus-within {
@@ -760,6 +761,8 @@ onUnmounted(() => {
         font-size: 14px;
         width: 100%;
         color: #333;
+        background: transparent;
+        caret-color: #111;
 
         &::placeholder {
           color: #ccc;

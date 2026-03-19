@@ -14,7 +14,7 @@
           {{ selectedAlgorithm.name }}
           <span class="text-sm agree">{{ selectedAlgorithm.algorithmDesc }}</span>
         </h3>
-        <el-scrollbar class="scrollbar-bottom">
+        <div class="scrollbar-bottom">
           <div class="param-options">
             <div v-for="algorithm in algorithmModels" :key="(algorithm as any).id" :class="[
               'version-option',
@@ -22,16 +22,16 @@
               (algorithm as any).isVip && !userInfo?.isVip ? 'vip-locked' : '',
             ]" @click="selectAlgorithm(algorithm as any)">
               <!-- 背景图片 -->
-              <img class="background-image" :src="(algorithm as any).imageUrl || images.imgVideo" />
+              <img class="background-image" :src="(algorithm as any).imageUrl" />
 
               <!-- VIP标签 -->
-              <img v-if="(algorithm as any).isVip" class="vip-tag" :src="images.vip4" />
+              <img v-if="(algorithm as any).isVip" class="vip-tag" :src="images.vip" />
 
               <!-- 选中状态图标 -->
               <img v-if="selectedAlgorithm.id === (algorithm as any).id" class="active-icon" :src="images.checked" />
             </div>
           </div>
-        </el-scrollbar>
+        </div>
       </div>
 
       <!-- 动态渲染参数组（只显示有数据的） -->
@@ -60,8 +60,6 @@
                 <img :src="param.imageUrl" class="camera-image" />
                 <!-- 运镜参数的选中标记（图片右下角） -->
                 <img v-if="isParamSelected(paramGroup.type, param)" class="active-icon" :src="images.choose" />
-                <!-- VIP标签 -->
-                <img v-if="param.isVip" class="vip-tag" :src="images.vip4" />
               </div>
               <!-- 文字在外面，无边框 -->
               <span class="camera-name">{{ param.templateName }}</span>
@@ -83,7 +81,6 @@
               ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
               <img :src="param.imageUrl" class="ratio-image" />
               <span>{{ param.templateName }}</span>
-              <img v-if="param.isVip" class="vip-tag" :src="images.vip4" />
             </div>
           </div>
         </el-scrollbar>
@@ -109,7 +106,7 @@
               <span v-else>{{ param.templateName }}</span>
 
               <!-- VIP标签 -->
-              <img v-if="param.isVip" class="vip-tag" :src="images.vip4" />
+              <img v-if="param.isVip" class="vip-tag" :src="images.vip" />
             </div>
           </div>
         </div>
@@ -693,11 +690,11 @@ const onClose = () => {
       // vip图标
       .vip-tag {
         position: absolute;
-        top: -8px;
-        right: -8px;
+        top: -12px;
+        right: -12px;
         z-index: 99;
-        width: 28px;
-        height: 16px;
+        width: 24px;
+        height: 24px;
       }
 
       // 选择图标

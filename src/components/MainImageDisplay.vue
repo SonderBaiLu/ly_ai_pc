@@ -14,103 +14,93 @@
       </el-button> -->
     </div>
 
-    <!-- 主内容显示区域 -->
-    <div ref="mainContentRef" v-loading="loading && assets.length === 0" v-infinite-scroll="handleLoadMore"
-      class="main-content-area" :infinite-scroll-disabled="loading || loadingMore || !hasMoreData"
-      :infinite-scroll-distance="200">
-      <!-- 资产列表 -->
-      <div class="assets-list">
-        <!-- 资产项 -->
-        <div v-for="(asset, index) in assets" :key="asset.id || asset.taskId || asset.taskUuid || `asset-${index}`"
-          class="asset-item" :class="[
-            { active: index === currentIndex },
-            asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
-          ]" @click="selectAsset(index)">
+    <!-- 主内容显示区域（使用 el-scrollbar 触底加载，避免 v-infinite-scroll 弃用警告） -->
+    <el-scrollbar ref="scrollbarRef" class="main-content-area" @scroll="handleMainScroll">
+      <div ref="mainContentRef" v-loading="loading && assets.length === 0">
+        <!-- 资产列表 -->
+        <div class="assets-list">
+          <!-- 资产项 -->
+          <div v-for="(asset, index) in assets" :key="asset.id || asset.taskId || asset.taskUuid || `asset-${index}`"
+            class="asset-item" :class="[
+              { active: index === currentIndex },
+              asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
+            ]" @click="selectAsset(index)">
 
-          <!-- 生成中状态（卡片内仅保留骨架和文案，不再重复进度条） -->
-          <div v-if="asset.status === 2" class="asset-placeholder generating">
-            <div class="skeleton-box">
-              <div class="skeleton-shimmer"></div>
-              <div class="generating-status">
-                <el-icon class="is-loading status-icon">
-                  <Loading />
-                </el-icon>
-                <span class="status-text">AI正在生成中...</span>
-                <div class="card-progress">
-                  <GradientProgress :percentage="getProgressValue(asset)" />
-                </div>
+            <!-- 生成中状态（使用动态图占位；不展示进度条） -->
+            <div v-if="asset.status === 2" class="asset-placeholder generating">
+              <div class="status-spinner" aria-hidden="true"></div>
+              <div class="status-text">正在生成中...</div>
+              <GradientProgress :percentage="getProgressValue(asset)" />
+            </div>
+
+            <!-- 生成失败状态 -->
+            <div v-else-if="asset.status === 4" class="asset-placeholder failed">
+              <img :src="images.fail" class="placeholder-icon" alt="生成失败" />
+              <div>生成失败</div>
+            </div>
+
+            <!-- 正常显示：当前选中资产的主要显示区域 -->
+            <div v-else class="current-asset-display">
+              <!-- 媒体展示区域 - 点击跳转详情 -->
+              <div class="media-frame" :data-asset-index="index" :draggable="asset.fileType !== 2"
+                @click="handleViewDetail(index)" @dragstart.stop="handleAssetDragStart(asset, $event)">
+                <MediaPlayer :ref="(el: any) => setMediaPlayerRef(el, index)"
+                  :src="asset.fileType === 2 ? asset.fileUrl || '' : ''" :poster="asset.imageUrl" width="100%"
+                  height="100%" :autoplay="false" :muted="false" :loop="false" :controls="true" object-fit="contain"
+                  poster-fit="contain" class="media-player" :minimal-controls="true" :image-only="asset.fileType !== 2"
+                  @play="() => handleVideoPlay(index)" @pause="() => handleVideoPause(index)" />
+              </div>
+
+              <!-- 操作按钮栏 -->
+              <div class="action-buttons">
+                <el-button class="action-btn" :class="{ 'is-collected': asset.collectId }" type="primary"
+                  @click.stop="handleCollect(index)">
+                  <img :src="asset.collectId ? images.collectActive : images.collectNo" alt="收藏" class="action-icon" />
+                  <span>{{ asset.collectId ? '已收藏' : '收藏' }}</span>
+                </el-button>
+                <el-button class="action-btn" :loading="isDownloading(asset, index)"
+                  :disabled="isDownloading(asset, index)" type="primary" @click="handleDownload(index)">
+                  <img :src="images.downloadIcon" alt="下载" class="action-icon" />
+                  <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
+                </el-button>
+                <el-button class="action-btn delete-btn" type="primary" @click.stop="handleDelete(index)">
+                  <img :src="images.delMini" alt="删除" class="action-icon" />
+                  <span>删除</span>
+                </el-button>
               </div>
             </div>
           </div>
 
-          <!-- 生成失败状态 -->
-          <div v-else-if="asset.status === 4" class="asset-placeholder failed">
-            <img :src="asset.fileType === 2 ? images.failVideoPrimary : images.failImgPrimary" class="placeholder-icon"
-              alt="生成失败" />
-            <p class="placeholder-text">生成失败</p>
-          </div>
+          <!-- 统一加载状态：加载更多/END/空状态/返回顶部 -->
+          <InfiniteScrollLoader :loading="loading" :has-more="hasMoreData" :data-length="assets.length"
+            :empty-text="emptyDescription" image-size="280px" :show-loading-state="false" />
+        </div>
 
-          <!-- 正常显示：当前选中资产的主要显示区域 -->
-          <div v-else class="current-asset-display">
-            <!-- 媒体展示区域 - 点击跳转详情 -->
-            <div class="media-frame" :data-asset-index="index" :draggable="asset.fileType !== 2"
-              @click="handleViewDetail(index)" @dragstart.stop="handleAssetDragStart(asset, $event)">
-              <MediaPlayer :ref="(el) => setMediaPlayerRef(el, index)"
-                :src="asset.fileType === 2 ? asset.fileUrl || '' : ''" :poster="asset.imageUrl" width="100%"
-                height="100%" :autoplay="false" :muted="false" :loop="false" :controls="true" object-fit="contain"
-                poster-fit="contain" class="media-player" :minimal-controls="true" :image-only="asset.fileType !== 2"
-                @play="() => handleVideoPlay(index)" @pause="() => handleVideoPause(index)" />
+        <!-- 固定在底部的状态和回到顶部按钮 -->
+        <div v-if="generatingCount > 0 || showBackTop" class="fixed-bottom-overlay">
+          <div class="status-content">
+            <!-- 生成状态（仅在有生成中任务时显示） -->
+            <div v-if="generatingCount > 0" class="generating-status-section">
+              <el-icon class="is-loading status-icon">
+                <Loading />
+              </el-icon>
+              <span class="status-text">{{ completedCount }}/{{ generatingCount }} 生成中</span>
             </div>
 
-            <!-- 操作按钮栏 -->
-            <div class="action-buttons">
-              <el-button class="action-btn" :class="{ 'is-collected': asset.collectId }" type="primary"
-                @click.stop="handleCollect(index)">
-                <img :src="asset.collectId ? images.collectActive : images.collectNo" alt="收藏" class="action-icon" />
-                <span>{{ asset.collectId ? '已收藏' : '收藏' }}</span>
-              </el-button>
-                <el-button class="action-btn" :loading="isDownloading(asset, index)"
-                :disabled="isDownloading(asset, index)" type="primary" @click="handleDownload(index)">
-                <img :src="images.downloadMini" alt="下载" class="action-icon" />
-                  <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
-                </el-button>
-              <el-button class="action-btn delete-btn" type="primary" @click.stop="handleDelete(index)">
-                <img :src="images.delMini" alt="删除" class="action-icon" />
-                <span>删除</span>
-              </el-button>
+            <!-- 竖线分隔符（当两个元素都存在时显示） -->
+            <div v-if="generatingCount > 0 && showBackTop" class="divider"></div>
+
+            <!-- 回到顶部按钮（仅在有滚动时显示） -->
+            <div v-if="showBackTop" class="back-to-top-section" @click="scrollToTop">
+              <el-icon class="back-to-top-icon">
+                <ArrowUp />
+              </el-icon>
+              <span class="back-to-top-text">回到顶部</span>
             </div>
           </div>
         </div>
-
-        <!-- 统一加载状态：加载更多/END/空状态/返回顶部 -->
-        <InfiniteScrollLoader :loading="loading" :has-more="hasMoreData" :data-length="assets.length"
-          :empty-text="emptyDescription" image-size="280px" :show-loading-state="false" />
       </div>
-
-      <!-- 固定在底部的状态和回到顶部按钮 -->
-      <div v-if="generatingCount > 0 || showBackTop" class="fixed-bottom-overlay">
-        <div class="status-content">
-          <!-- 生成状态（仅在有生成中任务时显示） -->
-          <div v-if="generatingCount > 0" class="generating-status-section">
-            <el-icon class="is-loading status-icon">
-              <Loading />
-            </el-icon>
-            <span class="status-text">{{ completedCount }}/{{ generatingCount }} 生成中</span>
-          </div>
-
-          <!-- 竖线分隔符（当两个元素都存在时显示） -->
-          <div v-if="generatingCount > 0 && showBackTop" class="divider"></div>
-
-          <!-- 回到顶部按钮（仅在有滚动时显示） -->
-          <div v-if="showBackTop" class="back-to-top-section" @click="scrollToTop">
-            <el-icon class="back-to-top-icon">
-              <ArrowUp />
-            </el-icon>
-            <span class="back-to-top-text">回到顶部</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    </el-scrollbar>
   </div>
 </template>
 
@@ -118,7 +108,7 @@
 // 自动导入：Vue API, Element Plus 图标
 import { type Asset } from '@/composables/useTaskPolling'
 import { ElMessage } from 'element-plus'
-import { Loading, ArrowUp } from '@element-plus/icons-vue'
+import { ArrowUp } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import GradientProgress from './GradientProgress.vue'
 
@@ -177,7 +167,8 @@ watch(
 )
 
 // 响应式数据
-const mainContentRef = ref()
+const mainContentRef = ref<HTMLElement>()
+const scrollbarRef = ref<any>(null)
 const activeContentTab = ref('all')
 
 // 回到顶部相关
@@ -284,11 +275,12 @@ const emptyDescription = computed(() => {
 
 // 进度显示：只使用接口返回的 progress 字段，向下取整并限制在 0-100
 const getProgressValue = (asset: Asset) => {
-  const raw = Number(asset.progress ?? 0)
+  const raw = Number((asset as any).progress ?? 0)
   if (Number.isNaN(raw)) return 0
   return Math.min(100, Math.max(0, Math.floor(raw)))
 }
 
+// 进度显示：只使用接口返回的 progress 字段，向下取整并限制在 0-100
 // 处理主大图拖拽开始：与缩略图拖拽保持同一协议，方便左侧统一解析
 const handleAssetDragStart = (asset: Asset, event: DragEvent) => {
   try {
@@ -355,20 +347,31 @@ const handleCollect = (index: number) => {
 
 // 处理下载
 const handleDownload = (index: number) => {
-      emit('download', index, removeWatermarkEnabled.value)
-    }
+  emit('download', index, removeWatermarkEnabled.value)
+}
 // 处理删除
 const handleDelete = (index: number) => {
   console.log('[操作] 删除资产:', index)
   emit('delete', index)
 }
 
+// el-scrollbar 触底加载更多（替代 v-infinite-scroll）
+const handleMainScroll = ({ scrollTop }: { scrollTop: number }) => {
+  const wrapEl: HTMLElement | undefined = scrollbarRef.value?.wrapRef
+  if (!wrapEl) return
+  if (props.loading || props.loadingMore || !props.hasMoreData) return
+
+  const distance = 200
+  const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
+  if (reachBottom) handleLoadMore()
+}
+
 // 组件挂载时添加滚动监听和 Intersection Observer
 onMounted(() => {
   nextTick(() => {
-    if (mainContentRef.value) {
-      mainContentRef.value.addEventListener('scroll', handleScroll, { passive: true })
-    }
+    // mainContentRef 用于 scrollToAsset/syncScroll：这里指向 scrollbar 的 wrap
+    mainContentRef.value = (scrollbarRef.value?.wrapRef as HTMLElement) || mainContentRef.value
+    if (mainContentRef.value) mainContentRef.value.addEventListener('scroll', handleScroll, { passive: true })
     initIntersectionObserver()
   })
 })
@@ -813,103 +816,56 @@ defineExpose({
 
 /* ========== 资产占位符（生成中/失败） ========== */
 .asset-placeholder {
-  position: relative;
-  width: 100%;
-  border-radius: $border-radius-md;
-  background-color: $color-bg-dark-secondary;
-  margin-bottom: $spacing-md;
-  overflow: hidden;
-
-  &.generating {
-    background-color: transparent;
-  }
-
-  &.failed {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-
-    .placeholder-icon {
-      width: 120px;
-      height: 120px;
-      margin-bottom: $spacing-sm;
-      object-fit: contain;
-    }
-
-    .placeholder-text {
-      font-size: $font-size-sm;
-      color: $color-text-secondary;
-    }
-  }
-}
-
-/* ========== 骨架屏盒子 ========== */
-.skeleton-box {
-  position: relative;
   width: 100%;
   height: 420px;
-  background: linear-gradient(90deg, #2a2a3e 0%, #32324a 50%, #2a2a3e 100%);
-  background-size: 200% 100%;
   border-radius: $border-radius-md;
+  background: $color-bg-dark-secondary;
+  margin-bottom: 28px;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ========== 从左向右的光影动画 ========== */
-.skeleton-shimmer {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(0, 212, 170, 0.1) 50%,
-      rgba(255, 255, 255, 0) 100%);
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-
-  100% {
-    left: 100%;
-  }
-}
-
-/* ========== 生成状态文字 ========== */
-.generating-status {
-  position: relative;
-  z-index: 1;
+  font-size: $font-size-xl;
+  color: $color-primary;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $spacing-sm;
+  justify-content: center;
 
-  .status-icon {
-    font-size: 48px;
-    color: $color-primary;
+  &.generating {
+    background-color: $color-bg-dark-secondary;
+    background: url('@/assets/images/generating.gif') no-repeat center center;
+    background-size: 100% 100%;
+
+    /* ========== 加载中圈圈 ========== */
+    .status-spinner {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 8px solid #2d4655;
+      border-top-color: #96ddff;
+      animation: spin 1.5s linear infinite;
+      box-sizing: border-box;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status-text {
+      margin: $spacing-md 0;
+    }
   }
 
-  .status-text {
-    font-size: 16px;
-    color: $color-primary;
-    font-weight: 500;
-    letter-spacing: 1px;
-  }
-}
+  &.failed {
+    .placeholder-icon {
+      width: 130px;
+      height: 130px;
+      margin-bottom: $spacing-md;
+      object-fit: contain;
+    }
 
-/* 卡片内的进度条容器 */
-.card-progress {
-  width: 360px;
-  max-width: 90%;
-  margin-top: $spacing-md;
+  }
 }
 
 /* ========== 当前资产展示区域 ========== */

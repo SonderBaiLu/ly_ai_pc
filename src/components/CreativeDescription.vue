@@ -183,15 +183,17 @@ const handleBlur = (event: Event) => {
   emit('blur', event)
 }
 
-// 处理AI助理点击
+// 处理灵感词词典点击
 const handleAiAssistant = (): void => {
-  // PC端路由跳转
-  emit('ai-assistant')
+  // 打开灵感词词典
+  emit('inspiration-library')
 }
 
 // 处理清空内容
 const handleClear = (): void => {
   localDescription.value = ''
+  // 清空灵感词词典的选择
+  emit('update:inspirationWords', [])
 }
 
 // 处理删除标签
@@ -262,7 +264,7 @@ onMounted(() => {
     .tags-container {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--spacing-sm);
+      gap: 8px;
       margin-bottom: $spacing-sm;
 
       .inspiration-tag {

@@ -11,7 +11,7 @@
             :class="{ active: index === activeTagIndex }" @click="activeTagIndex = index">
             {{ tag }}
           </span>
-          <button class="design-tag design-tag-cta" type="button">
+          <button class="design-tag design-tag-cta" type="button" @click="goAiFashionStudio">
             {{ tags[tags.length - 1] }}
           </button>
         </div>
@@ -22,14 +22,15 @@
         </div>
       </div>
     </div>
-    <CtaSection :on-click="showComingSoon" />
+    <CtaSection :on-click="goAiFashionStudio" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { useAuthGate } from '@/composables/useAuthGate'
 import CtaSection from '@/components/CtaSection.vue'
 
 // 外套
@@ -72,7 +73,9 @@ import pants6 from '@/assets/images/home/pants6.png'
 import pants7 from '@/assets/images/home/pants7.png'
 import pants8 from '@/assets/images/home/pants8.png'
 
-const { t, tm, locale } = useI18n()
+const { t, tm } = useI18n()
+const router = useRouter()
+const { enterModule } = useAuthGate()
 
 // 当前激活的标签索引（只针对前四个品类标签）
 const activeTagIndex = ref(0)
@@ -88,12 +91,9 @@ const designGroups = [
 
 const currentDesigns = computed(() => designGroups[activeTagIndex.value] || designGroups[0])
 
-const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
+const goAiFashionStudio = () => {
+  // 未登录：先进 AI 设计工作台；登录后：进入 AI 服装设计工作台
+  enterModule(() => router.push({ path: '/ai-fashion', query: { mode: 'aiFashion' } }))
 }
 
 const tags = computed(() => (tm('designMatrix.tags') as string[]) || [])

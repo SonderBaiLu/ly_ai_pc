@@ -6,7 +6,7 @@
     <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="real" :show-actions="!!imageUrl"
       :clickable="true" placeholder-text="上传或拖拽1张图片" :history-max-count="1" :show-history-tip="true"
       @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-      @show-history="emit('coming-soon')" @drop-file="(p) => emit('drop-file', p)" />
+      @show-history="emit('coming-soon')" @drop-file="(p: File) => emit('drop-file', p)" />
 
     <div class="block">
       <div class="block-title">选择款型<span class="required-mark">（非必选，单选）</span></div>
@@ -36,8 +36,9 @@
     </div>
 
     <!-- 创意描述 -->
-    <CreativeDescription v-model:prompt="prompt" :optional="true"
-      placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。参考示例：无领 驼色 长款 双面呢 宽松版型 羊毛材质 毛呢大衣" />
+    <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
+      @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。
+参考示例：无领 驼色 长款 双面呢 宽松版型 羊毛材质 毛呢大衣" />
 
     <!-- 底部参数以及生成按钮 -->
     <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
@@ -47,15 +48,25 @@
 
 <script setup lang="ts">
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
-import CreativeDescription from '@/components/CreativeDescription.vue'
-import VideoOptionsSection from '@/components/VideoOptionsSection.vue'
 
 const imageUrl = defineModel<string>('imageUrl', { default: '' })
 
 const props = defineProps<{
   taskResultId?: string | number
   creationTypeSelection?: Partial<CreationTypeSelection>
+  inspirationWords?: any[]
 }>()
+
+// 监听inspirationWords变化
+watch(
+  () => props.inspirationWords,
+  (newWords) => {
+    if (newWords) {
+      inspirationWords.value = newWords
+    }
+  },
+  { deep: true }
+)
 
 const emit = defineEmits<{
   (e: 'drop-file', payload: any): void
@@ -65,6 +76,8 @@ const emit = defineEmits<{
   (e: 'generate'): void
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
+  (e: 'inspiration-library'): void
+  (e: 'update:inspiration-words', words: any[]): void
 }>()
 
 type SketchColor = 'bw' | 'color'
@@ -73,6 +86,12 @@ type SketchStyle = 'outline' | 'hand'
 const sketchColor = ref<SketchColor>('bw')
 const sketchStyle = ref<SketchStyle>('outline')
 const prompt = ref('')
+const inspirationWords = ref<any[]>([])
+
+const updateInspirationWords = (words: any[]) => {
+  inspirationWords.value = words
+  emit('update:inspiration-words', words)
+}
 
 const typeText = computed(() => {
   const s = props.creationTypeSelection

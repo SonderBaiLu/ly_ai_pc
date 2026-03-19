@@ -12,9 +12,8 @@
       </el-tabs>
     </template>
 
-    <div ref="modalBodyRef" v-infinite-scroll="loadMoreRecords" class="modal-body"
-      :infinite-scroll-disabled="loadingRecords || loadingMoreRecords || !hasMoreRecords"
-      :infinite-scroll-distance="100">
+    <!-- 使用 el-scrollbar + scroll 触底加载-->
+    <el-scrollbar ref="scrollbarRef" class="modal-body" @scroll="handleBodyScroll">
       <!-- 订阅列表 -->
       <div v-if="activeTab === 'subscription'" class="tab-panel">
         <div v-if="hasActiveSubscription" class="subscription-list">
@@ -71,7 +70,7 @@
         <InfiniteScrollLoader :loading="loadingRecords" :loading-more="loadingMoreRecords" :has-more="hasMoreRecords"
           :data-length="records.length" :show-empty-state="true" empty-text="暂无购买记录" />
       </div>
-    </div>
+    </el-scrollbar>
   </el-dialog>
 </template>
 
@@ -110,11 +109,24 @@ const records = ref<any[]>([])
 const loadingRecords = ref(false)
 const loadingMoreRecords = ref(false)
 const hasMoreRecords = ref(true)
-const modalBodyRef = ref<HTMLElement>()
+const scrollbarRef = ref<any>(null)
 
 // vue-tsc 不会把 template 里的 ref 当作“被读取”，这里在脚本侧补一次使用
 const resetScroll = () => {
-  modalBodyRef.value?.scrollTo?.({ top: 0 })
+  const wrapEl: HTMLElement | undefined = scrollbarRef.value?.wrapRef
+  wrapEl?.scrollTo?.({ top: 0 })
+}
+
+// el-scrollbar 触底加载更多（购买记录 tab）
+const handleBodyScroll = ({ scrollTop }: { scrollTop: number }) => {
+  if (activeTab.value !== 'records') return
+  const wrapEl: HTMLElement | undefined = scrollbarRef.value?.wrapRef
+  if (!wrapEl) return
+  if (loadingRecords.value || loadingMoreRecords.value || !hasMoreRecords.value) return
+
+  const distance = 100
+  const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
+  if (reachBottom) loadMoreRecords()
 }
 
 // 分页参数
