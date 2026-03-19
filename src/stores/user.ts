@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 // 引入API接口
-import { loginBySmsCodeApi, loginByPwd, teamLogin, getUserDetailsApi } from '@/api/userLogin'
+import { loginBySmsCodeApi, loginByPwd, teamLogin, getUserDetailsApi, logout } from '@/api/userLogin'
 
 export interface UserInfo {
   userId?: string | number
@@ -44,7 +44,7 @@ export const useUserStore = defineStore('user', {
       try {
         const res = await getUserDetailsApi()
         const detailInfo = res.data
-        this.setUserInfo(detailInfo)
+        this.setUserInfo(detailInfo) // 存储数据
         return detailInfo
       } catch (error) {
         console.error('获取用户详细信息失败', error)
@@ -74,11 +74,11 @@ export const useUserStore = defineStore('user', {
       const res = await teamLogin({ userName, pwd })
       const tokenStr = res.data?.accessToken
       this.setToken(tokenStr)
-
       await this.getUserInfo()
     },
 
     logout() {
+      logout();
       this.setToken('')
       this.setUserInfo(null)
     }

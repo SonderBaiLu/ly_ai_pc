@@ -18,7 +18,6 @@ export interface UserDetailData {
     msgCount: string
 }
 
-
 // 获取验证码
 export const getSmsCodeApi = (mobile: number) => {
     return request.get('/v1/login/send/smsCode', {
@@ -60,5 +59,9 @@ export const changePwdBySms = (payload: {
 // 登录成功后  获取用户信息
 export const getUserDetailsApi = () => {
     return request.get('/v1/user/getUserDetails')
+}
+// 用户登出
+export const logout = () => {
+    return request.get('/v1/login/logout')
 }
 

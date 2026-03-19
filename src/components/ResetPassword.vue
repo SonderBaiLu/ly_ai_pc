@@ -4,7 +4,7 @@
       <button class="close-btn" @click="closeModal">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M1 1L13 13M1 13L13 1" stroke="#999999" stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" />
+            stroke-linejoin="round" />
         </svg>
       </button>
 
@@ -16,7 +16,7 @@
           <div class="input-wrapper">
             <span class="prefix">+86</span>
             <span class="divider"></span>
-            <input type="number" maxlength="11" v-model="formData.phone" class="form-input" placeholder="请输入手机号" />
+            <input type="tel" maxlength="11" v-model="formData.phone" class="form-input" placeholder="请输入手机号" />
           </div>
         </div>
 
@@ -34,8 +34,8 @@
             <button @click='GetSmSCode' :disabled="!formData.phone || isCounting" class="get-code-btn">
               {{
                 isCounting
-                    ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
-                    : t('LoginPopUpPage.getVerificationCode')
+                  ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
+                  : t('LoginPopUpPage.getVerificationCode')
               }}
             </button>
           </div>
@@ -53,7 +53,7 @@
             新密码 <span class="label-hint">6-20个数字、字母组成</span>
           </label>
           <div class="input-wrapper">
-            <input :type="onePasswordInputType" v-model="formData.password" class="form-input" placeholder="请输入密码" />
+            <input :type="onePasswordInputType" v-model="formData.onepassword" class="form-input" placeholder="请输入密码" />
             <span class="icon-eye" @click="oneShowPersonalPwd = !oneShowPersonalPwd">
               <img :src="oneShowPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" />
             </span>
@@ -64,7 +64,7 @@
           <label class="form-label">确认密码</label>
           <div class="input-wrapper">
             <input :type="TwoPasswordInputType" v-model="formData.twoPassword" class="form-input"
-                   placeholder="请再次输入密码确认" />
+              placeholder="请再次输入密码确认" />
             <span class="icon-eye" @click="twoShowPersonalPwd = !twoShowPersonalPwd">
               <img :src="twoShowPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" />
             </span>
@@ -86,16 +86,24 @@ import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 
 // 假设你的 API 文件导出了这些方法，你需要根据实际情况调整
 import { changePwdBySms, getSmsCodeApi } from "@/api/userLogin";
+import userApi from '@/api/user';
 // import { changePwdByOldPwd } from "@/api/userLogin"; // 模式1和2可能需要的API
 
 const { t } = useI18n()
 
-// 有三种模式
-// 0 = "用户第一次手机号注册 没有密码时候弹窗"
-// 1 = "用户修改密码 有密码的时候"
+// 有三种模式 
+// 0 = "用户第一次手机号注册 没有密码时候弹" 
+// 1 = "用户修改密码 有密码的时候" 
 // 2 = "团队修改密码"
 // 这里设为 ref 方便你在父组件中通过 ref 或者 props 动态修改
-const modeType = ref<'0' | '1' | '2'>('2')
+const props = defineProps({
+  mode: {
+    type: String,
+    default: '0' // 默认为模式 0
+  }
+});
+const emit = defineEmits(['close']) //定义抛出给父组件的关闭事件
+const modeType = ref<'0' | '1' | '2'>(props.mode as '0')
 
 // 密码显示切换状态
 const oneShowPersonalPwd = ref(false)
@@ -104,10 +112,10 @@ const twoShowPersonalPwd = ref(false)
 // 表单数据
 const formData = reactive({
   phone: '',
-  accountName: '', // 账户名等待传值
+  accountName: '', // 模式2下的默认或传入账号名
   code: '',
   oldPassword: '',
-  password: '',
+  onepassword: '',
   twoPassword: '',
 })
 
@@ -153,9 +161,9 @@ const GetSmSCode = async () => {
 // 提交逻辑
 const resetPassword = async () => {
   // 1. 公共校验：新密码
-  if (!formData.password) return ElMessage.warning("请输入密码");
+  if (!formData.onepassword) return ElMessage.warning("请输入密码");
   if (!formData.twoPassword) return ElMessage.warning("请再次输入密码");
-  if (formData.password !== formData.twoPassword) {
+  if (formData.onepassword !== formData.twoPassword) {
     return ElMessage.warning("两次输入的密码不一致，请重新输入");
   }
 
@@ -168,19 +176,24 @@ const resetPassword = async () => {
       await changePwdBySms({
         mobile: formData.phone,
         verifyCode: Number(formData.code),
-        newPwd: formData.password,       // 密码通常不转Number，依你后端接口而定
-        newPwdAgain: formData.twoPassword
+        newPwd: Number(formData.onepassword),
+        newPwdAgain: Number(formData.twoPassword)
       });
     }
     else if (modeType.value === '1') {
       if (!formData.phone) return ElMessage.warning("请输入手机号");
       if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
-
-      // await changePwdByOldPwd({ mobile: formData.phone, oldPwd: formData.oldPassword, newPwd: formData.password })
+      console.log("oldPwd", formData)
+      await userApi.changePwdByOldPwd(
+        {
+          oldPwd: Number(formData.oldPassword),
+          newPwd: Number(formData.onepassword),
+          newPwdAgain: Number(formData.twoPassword),
+        })
+      emit('close')
     }
     else if (modeType.value === '2') {
       if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
-
       // await changePwdByOldPwd({ account: formData.accountName, oldPwd: formData.oldPassword, newPwd: formData.password })
     }
 
@@ -193,7 +206,7 @@ const resetPassword = async () => {
 
 const closeModal = () => {
   // 触发关闭弹窗的事件
-  // emit('close')
+  emit('close')
 }
 
 onUnmounted(() => {
@@ -217,7 +230,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 3119;
 }
 
 // 主体
@@ -300,6 +313,7 @@ onUnmounted(() => {
 
     &.disabled-wrapper {
       background: #F5F7FA;
+
       input {
         color: #99A3B3;
         cursor: not-allowed;

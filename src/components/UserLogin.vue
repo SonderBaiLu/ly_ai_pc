@@ -1,7 +1,6 @@
 <template>
   <div class="login-overlay" @click.self="handleClose">
     <div class="login-modal">
-
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
@@ -92,7 +91,7 @@
                 </div>
               </div>
               <div class="input-wrapper code-input-wrapper">
-                <input type="text" v-model="formData.code"
+                <input type="tel" maxlength="4" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
                   {{ isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
@@ -170,6 +169,9 @@
         </div>
       </div>
     </div>
+    <Transition name="modal">
+      <ResetPassword v-if="isVisible" :mode="currentMode" @close="isVisible = false" />
+    </Transition>
   </div>
 </template>
 
@@ -181,12 +183,10 @@ import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
 import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 import { getSmsCodeApi } from '@/api/userLogin'
 import { useUserStore } from "@/stores/user"
-import userApi from '@/api/user'
-const resetPwdRef = ref<InstanceType<typeof ResetPassword> | null>(null)
+import ResetPassword from '@/components/ResetPassword.vue'
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
-import ResetPassword from '@/components/ResetPassword.vue' // 引入你的组件
 // ----- 扫码登陆 ------------- 测试 --------
 // const qrCodeImg = ref('') // 二维码图片源
 // const currentTicket = ref('') // 这个是二维码的唯一凭证
@@ -264,6 +264,9 @@ const accountType = ref<'personal' | 'team'>('personal')
 const loginMethod = ref<'qrcode' | 'phone'>('phone')
 const phoneLoginType = ref<'code' | 'password'>('code')
 
+// 定义控制弹窗显示的变量 重置密码组件
+const isVisible = ref(false)
+const currentMode = ref('0')
 // 密码显示切换状态
 const showPersonalPwd = ref(false)
 const showTeamPwd = ref(false)
@@ -346,12 +349,14 @@ const handleSubmit = async () => {
       }
       await userStore.loginWithSms(formData.phone, formData.code)
       // 查询用户是否设置了密码 如果没有就弹出 设置密码弹窗
-      const setPwd = await userApi.getUserSetPwd()
-      if (setPwd.data.setPwd === false) {
-        // 弹出 设置密码的窗口
-        console.log('')
-        return
-      }
+      //const setPwd = await userApi.getUserSetPwd()
+      //if (setPwd.data.setPwd === false) {
+      // 弹出 设置密码的窗口
+      //  currentMode.value = '0'
+      //  isVisible.value = true
+      // }
+      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+      emit('close')
 
     } else {
       if (!formData.password) {
@@ -359,11 +364,8 @@ const handleSubmit = async () => {
         return
       }
       await userStore.loginWithPassword(formData.phone, formData.password)
+      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
     }
-
-    ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
-    emit('close')
-
   } catch (e: any) {
     const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
     if (phoneLoginType.value === 'password') {
@@ -917,5 +919,23 @@ onUnmounted(() => {
       color: #3bb1ff;
     }
   }
+}
+
+/* 元素进入和离开的过渡时间、缓动函数 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+/* 元素刚准备进入时，以及完全离开后的状态 */
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+/* 让弹窗主体在出现时有一个从小放大的 */
+.modal-enter-from .reset-password-modal,
+.modal-leave-to .reset-password-modal {
+  transform: scale(0.9);
 }
 </style>

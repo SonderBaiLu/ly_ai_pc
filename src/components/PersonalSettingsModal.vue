@@ -32,7 +32,7 @@
     <div class="form-item">
       <div class="flex items-center justify-between">
         <div class="form-label">{{ t('personalSettings.nickname') }}</div>
-        <el-button type="primary" size="small" class="password-edit-btn">
+        <el-button type="primary" size="small" @click="updataPwd()" class="password-edit-btn">
           {{ t('personalSettings.changePassword') }}
         </el-button>
       </div>
@@ -65,6 +65,11 @@
       </div>
     </div>
   </el-dialog>
+  <Teleport to="body">
+    <Transition name="modal">
+      <ResetPassword v-if="isVisible" :mode="currentMode" @close="isVisible = false" />
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -76,10 +81,10 @@ import { useModalStore } from '@/stores/modal'
 import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
 import { images } from '@/assets'
+import ResetPassword from '@/components/ResetPassword.vue'
 interface Props {
   modelValue: boolean
 }
-
 const props = defineProps<Props>()
 const { t } = useI18n()
 const emit = defineEmits<{
@@ -88,6 +93,7 @@ const emit = defineEmits<{
 }>()
 
 const userStore = useUserStore()
+
 
 const dialogVisible = computed({
   get: () => props.modelValue,
@@ -157,6 +163,7 @@ const handleAvatarChange = async (event: Event) => {
 
 // 保存
 const handleSave = async () => {
+  console.log(userStore.getUserInfo())
   if (!userStore.userInfo?.userId) {
     ElMessage.warning('请先登录')
     return
@@ -183,7 +190,6 @@ const handleSave = async () => {
       ElMessage.success('保存成功')
       // 刷新用户信息
       if (userData.value.mobile) {
-        // await userStore.getUserInfo(userData.value.mobile)
       }
       emit('saved')
       handleClose()
@@ -195,8 +201,16 @@ const handleSave = async () => {
     ElMessage.error('保存失败，请重试')
   }
 }
+// 定义控制弹窗显示的变量 重置密码组件
+const isVisible = ref(false)
+const currentMode = ref('0')
+// 修改密码
+const updataPwd = () => {
+  isVisible.value = true;
+  currentMode.value = '1';
+}
 
-// 去注销
+// 去注销/
 const goToWriteOff = () => {
   const modalStore = useModalStore()
   // 先关闭账号设置弹窗
@@ -211,6 +225,24 @@ const handleClose = () => {
 </script>
 
 <style lang="scss" scoped>
+/* 元素进入和离开的过渡时间、缓动函数 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+/* 元素刚准备进入时，以及完全离开后的状态 */
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+/* 让弹窗主体在出现时有一个从小放大的 */
+.modal-enter-from .reset-password-modal,
+.modal-leave-to .reset-password-modal {
+  transform: scale(0.9);
+}
+
 .personal-settings-modal {
   position: relative;
 

@@ -29,6 +29,10 @@ export const userApi = {
   // 获取用户是否设置了密码 返回 true or false
   getUserSetPwd() {
     return request.get('/v1/pwd/isSetPwd')
+  },
+  // 修改密码 - 有旧密码的情况下
+  changePwdByOldPwd(params: any) {
+    return request.post("/v1/pwd/changePwdByOldPwd", params) as unknown as Promise<ApiResponse<any>>
   }
 }
 
