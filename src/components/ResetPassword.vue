@@ -55,7 +55,7 @@
           <div class="input-wrapper">
             <input :type="onePasswordInputType" v-model="formData.onepassword" class="form-input" placeholder="请输入密码" />
             <span class="icon-eye" @click="oneShowPersonalPwd = !oneShowPersonalPwd">
-              <img :src="oneShowPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" />
+              <img :src="oneShowPersonalPwd ? images.eye : images.eyeClose" alt="" />
             </span>
           </div>
         </div>
@@ -66,7 +66,7 @@
             <input :type="TwoPasswordInputType" v-model="formData.twoPassword" class="form-input"
               placeholder="请再次输入密码确认" />
             <span class="icon-eye" @click="twoShowPersonalPwd = !twoShowPersonalPwd">
-              <img :src="twoShowPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" />
+              <img :src="twoShowPersonalPwd ? images.eye : images.eyeClose" alt="" />
             </span>
           </div>
         </div>
@@ -78,12 +78,9 @@
 </template>
 
 <script setup lang="ts">
+import { images } from '@/assets'
 import { useI18n } from 'vue-i18n'
-import { reactive, ref, computed, onUnmounted } from "vue";
 import { ElMessage } from 'element-plus';
-import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
-import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
-// 假设你的 API 文件导出了这些方法，你需要根据实际情况调整
 import { changePwdBySms, getSmsCodeApi } from "@/api/userLogin";
 import userApi from '@/api/user';
 import { useUserStore } from '@/stores/user';
@@ -207,7 +204,12 @@ const closeModal = () => {
   // 触发关闭弹窗的事件
   emit('close')
 }
-
+//
+/*const setPwd = ref(false as any)
+onMounted(async() => {
+  //查询用户是否设置了密码 如果没有就弹出 设置密码弹窗
+  setPwd.value = await userApi.getUserSetPwd()
+})*/
 onUnmounted(() => {
   if (smsTimer) {
     clearInterval(smsTimer)

@@ -98,7 +98,7 @@ export const images = {
   edit: new URL('./images/edit.png', import.meta.url).href,
   editText: new URL('./images/edit_text.png', import.meta.url).href,
   editWhite: new URL('./images/edit_white.png', import.meta.url).href,
-  eye: new URL('./images/login_popup/eye.png', import.meta.url).href,
+  eye: new URL('./images/login_popup/eyes.png', import.meta.url).href,
   eyeClose: new URL('./images/login_popup/eye_close.png', import.meta.url).href,
   editMini: new URL('./images/edit_mini.png', import.meta.url).href,
 

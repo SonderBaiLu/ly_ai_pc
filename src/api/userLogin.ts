@@ -30,7 +30,8 @@ export const getSmsCodeApi = (mobile: number) => {
 export const loginBySmsCodeApi = (
     payload: {
         mobile: string;
-        verifyCode: string
+        verifyCode: string;
+        confirmedInviteCode?: string
     }) => {
     return request.post('/v1/login/loginBySmsCode', payload) as unknown as Promise<ApiResponse<any>>
 }

@@ -33,6 +33,12 @@ export const userApi = {
   // 修改密码 - 有旧密码的情况下
   changePwdByOldPwd(params: any) {
     return request.post("/v1/pwd/changePwdByOldPwd", params) as unknown as Promise<ApiResponse<any>>
+  },
+  // 验证邀请码
+  checkInvitationsCode(params:{ invitationsCode: any }){
+    const res = request.get('/v1/user/checkInvitationsCode',{ params })
+    console.log("接口获取的参数为:",params)
+    return res
   }
 }
 

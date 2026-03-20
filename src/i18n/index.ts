@@ -202,7 +202,8 @@ const zh = {
     avatar: '头像',
     nickname: '昵称',
     nicknamePlaceholder: '请输入昵称',
-    changePassword: '密码修改',
+    changePassword: '密码修改', /* 用户已经设置了密码 页面显示数据 */
+    notSetPassword: '设置密码', /* 用户从未设置过密码 页面显示数据 */
     introduction: '个人简介',
     introductionPlaceholder: '请输入您的个人简介',
     save: '保存',
