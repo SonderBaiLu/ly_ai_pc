@@ -106,6 +106,9 @@ body {
 /* primary 按钮样式：渐变背景 + 白色文字 */
 .el-button--primary {
   background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+  border: none !important;
+  box-shadow: none !important;
+  color: $color-text-white !important;
 }
 
 /* 全局：primary 按钮禁用态黑色透明遮罩（统一“不可点击”视觉） */
@@ -136,6 +139,23 @@ body {
 }
 
 // ===================== 自定义轻提示（ElMessage）=====================
+// 成功提示统一使用当前框架主题色，而不是默认绿色
+.el-message.el-message--success {
+  box-shadow: none !important;
+  border-radius: 8px !important;
+  background-color: rgba(18, 18, 18, 1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: $color-primary !important;
+
+  .el-message__icon {
+    color: $color-primary !important;
+  }
+
+  .el-message__content {
+    color: $color-primary !important;
+  }
+}
+
 // 上传失败提示：居中黑底 + failFace 图标
 .el-message.my-toast-fail-face {
   top: 50% !important;
