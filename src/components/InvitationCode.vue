@@ -67,14 +67,16 @@ const handleConfirm = () => {
 
 .modal-card {
   position: relative;
-  width: 500px;
+  width: 546px;
+  height: 382px;
   background: #ffffff;
   border-radius: 24px;
-  padding: 93px 49px;
+  padding: 0 49px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .close-btn {
@@ -99,7 +101,7 @@ const handleConfirm = () => {
 }
 
 .title {
-  font-size: 27px;
+  font-size: 26px;
   color: #1d2129;
   font-weight: 600;
   letter-spacing: 1px;
