@@ -381,6 +381,7 @@ const handleSubmit = async () => {
         return
       }
       await userStore.loginWithPassword(formData.phone, formData.password)
+      emit('close')
     }
   } catch (e: any) {
     const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
