@@ -26,7 +26,7 @@
         </div>
         <!-- 登录状态：显示头像 + 个人信息卡片（hover 展开，带延迟）；未登录：显示登录/注册按钮 -->
         <div v-if="isAuthed" class="user-menu" @mouseenter="openUserCard" @mouseleave="scheduleCloseUserCard">
-          <div class="user-avatar">
+          <div class="user-avatar" >
             <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
           </div>
           <div v-show="isUserCardOpen" class="user-card">
@@ -34,11 +34,11 @@
               @click="enterModule(() => router.push('/invitation-code'))">
               邀请有礼
             </el-button>
-            <div class="user-card-header">
+            <div @click="openUserInfo()" class="user-card-header">
               <div class="user-card-avatar">
                 <img class="user-card-avatar-img" :src="userStore.userInfo?.headImgUrl || images.avatarHeader"
                   alt="User Avatar" />
-                <div class="user-edit">
+                <div  class="user-edit">
                   <img :src="images.editMini" alt="User Avatar" />
                 </div>
               </div>
@@ -347,6 +347,8 @@ const modalStore = useModalStore()
 // 打开登录弹窗
 const showLoginModal = () => {
   modalStore.openLoginModal()
+}
+const openUserInfo = () => {
   modalStore.openPersonalSettingsModal()
 }
 

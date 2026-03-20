@@ -36,9 +36,7 @@ export const userApi = {
   },
   // 验证邀请码
   checkInvitationsCode(params:{ invitationsCode: any }){
-    const res = request.get('/v1/user/checkInvitationsCode',{ params })
-    console.log("接口获取的参数为:",params)
-    return res
+    return request.get('/v1/user/checkInvitationsCode',{ params })
   }
 }
 

@@ -8,7 +8,8 @@
         </svg>
       </button>
 
-      <h2 class="modal-title">修改密码</h2>
+      <h2 class="modal-title">{{ modalTitle }}</h2>
+
 
       <div class="form-container">
         <div class="form-group" v-if="modeType === '0' || modeType === '1'">
@@ -30,7 +31,7 @@
         <div class="form-group" v-if="modeType === '0'">
           <label class="form-label">验证码</label>
           <div class="input-wrapper">
-            <input maxlength="4" v-model="formData.code" type="number" class="form-input" placeholder="请输入验证码" />
+            <input maxlength="4" v-model="formData.code" type="tel" class="form-input" placeholder="请输入验证码" />
             <button @click='GetSmSCode' :disabled="!formData.phone || isCounting" class="get-code-btn">
               {{
                 isCounting
@@ -88,7 +89,7 @@ const userStore = useUserStore()
 const { t } = useI18n()
 
 // 有三种模式 
-// 0 = "用户第一次手机号注册 没有密码时候弹" 
+// 0 = "用户第一次手机号注册 没有密码时候弹"
 // 1 = "用户修改密码 有密码的时候" 
 // 2 = "团队修改密码"
 // 这里设为 ref 方便你在父组件中通过 ref 或者 props 动态修改
@@ -100,6 +101,19 @@ const props = defineProps({
 });
 const emit = defineEmits(['close']) //定义抛出给父组件的关闭事件
 const modeType = ref<'0' | '1' | '2'>(props.mode as '0')
+// 标题修改
+const modalTitle = computed(() => {
+  switch (modeType.value) {
+    case '0':
+      return '重置密码'
+    case '1':
+      return '修改密码'
+    case '2':
+      return '修改密码'
+    default:
+      return '修改密码'
+  }
+})
 
 // 密码显示切换状态
 const oneShowPersonalPwd = ref(false)
@@ -175,6 +189,7 @@ const resetPassword = async () => {
         newPwd: Number(formData.onepassword),
         newPwdAgain: Number(formData.twoPassword)
       });
+      ElMessage.success('修改成功')
     }
     else if (modeType.value === '1') {
       if (!formData.phone) return ElMessage.warning("请输入手机号");
@@ -186,14 +201,15 @@ const resetPassword = async () => {
           newPwd: Number(formData.onepassword),
           newPwdAgain: Number(formData.twoPassword),
         })
+      ElMessage.success('修改成功')
       emit('close')
     }
     else if (modeType.value === '2') {
+      // TODO:这里是 团队的 修改密码
       if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
       console.log('当前登录的用户是：', userStore)
+      ElMessage.success('修改成功')
     }
-
-    ElMessage.success('修改成功')
     closeModal()
   } catch (e) {
     console.error('reset error', e)
