@@ -1114,7 +1114,7 @@ const refreshUserInfoIfPossible = async () => {
   const phone = userStore.userInfo?.phone
   if (!phone) return
   try {
-    await userStore.getUserInfo(phone)
+    await userStore.getUserInfo()
   } catch (e) {
     console.warn('[TemplateDetail] 刷新用户信息失败（忽略，继续走本地状态）:', e)
   }

@@ -452,7 +452,7 @@ watch(
         if (asset.failedCount > previousFailedCount) {
           const successfulCount = asset.successfulCount || 0
           ElMessage.warning(
-            `成功${successfulCount}个，失败${asset.failedCount}个${successfulCount > 0 ? '（失败已返还潮币）' : ''}`
+            `成功${successfulCount}个，失败${asset.failedCount}个${successfulCount > 0 ? '（失败已返还灵衍值）' : ''}`
           )
           failedCountNotified.set(asset.id, asset.failedCount)
         }

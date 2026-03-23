@@ -76,10 +76,10 @@ export function useTaskPolling(
     if (res.code === '0000') {
       ElMessage.success(`任务提交成功，生成中`)
 
-      // 更新用户信息（刷新潮币等信息）
+      // 更新用户信息（刷新灵衍值等信息）
       if (userInfo.value?.phone) {
         try {
-          await userStore.getUserInfo(userInfo.value.phone)
+          await userStore.getUserInfo()
           console.log('用户信息已更新')
         } catch (error) {
           console.error('更新用户信息失败:', error)
@@ -95,10 +95,10 @@ export function useTaskPolling(
       // 开始轮询查询生成结果
       startPollingTaskResult(taskId, errorContext, queryType)
     } else if (res.code === '0001') {
-      // 处理潮币不足或需要升级VIP
+      // 处理灵衍值不足或需要升级VIP
       const errorType = res.msg
       if (errorType === 'coin_deficiency' || errorType === 'up_vip') {
-        // 显示潮币不足弹窗
+        // 显示灵衍值不足弹窗
         coinErrorType.value = errorType
         showCoinInsufficient.value = true
       } else {
@@ -196,10 +196,10 @@ export function useTaskPolling(
               updateAssetWithResult(taskId, res.data, taskType)
               ElMessage.success(`生成完成！`)
 
-              // 生成成功后更新用户信息（刷新潮币等信息）
+              // 生成成功后更新用户信息（刷新灵衍值等信息）
               if (userInfo.value?.phone) {
                 try {
-                  await userStore.getUserInfo(userInfo.value.phone)
+                  await userStore.getUserInfo()
                   console.log('生成成功，用户信息已更新')
                 } catch (error) {
                   console.error('更新用户信息失败:', error)

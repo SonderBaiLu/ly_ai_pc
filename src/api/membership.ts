@@ -75,16 +75,15 @@ export const membershipApi = {
   getAppProductList(params: { productKind: 'vip' | 'Points' }) {
     return request.get('/v1/app/getAppProductList', { params }) as unknown as Promise<ApiResponse<AppProduct[]>>
   },
-  getMembershipPlans(params: any) {
-    return request.post('/membership/getMembershipPlans', params) as unknown as Promise<ApiResponse<any>>
+
+  /**
+   * 会员升级弹窗：统一由支付中心接口返回
+   * - GET /v1/payment/vipTip
+   */
+  vipTip(params: { productId: string | number }) {
+    return request.get('/v1/payment/vipTip', { params }) as unknown as Promise<ApiResponse<any>>
   },
-  createPayOrder(params: any) {
-    return request.post('/membership/createPayOrder', params) as unknown as Promise<ApiResponse<any>>
-  },
-  // 兼容旧调用（页面里还在用这些方法名）
-  vipTip(params: any) {
-    return request.post('/membership/vipTip', params) as unknown as Promise<ApiResponse<any>>
-  },
+
   vipInfoList(params: any) {
     return request.post('/membership/vipInfoList', params) as unknown as Promise<ApiResponse<any>>
   },

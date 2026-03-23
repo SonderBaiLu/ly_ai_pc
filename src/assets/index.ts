@@ -22,6 +22,11 @@ export const images = {
   aboutBg: new URL('./images/about_bg.png', import.meta.url).href,
   alipay: new URL('./images/alipay.png', import.meta.url).href,
   arrowRight: new URL('./images/arrow_right.png', import.meta.url).href,
+  agreement: new URL('./images/agreement.png', import.meta.url).href,
+  aiWatermark: new URL('./images/ai_watermark.png', import.meta.url).href,
+
+  // B
+  book: new URL('./images/book.png', import.meta.url).href,
   // B
   ban: new URL('./images/team/ban.png', import.meta.url).href,
   banRedColor: new URL('./images/team/banRedColor.png', import.meta.url).href,
@@ -39,6 +44,7 @@ export const images = {
   closeWords: new URL('./images/close_words.png', import.meta.url).href,
   closeFeedback: new URL('./images/close_feedback.png', import.meta.url).href,
   closePay: new URL('./images/close_pay.png', import.meta.url).href,
+  closeVip: new URL('./images/close_vip.png', import.meta.url).href,
   coin: new URL('./images/coin.png', import.meta.url).href,
   copy: new URL('./images/copy.png', import.meta.url).href,
   comma: new URL('./images/comma.png', import.meta.url).href,
@@ -57,6 +63,7 @@ export const images = {
   collectActive: new URL('./images/collect_active.png', import.meta.url).href,
 
   customer: new URL('./images/customer.png', import.meta.url).href,
+  crown: new URL('./images/crown.png', import.meta.url).href,
 
   // D
   date: new URL('./images/date.png', import.meta.url).href,
@@ -118,12 +125,16 @@ export const images = {
   homeBg: new URL('./images/home_bg.png', import.meta.url).href,
   handshake: new URL('./images/handshake.png', import.meta.url).href,
 
+  // I
+  inspirationValue: new URL('./images/inspiration_value.png', import.meta.url).href,
+
   // L
   language: new URL('./images/language.png', import.meta.url).href,
   languageBlack: new URL('./images/language_black.png', import.meta.url).href,
   logo: new URL('./images/logo.png', import.meta.url).href,
   logo2: new URL('./images/logo2.png', import.meta.url).href,
   logoMini: new URL('./images/logo.png', import.meta.url).href,
+  logoHui: new URL('./images/logo_hui.png', import.meta.url).href,
   logout: new URL('./images/logout.png', import.meta.url).href,
 
   // M
@@ -134,6 +145,7 @@ export const images = {
 
   // N
   noneData: new URL('./images/none_data.png', import.meta.url).href,
+  noRecord: new URL('./images/no_record.png', import.meta.url).href,
   notice: new URL('./images/notice.png', import.meta.url).href,
   normal: new URL('./images/team/normal.png', import.meta.url).href,
 
@@ -158,11 +170,15 @@ export const images = {
   star: new URL('./images/star.png', import.meta.url).href,
   star2: new URL('./images/star2.png', import.meta.url).href,
   subscription: new URL('./images/subscription.png', import.meta.url).href,
+  shop: new URL('./images/shop.png', import.meta.url).href,
+  shopActive: new URL('./images/shop_active.png', import.meta.url).href,
+  set: new URL('./images/set.png', import.meta.url).href,
 
   // T
   together: new URL('./images/together.png', import.meta.url).href,
   tagDel: new URL('./images/tag_del.png', import.meta.url).href,
   time: new URL('./images/time.png', import.meta.url).href,
+  team: new URL('./images/team.png', import.meta.url).href,
 
   // U
   uploadIcon: new URL('./images/upload_icon.png', import.meta.url).href,

@@ -16,11 +16,12 @@
     <el-scrollbar ref="scrollbarRef" class="modal-body" @scroll="handleBodyScroll">
       <!-- 订阅列表 -->
       <div v-if="activeTab === 'subscription'" class="tab-panel">
-        <div v-if="hasActiveSubscription" class="subscription-list">
+        <!-- v-if="hasActiveSubscription" -->
+        <div class="subscription-list">
           <div class="subscription-item">
             <div class="info">
               <img :src="images.subscription" alt="订阅" class="icon" />
-              <div class="name">{{ effectUnitText }}</div>
+              <div class="name">{{ membershipTypeText }}</div>
             </div>
             <div class="desc">
               <div class="label">有效期至</div>
@@ -28,32 +29,28 @@
             </div>
           </div>
         </div>
-
-        <InfiniteScrollLoader :loading="loadingSubscription" :has-more="false"
-          :data-length="hasActiveSubscription ? 1 : 0" :show-empty-state="!hasActiveSubscription" empty-text="暂无订阅" />
       </div>
 
       <!-- 购买记录 -->
       <div v-else class="tab-panel">
-        <div v-if="!loadingRecords && records.length > 0" class="record-list">
-          <div v-for="item in records" :key="item.id || item.orderId" class="record-item">
+        <div class="record-list" v-if="!loadingRecords && records.length > 0">
+          <div v-for="item in records" :key="item.id" class="record-item">
             <div class="record-header">
-              <!-- {{ getOrderTypeName(item.orderType) || '潮推手会员购买' }} -->
-              {{ item.remark || getOrderTypeName(item.orderType) || '潮推手会员购买' }}
+              {{ item.title }}
             </div>
             <div class="record-row">
               <span class="label">价格</span>
-              <span class="value">¥{{ (item.payAmount || item.amount || 0).toFixed?.(2) }}</span>
+              <span class="value">¥{{ item.payAmount.toFixed(2) }}</span>
             </div>
             <div class="record-row">
               <span class="label">购买时间</span>
-              <span class="value">{{ item.payTime || '--' }}</span>
+              <span class="value">{{ item.payTime }}</span>
             </div>
             <div class="record-row">
               <span class="label">订单编号</span>
               <div class="order-no">
                 <span class="value">
-                  {{ item.orderNo || '--' }}
+                  {{ item.orderNo }}
                 </span>
                 <img :src="images.copy" alt="复制" class="copy-icon" @click="handleCopy(item.orderNo)" />
               </div>
@@ -61,21 +58,21 @@
             <div class="record-row">
               <span class="label">支付方式</span>
               <span class="value">
-                {{ item.paymentTypeName || '--' }}
+                {{ item.paymentTypeName }}
               </span>
             </div>
           </div>
         </div>
-
-        <InfiniteScrollLoader :loading="loadingRecords" :loading-more="loadingMoreRecords" :has-more="hasMoreRecords"
-          :data-length="records.length" :show-empty-state="true" empty-text="暂无购买记录" />
       </div>
+
+      <InfiniteScrollLoader :key="activeTab" :loading="loaderLoading" :has-more="loaderHasMore"
+        :data-length="loaderDataLength" :show-empty-state="true" :empty-text="loaderEmptyText"
+        :empty-image="images.noRecord" image-size="140px" empty-text-color="#474B64" empty-text-font-size="13px" />
     </el-scrollbar>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { subscriptionApi } from '@/api/subscription'
@@ -105,7 +102,17 @@ const activeTab = ref<'subscription' | 'records'>('subscription')
 
 const subscriptions = ref<any>({})
 const loadingSubscription = ref(false)
-const records = ref<any[]>([])
+const records = ref<any[]>([
+  {
+    id: '1',
+    title: '灵衍AI会员购买',
+    payAmount: 100,
+    payTime: '2026-03-23 10:00:00',
+    orderNo: '1234567890',
+    paymentTypeName: '支付宝',
+    orderType: 0,
+  },
+])
 const loadingRecords = ref(false)
 const loadingMoreRecords = ref(false)
 const hasMoreRecords = ref(true)
@@ -138,30 +145,77 @@ const pageParams = ref({
 
 const hasActiveSubscription = computed(() => {
   return (
-    subscriptions.value?.effectUnit !== null &&
-    subscriptions.value?.expirationDate !== null &&
+    subscriptions.value?.vipType != null &&
+    subscriptions.value?.vipLevel != null &&
+    subscriptions.value?.expirationDate != null &&
     Object.keys(subscriptions.value || {}).length > 0
   )
 })
 
-const effectUnitText = computed(() => {
-  const unit = subscriptions.value?.effectUnit
-  const map: Record<string, string> = {
-    '-1': '永久',
-    '0': '月度会员',
-    '1': '季度会员',
-    '2': '年度会员',
+const membershipTypeText = computed(() => {
+  const vipType = Number(subscriptions.value?.vipType ?? 0) // 0 普通用户；1 月度；2 季度；3 年度
+  const vipLevel = Number(subscriptions.value?.vipLevel ?? 0) // 0 普通用户；1 基础；2 标准；3 高级
+
+  if (vipType === 0 && vipLevel === 0) return '免费版'
+
+  const levelMap: Record<number, string> = {
+    1: '基础版',
+    2: '标准版',
+    3: '高级版',
   }
-  return map[String(unit)] || '会员订阅'
+  const periodMap: Record<number, string> = {
+    1: '月度会员',
+    2: '季度会员',
+    3: '年度会员',
+  }
+
+  const levelText = levelMap[vipLevel] || ''
+  const periodText = periodMap[vipType] || ''
+  return levelText && periodText ? `${levelText}-${periodText}` : '会员订阅'
 })
+
+const loaderState = computed(() => {
+  if (activeTab.value === 'subscription') {
+    return {
+      loading: loadingSubscription.value,
+      hasMore: false,
+      dataLength: hasActiveSubscription.value ? 1 : 0,
+      emptyText: '暂无订阅',
+    }
+  }
+  return {
+    loading: loadingRecords.value || loadingMoreRecords.value,
+    hasMore: hasMoreRecords.value,
+    dataLength: records.value.length,
+    emptyText: '暂无购买记录',
+  }
+})
+
+const loaderLoading = computed(() => loaderState.value.loading)
+const loaderHasMore = computed(() => loaderState.value.hasMore)
+const loaderDataLength = computed(() => loaderState.value.dataLength)
+const loaderEmptyText = computed(() => loaderState.value.emptyText)
 
 // 获取订单类型名称
 const getOrderTypeName = (orderType: number | string | undefined) => {
   const orderTypeMap: Record<string, string> = {
-    '0': '潮推手会员购买',
-    '1': '潮推手潮币充值',
+    '0': '灵衍AI会员购买',
+    '1': '灵衍AI灵衍值充值',
   }
   return orderTypeMap[String(orderType)] || ''
+}
+
+const normalizeRecord = (item: any, index: number) => {
+  const orderType = Number(item?.orderType)
+  return {
+    id: String(item?.id ?? item?.orderId ?? item?.orderNo ?? `${pageParams.value.current}_${index}`),
+    title: String(item?.remark || getOrderTypeName(orderType) || '灵衍AI会员购买'),
+    payAmount: Number(item?.payAmount ?? item?.amount ?? 0),
+    payTime: String(item?.payTime || '--'),
+    orderNo: String(item?.orderNo || '--'),
+    paymentTypeName: String(item?.paymentTypeName || '--'),
+    orderType,
+  }
 }
 
 const loadRecords = async (isRefresh = false) => {
@@ -192,7 +246,8 @@ const loadRecords = async (isRefresh = false) => {
         subscriptions.value = vipSubscribeVO || {}
       }
 
-      const newRecords = orderVoPage.records || []
+      const rawRecords = orderVoPage.records || []
+      const newRecords = rawRecords.map((item: any, index: number) => normalizeRecord(item, index))
       const total = orderVoPage.total || 0
 
       if (isRefresh) {
@@ -264,15 +319,16 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 29px 35px;
 
   .title {
-    font-size: var(--font-xxl);
-    font-weight: 700;
-    color: var(--text-primary);
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-white;
+    font-family: NotoSans-bold;
   }
 
   .close-icon {
-    position: relative;
     cursor: pointer;
     width: 24px;
     height: 24px;
@@ -280,17 +336,28 @@ watch(
 }
 
 .tabs {
-  margin-top: 15px;
+  padding: 0 35px;
 
-  // 选中下划线与主题色保持一致
-  :deep(.el-tabs__active-bar) {
-    font-size: var(--font-xxl) !important;
-    background-color: var(--primary-color) !important;
+  :deep(.el-tabs__item) {
+    height: 52px;
+    line-height: 52px;
+    color: $color-text-seven;
+    font-size: $font-size-md;
+
+    &.is-active {
+      color: $color-text-white;
+      font-family: NotoSans-bold;
+    }
+  }
+
+  &:deep(.el-tabs__nav-wrap::after) {
+    background: $color-bg-dark-clear;
   }
 }
 
 .modal-body {
-  height: 498px;
+  padding: 0 35px;
+  height: 497px;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -299,18 +366,20 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 16px;
 }
 
 .subscription-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-sm);
-  background: var(--bg-first);
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(63, 62, 62, 0.5);
-  font-size: var(--font-md);
-  color: var(--text-primary);
+  font-size: $font-size-md;
+  color: $color-text-white;
+  font-family: NotoSans-regular;
 
   .info {
     display: flex;
@@ -328,7 +397,7 @@ watch(
 
     .label {
       font-size: 12px;
-      color: var(--text-six);
+      color: $color-text-placeholder;
     }
   }
 }
@@ -340,7 +409,7 @@ watch(
 }
 
 .record-item {
-  padding: var(--spacing-md);
+  padding: $spacing-md;
   border-radius: 12px 12px 12px 12px;
   background-color: rgba(30, 30, 30, 1);
 
@@ -348,15 +417,15 @@ watch(
     margin-bottom: 18px;
     font-weight: bold;
     color: #f5e6c8;
-    font-size: var(--font-lg);
+    font-size: $font-size-base;
   }
 
   .record-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: var(--font-md);
-    color: var(--text-primary);
+    font-size: $font-size-md;
+    color: $color-text-white;
     margin-bottom: 11px;
 
     .order-no {
@@ -370,27 +439,6 @@ watch(
         cursor: pointer;
       }
     }
-  }
-}
-</style>
-
-<style lang="scss">
-// 订阅管理弹窗整体样式
-.el-dialog.subscription-manage-modal {
-  border-radius: 16px !important;
-  overflow: hidden;
-  background: var(--bg-first) !important;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-
-  .el-dialog__header {
-    background: var(--bg-first) !important;
-    padding: 0 29px !important;
-    border-radius: 25px 25px 0 0 !important;
-  }
-
-  .el-dialog__body {
-    padding: 0 29px !important;
-    background: var(--bg-first) !important;
   }
 }
 </style>
