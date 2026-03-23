@@ -22,6 +22,9 @@
 </template>
 
 <script lang="ts" setup>
+import userApi from '@/api/user';
+import {ElMessage} from "element-plus";
+
 // 定义属性
 defineProps({
   visible: {
@@ -31,7 +34,7 @@ defineProps({
 })
 
 // 定义事件
-const emit = defineEmits(['update:visible', 'confirm'])
+const emit = defineEmits(['update:visible', 'confirm', 'invitationsCode'])
 
 // 响应式数据
 const inviteCode = ref('')
@@ -42,12 +45,23 @@ const closeModal = () => {
 }
 
 // 点击确认
-const handleConfirm = () => {
+const handleConfirm = async () => {
   if (!inviteCode.value.trim()) {
     alert('请输入邀请码')
     return
   }
-  emit('confirm', inviteCode.value)
+  try {
+    const res = await userApi.checkInvitationsCode({invitationsCode: inviteCode.value})
+    console.log("接口成功返回", res)
+    if (String((res as any).code) === '0000') {
+      //将邀请码作为参数传给父组件
+      emit('confirm', inviteCode.value)
+      // 成功后自动关闭弹窗
+      emit('update:visible', false)
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || err.msg)
+  }
 }
 </script>
 
@@ -67,14 +81,16 @@ const handleConfirm = () => {
 
 .modal-card {
   position: relative;
-  width: 500px;
+  width: 546px;
+  height: 382px;
   background: #ffffff;
   border-radius: 24px;
-  padding: 93px 49px;
+  padding: 0 49px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .close-btn {
@@ -99,14 +115,14 @@ const handleConfirm = () => {
 }
 
 .title {
-  font-size: 27px;
+  font-size: 26px;
   color: #1d2129;
   font-weight: 600;
   letter-spacing: 1px;
   /* 标题左右各有85px，弹窗padding已有49px 补36px */
   padding: 0 36px;
   text-align: center;
-  margin: 0 0 40px;
+  margin: 0 0 11px;
 }
 
 .input-group {
@@ -118,7 +134,7 @@ const handleConfirm = () => {
   align-items: center;
   padding: 0 16px;
   box-sizing: border-box;
-  margin-bottom: 30px;
+  margin-bottom: 21px;
   transition: border-color 0.2s;
 
   &:focus-within {

@@ -69,7 +69,7 @@
             </div>
             <div class="invite-link-wrap qrcode-invite">
               <a @click.prevent="openInviteLink" class="invite-link">
-                {{ t('LoginPopUpPage.inviteLink') }}
+                {{ confirmedInviteCode ? `邀请码: ${confirmedInviteCode}` : t('LoginPopUpPage.inviteLink') }}
               </a>
             </div>
           </div>
@@ -83,8 +83,10 @@
                 <input type="tel" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')"
                   maxlength="11" @input="handlePhoneInput" />
               </div>
+              <div v-if="codeErrorMsg && phoneLoginType === 'code'" class="error-text">
+                {{ codeErrorMsg }}
+              </div>
             </div>
-
             <div v-if="phoneLoginType === 'code'" class="input-block">
               <div class="label-row">
                 <label class="block-label">{{ t('LoginPopUpPage.captcha') }}</label>
@@ -92,6 +94,7 @@
                   {{ t('LoginPopUpPage.passwordLogin') }}
                 </div>
               </div>
+
               <div class="input-wrapper code-input-wrapper">
                 <input type="tel" maxlength="4" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
@@ -103,6 +106,9 @@
             </div>
 
             <div v-if="phoneLoginType === 'password'" class="input-block">
+              <div v-if="pwdErrorMsg" class="error-text error-top">
+                {{ pwdErrorMsg }}
+              </div>
               <div class="label-row">
                 <label class="block-label">{{ t('LoginPopUpPage.passwordLabel') }}</label>
                 <div class="link-group">
@@ -110,23 +116,21 @@
                     {{ t('LoginPopUpPage.codeLogin') }}
                   </a>
                   <span class="link-divider"></span>
-                  <a href="#" class="action-link">{{ t('LoginPopUpPage.forgotPassword') }}</a>
+                  <a @click="forgotPassword()"  class="action-link">{{ t('LoginPopUpPage.forgotPassword') }}</a>
                 </div>
               </div>
-              <div class="input-wrapper" :class="{ 'has-error': pwdErrorMsg }">
+<!--              :class="{ 'has-error': pwdErrorMsg }" -->
+              <div class="input-wrapper" >
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
                   :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
                   <img :src="showPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" class="eye-img" />
                 </span>
               </div>
-              <div v-if="pwdErrorMsg" class="error-text">
-                {{ pwdErrorMsg }}
-              </div>
             </div>
             <div class="invite-link-wrap">
               <a @click.prevent="openInviteLink" class="invite-link">
-                {{ t('LoginPopUpPage.inviteFill') }}
+                {{ confirmedInviteCode ? `邀请码: ${confirmedInviteCode}` : t('LoginPopUpPage.inviteFill') }}
               </a>
             </div>
             <button class="submit-btn" @click="handleSubmit">
@@ -176,7 +180,11 @@
     <Transition name="modal">
       <ResetPassword v-if="dialogs.isVisible" :mode="currentMode" @close="dialogs.isVisible = false" />
     </Transition>
-    <InvitationCode v-if="dialogs.invitation" @close="dialogs.isVisible = false" />
+    <InvitationCode
+        v-if="dialogs.invitation"
+        @update:visible="dialogs.invitation = $event"
+        @confirm="handleInviteConfirm"
+    />
   </div>
 </template>
 
@@ -270,6 +278,7 @@ const accountType = ref<'personal' | 'team'>('personal')
 const loginMethod = ref<'qrcode' | 'phone'>('phone')
 const phoneLoginType = ref<'code' | 'password'>('code')
 
+const confirmedInviteCode = ref('') // 用来保存用户填写的邀请码
 // 定义控制弹窗显示的变量 重置密码组件
 // 集中管理所有弹窗的显示状态
 const dialogs = reactive({
@@ -282,12 +291,19 @@ const showPersonalPwd = ref(false)
 const showTeamPwd = ref(false)
 
 // 错误提示状态
-const pwdErrorMsg = ref('')
-const teamErrorMsg = ref('')
+const pwdErrorMsg = ref('') // 密码错误提示
+const codeErrorMsg = ref('') // 手机号验证码 错误提示
+const teamErrorMsg = ref('') // 团队登录错误提示
 
-const clearPwdError = () => { pwdErrorMsg.value = '' }
-const clearTeamError = () => { teamErrorMsg.value = '' }
-
+const clearPwdError = () => {
+  pwdErrorMsg.value = '' }
+const clearTeamError = () => {
+  teamErrorMsg.value = ''
+}
+watch(phoneLoginType, () => {
+  pwdErrorMsg.value = ''
+  codeErrorMsg.value = ''
+})
 // === 表单数据 ===
 const formData = reactive({
   phone: '',
@@ -348,49 +364,49 @@ const handleSubmit = async () => {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
     return
   }
-
-  pwdErrorMsg.value = '' // 提交前重置报错
-
   try {
     if (phoneLoginType.value === 'code') {
       if (!formData.code) {
-        ElMessage.warning(t('LoginPopUpPage.enterTheVerificationCode'))
+        ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
         return
       }
-      await userStore.loginWithSms(formData.phone, formData.code)
-      // 查询用户是否设置了密码 如果没有就弹出 设置密码弹窗
-      //const setPwd = await userApi.getUserSetPwd()
-      //if (setPwd.data.setPwd === false) {
-      // 弹出 设置密码的窗口
-      //  currentMode.value = '0'
-      //  isVisible.value = true
-      // }
+      await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode?.value)
       ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+
       emit('close')
 
     } else {
       if (!formData.password) {
-        ElMessage.warning(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
+        ElMessage.error(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
         return
       }
       await userStore.loginWithPassword(formData.phone, formData.password)
+      emit('close')
     }
   } catch (e: any) {
     const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
     if (phoneLoginType.value === 'password') {
       pwdErrorMsg.value = errorMsg // 渲染到输入框下方
-      console.log(errorMsg)
-    } else {
-      // 验证码登录直接顶部提示 使用拦截器的提示
-
+    } else if (phoneLoginType.value === 'code') {
+      codeErrorMsg.value = errorMsg
     }
   }
 }
+
+// 处理子组件传回来的邀请码, 填写邀请码页面的弹窗
+const handleInviteConfirm = (code: string) => {
+  confirmedInviteCode.value = code // 存下邀请码
+  dialogs.invitation = false       // 关闭邀请码弹窗
+}
+
 // 校验填写的邀请码
 const openInviteLink = () => {
-  // 打开 填写邀请码弹窗
   dialogs.invitation = true
-  console.log(dialogs.invitation)
+  console.log(confirm)
+}
+const forgotPassword= () => {
+  dialogs.isVisible = true;
+  currentMode.value = '0' // 0的状态是 用户不知道密码 使用验证码更改密码
 }
 const handleTeamSubmit = async () => {
   teamErrorMsg.value = '' // 提交前重置报错
@@ -406,7 +422,7 @@ const handleTeamSubmit = async () => {
 
   try {
     await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
-    ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+    ElMessage.success(t('LoginPopUpPage.loginSuccess'))
     emit('close')
   } catch (e: any) {
     teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试' // 渲染到输入框下方
@@ -738,7 +754,7 @@ onUnmounted(() => {
       margin-bottom: 8px;
 
       .block-label {
-        margin-bottom: 0;
+        margin-bottom: 0px;
       }
 
       .mode-switch-btn {
@@ -826,25 +842,28 @@ onUnmounted(() => {
           height: 24px;
           display: block;
         }
-
         &:hover {
           color: #666;
         }
       }
     }
-
     /* 报错红字样式 */
     .error-text {
       color: #ff4d4f;
-      font-size: 12px;
+      font-size: 11px;
       margin-top: 6px;
+
+    }
+    .error-top {
+      margin-top: -9px;
+      padding-bottom: 19px;
+      margin-bottom: 6px;
     }
   }
 
   /* 特定输入框覆盖 */
   .phone-input-wrapper {
-    margin-bottom: 24px;
-
+    margin-bottom: 9px;
     .country-code {
       color: #adb3bd;
       font-weight: 500;

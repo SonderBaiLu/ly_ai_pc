@@ -191,7 +191,7 @@ const handleAuthExpired = () => {
       }
 
       // 其他：统一弹 msg
-      ElMessage.error(msg || '请求失败')
+      // ElMessage.error(msg || '请求失败')
       const bizError: any = new Error(msg || 'Request Failed')
       bizError.code = code
       return Promise.reject(bizError)

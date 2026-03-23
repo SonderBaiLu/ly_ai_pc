@@ -31,13 +31,13 @@
             <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
-            }}</span>
+          }}</span>
           <div v-show="isUserCardOpen" class="user-card">
             <el-button class="invitation-btn" type="primary"
               @click="enterModule(() => router.push('/invitation-code'))">
               邀请有礼
             </el-button>
-            <div class="user-card-header">
+            <div @click="openUserInfo()" class="user-card-header">
               <div class="user-card-avatar">
                 <img class="user-card-avatar-img" :src="userStore.userInfo?.headImgUrl || images.avatarHeader"
                   alt="User Avatar" />
@@ -122,7 +122,7 @@
         <div class="auth-buttons" v-if="!isAuthed">
           <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
-          }}</span>
+            }}</span>
         </div>
       </div>
     </div>
@@ -606,6 +606,8 @@ const handleTeamManagementClick = () => {
 // 打开登录弹窗
 const showLoginModal = () => {
   modalStore.openLoginModal()
+}
+const openUserInfo = () => {
   modalStore.openPersonalSettingsModal()
 }
 

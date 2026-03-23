@@ -26,6 +26,9 @@ export const images = {
 
   // B
   book: new URL('./images/book.png', import.meta.url).href,
+  ban: new URL('./images/team/ban.png', import.meta.url).href,
+  banRedColor: new URL('./images/team/banRedColor.png', import.meta.url).href,
+  banRedDot: new URL('./images/team/banRedDot.png', import.meta.url).href,
 
   // C
   channel: new URL('./images/channel.png', import.meta.url).href,
@@ -99,13 +102,15 @@ export const images = {
   designActive8: new URL('./images/design_active8.png', import.meta.url).href,
   designActive9: new URL('./images/design_active9.png', import.meta.url).href,
 
+  deleteT: new URL('./images/team/delete.png', import.meta.url).href,
   // E
   edit: new URL('./images/edit.png', import.meta.url).href,
   editText: new URL('./images/edit_text.png', import.meta.url).href,
   editWhite: new URL('./images/edit_white.png', import.meta.url).href,
-  eye: new URL('./images/login_popup/eye.png', import.meta.url).href,
+  eye: new URL('./images/login_popup/eyes.png', import.meta.url).href,
   eyeClose: new URL('./images/login_popup/eye_close.png', import.meta.url).href,
   editMini: new URL('./images/edit_mini.png', import.meta.url).href,
+  editors: new URL('./images/team/editors.png', import.meta.url).href,
 
   // F
   fabricActive: new URL('./images/fabric_active.png', import.meta.url).href,
@@ -140,6 +145,7 @@ export const images = {
   noneData: new URL('./images/none_data.png', import.meta.url).href,
   noRecord: new URL('./images/no_record.png', import.meta.url).href,
   notice: new URL('./images/notice.png', import.meta.url).href,
+  normal: new URL('./images/team/normal.png', import.meta.url).href,
 
   // P
   plus: new URL('./images/plus.png', import.meta.url).href,
@@ -154,6 +160,7 @@ export const images = {
   right: new URL('./images/right.png', import.meta.url).href,
   rightTop: new URL('./images/right_top.png', import.meta.url).href,
   replace: new URL('./images/replace.png', import.meta.url).href,
+  reset: new URL('./images/team/reset.png', import.meta.url).href,
 
   // S
   sketchActive: new URL('./images/sketch_active.png', import.meta.url).href,

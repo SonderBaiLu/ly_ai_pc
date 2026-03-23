@@ -32,8 +32,12 @@
     <div class="form-item">
       <div class="flex items-center justify-between">
         <div class="form-label">{{ t('personalSettings.nickname') }}</div>
-        <el-button type="primary" size="small" @click="updataPwd()" class="password-edit-btn">
-          {{ t('personalSettings.changePassword') }}
+        <el-button type="primary" size="small" @click="updatePwd()" class="password-edit-btn">
+          {{ hasPassword ?
+            t('personalSettings.changePassword')
+            :
+            t('personalSettings.notSetPassword')
+          }}          <!--密码修改-->
         </el-button>
       </div>
       <div class="form-value">
@@ -67,9 +71,11 @@
   </el-dialog>
   <Teleport to="body">
     <Transition name="modal">
-      <ResetPassword v-if="isVisible" :mode="currentMode" @close="isVisible = false" />
+      <ResetPassword v-if="isVisible" :mode="currentMode" :is-from-settings="true" @close="isVisible = false" />
     </Transition>
   </Teleport>
+
+
 </template>
 
 <script setup lang="ts">
@@ -82,6 +88,7 @@ import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
 import { images } from '@/assets'
 import ResetPassword from '@/components/ResetPassword.vue'
+
 interface Props {
   modelValue: boolean
 }
@@ -204,13 +211,50 @@ const handleSave = async () => {
 // 定义控制弹窗显示的变量 重置密码组件
 const isVisible = ref(false)
 const currentMode = ref('0')
+// 定义变量 决定 按钮显示 修改密码 还是 重置密码
+const hasPassword = ref(false)
+
+// 获取密码状态
+const fetchPasswordStatus = async () => {
+  try {
+    const res = await userApi.getUserSetPwd()
+    if (String((res as any).code) === '0000') {
+      hasPassword.value = (res as any).data.setPwd;
+      console.log("密码设置状态:", res)
+    }
+  } catch (error) {
+    console.error("获取密码状态失败", error)
+  }
+}
+// 监视密码是否有修改 是否有设置
+watch(
+    () => props.modelValue,
+    (newVal) => {
+      if (newVal) {
+        const userInfo = userStore.userInfo
+        if (userInfo) {
+          editingData.value = {
+            headImgUrl: userInfo.headImgUrl || '',
+            nickname: userInfo.nickname || '',
+            introduction: userInfo.introduction || '',
+          }
+        }
+        // 每次弹窗打开时，重新获取密码设置状态
+        fetchPasswordStatus()
+      }
+    },
+    { immediate: true }
+)
+
 // 修改密码
-const updataPwd = () => {
+const updatePwd = () => {
+  // getUserSetPwd 获取用户是否设置了 密码返回 true or false
   isVisible.value = true;
-  currentMode.value = '2';
+  // true 传 '1'(修改密码)，false 传 '0'(设置密码)
+  currentMode.value = hasPassword.value ? '1' : '0';
 }
 
-// 去注销/
+// 去注销
 const goToWriteOff = () => {
   const modalStore = useModalStore()
   // 先关闭账号设置弹窗
@@ -218,6 +262,7 @@ const goToWriteOff = () => {
   // 然后打开注销弹窗
   modalStore.openWriteOffModal()
 }
+
 
 const handleClose = () => {
   dialogVisible.value = false
