@@ -40,13 +40,11 @@
                 {{ getPurchaseButtonText(plan) }}
               </el-button>
 
-              <!-- 潮币信息卡片 -->
-              <div v-if="plan.privilegesListVOS && plan.privilegesListVOS.length > 0" class="coin-info-card">
+              <!-- 灵衍信息卡片：使用新接口字段 waveCoin / productDesc -->
+              <div v-if="plan.waveCoin && plan.productDesc && !isFreePlan(plan)" class="coin-info-card">
                 <div class="coin-content">
-                  <div v-for="(desc, descIdx) in (plan.privilegesListVOS || []).slice(0, 2)" :key="descIdx"
-                    :class="descIdx === 0 ? 'coin-amount' : 'coin-detail'">
-                    {{ desc.privilegesName || desc.privilegesCode }}
-                  </div>
+                  <div class="coin-amount">单月{{ plan.waveCoin }}个灵衍值</div>
+                  <div class="coin-detail">{{ plan.productDesc }}</div>
                 </div>
               </div>
             </div>
@@ -64,22 +62,22 @@
         </div>
       </template>
 
-      <!-- 潮币值页面 -->
+      <!-- 灵衍值页面 -->
       <template v-else-if="activeTab === 'tidecoins'">
         <!-- 温馨提示 -->
         <div class="tidecoins-notice">
           温馨提示：
           <span class="notice-text">
-            潮币值不可兑换会员，不可转赠与提现；充值后有效期为{{
+            灵衍值不可兑换会员，不可转赠与提现；充值后有效期为{{
               selectedPlan?.effectDate || '2'
             }}年，不支持退换或反向兑换成人民币。
           </span>
           <span class="rules-link" @click="() => navigateToAgreement('COIN_RULES_DESCRIPTION')">
-            潮币值规则
+            灵衍值规则
           </span>
         </div>
 
-        <!-- 潮币套餐网格 -->
+        <!-- 灵衍值套餐网格 -->
         <div class="tidecoins-grid">
           <div v-for="plan in tideCoinsPlans" :key="plan.id" class="tidecoin-card"
             :class="{ selected: (plan as any).isSelected }" @click="selectTideCoin(plan)">
@@ -93,7 +91,10 @@
 
             <!-- 下半部分：更深背景 -->
             <div class="tidecoin-bottom">
-              <div class="tidecoin-price">¥ {{ plan.productPrice }}</div>
+              <div class="tidecoin-price">
+                <span class="current">¥ {{ plan.productDiscountPrice }}</span>
+                <span v-if="Number(plan.productDiscount) < 100" class="origin">¥ {{ plan.productPrice }}</span>
+              </div>
               <el-button class="tidecoin-button" type="primary" @click.stop="handlePurchaseAction(plan)">
                 立即购买
               </el-button>
@@ -106,15 +107,15 @@
 
   <!-- 支付弹窗 -->
   <PaymentModal v-model="showPayDialog" :title="payDialogTitle" :initial-amount="initialPayAmount"
-    :create-payment-order="handleCreatePaymentOrder" :purchase-type="purchaseType" @close="handlePayDialogClose"
-    @success="handlePaymentSuccess" />
+    :payment-methods="paymentMethods" :create-payment-order="handleCreatePaymentOrder" :purchase-type="purchaseType"
+    @close="handlePayDialogClose" @success="handlePaymentSuccess" />
 </template>
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { membershipApi, type AppProduct } from '@/api/membership'
-import { paymentApi } from '@/api/payment'
+import { paymentApi, type PaymentMethod } from '@/api/payment'
 import { images } from '@/assets'
 import { useRouter } from 'vue-router'
 
@@ -129,7 +130,7 @@ const props = defineProps({
     type: Boolean,
     default: undefined,
   },
-  // 错误类型：coin_deficiency(潮币不足) | up_vip(需要升级VIP)
+  // 错误类型：coin_deficiency(灵衍值不足) | up_vip(需要升级VIP)
   errorType: {
     type: String,
     default: 'coin_deficiency',
@@ -156,15 +157,15 @@ const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
 
 // 会员套餐标签
-// - 默认：显示「会员」+「潮币值」两个tab
+// - 默认：显示「会员」+「充值」两个tab
 // - 当 errorType === 'up_vip'（例如非会员点击生成数量多张触发升级会员）时：
-//   只展示「会员」tab，隐藏「潮币值」和购买潮币相关入口
+//   只展示「会员」tab，隐藏「充值」和购买灵衍值相关入口
 const membershipTabs = computed(() => {
   const baseTabs = [{ key: 'membership', name: '会员' }]
   if (props.errorType === 'up_vip') {
     return baseTabs
   }
-  return [...baseTabs, { key: 'tidecoins', name: '潮币值' }]
+  return [...baseTabs, { key: 'tidecoins', name: '充值' }]
 })
 
 const activeTab = ref('membership')
@@ -172,7 +173,7 @@ const activeTab = ref('membership')
 // 会员套餐数据（直接使用接口返回字段）
 const membershipPlansFromApi = ref<AppProduct[]>([])
 
-// 潮币值套餐数据（从API加载）
+// 灵衍值套餐数据（从API加载）
 const tideCoinsPlans = ref<any[]>([])
 
 // 选中的套餐
@@ -181,9 +182,10 @@ const selectedPlan = ref<any>(null)
 // === 支付弹窗相关状态 ===
 const showPayDialog = ref(false)
 const payDialogTitle = ref('')
-const purchaseType = ref<'membership' | 'coin'>('membership') // 购买类型：会员或潮币
+const purchaseType = ref<'membership' | 'coin'>('membership') // 购买类型：会员或灵衍值
 const currentSelectedPlan = ref<any>(null) // 当前选择的套餐
 const initialPayAmount = ref(0) // 初始支付金额
+const paymentMethods = ref<PaymentMethod[]>([])
 
 // 加载会员套餐数据
 const loadMembershipPlans = async () => {
@@ -202,19 +204,26 @@ const loadMembershipPlans = async () => {
   }
 }
 
-// 加载潮币套餐数据
+// 加载灵衍值套餐数据
 const loadTideCoinPlans = async () => {
   try {
     // 新接口：/api/v1/app/getAppProductList?productKind=Points
     const res = await membershipApi.getAppProductList({ productKind: 'Points' })
     if (res.code === '0000' && res.data) {
-      tideCoinsPlans.value = Array.isArray(res.data) ? res.data : []
+      const rows = Array.isArray(res.data) ? res.data : []
+      tideCoinsPlans.value = rows.map((item: any) => ({
+        ...item,
+        isSelected: false,
+      }))
+      if (tideCoinsPlans.value.length > 0) {
+        selectTideCoin(tideCoinsPlans.value[0])
+      }
     } else {
-      ElMessage.error(res.msg || '获取潮币套餐失败')
+      ElMessage.error(res.msg || '获取灵衍值套餐失败')
     }
   } catch (error) {
-    console.error('加载潮币套餐失败:', error)
-    ElMessage.error('加载潮币套餐失败')
+    console.error('加载灵衍值套餐失败:', error)
+    ElMessage.error('加载灵衍值套餐失败')
   }
 }
 
@@ -233,7 +242,7 @@ watch(
     if (newVal) {
       // 弹窗打开时执行
       // 根据错误类型设置默认标签页
-      // 如果是潮币不足，默认选中潮币购买模块
+      // 如果是灵衍值不足，默认选中灵衍值购买模块
       if (props.errorType === 'coin_deficiency') {
         activeTab.value = 'tidecoins'
       } else if (props.errorType === 'up_vip') {
@@ -262,7 +271,7 @@ watch(
   { immediate: true }
 )
 
-// 选择潮币值
+// 选择灵衍值
 const selectTideCoin = (plan: any) => {
   // 取消所有选择
   tideCoinsPlans.value.forEach((p) => (p.isSelected = false))
@@ -272,15 +281,8 @@ const selectTideCoin = (plan: any) => {
 }
 
 // 创建支付订单的函数（供 PaymentModal 调用）
-const channelCodeToPaymentType = (channelCode?: string) => {
-  // 约定映射（如后端不同，可再调整）
-  if (channelCode === 'wechat_pay') return 1
-  if (channelCode === 'alipay') return 0
-  if (channelCode === 'apple_pay') return 2
-  return 0
-}
-
-const handleCreatePaymentOrder = async (channelCode?: string) => {
+// 后端 /v1/payment/submit 只需要 channelId、productId
+const handleCreatePaymentOrder = async (channelId?: string | number) => {
   if (!userInfo.value) {
     ElMessage.warning('请先登录后再购买')
     router.push('/login')
@@ -292,18 +294,18 @@ const handleCreatePaymentOrder = async (channelCode?: string) => {
     throw new Error('未选择套餐')
   }
 
-  // 判断是潮币购买还是会员购买
-  const isCoinPurchase = purchaseType.value === 'coin' || targetPlan.productKind === 'Points'
+  if (channelId === undefined || channelId === null || channelId === '') {
+    throw new Error('未选择支付渠道')
+  }
 
-  // 根据购买类型构建不同的支付参数
-  const payload: any = {
-    userId: userInfo.value.userId || userInfo.value.logicId || userInfo.value.phone,
-    paymentType: channelCodeToPaymentType(channelCode), // 0-支付宝 1-微信 2-ApplePay
-    orderType: isCoinPurchase ? 1 : 0, // 订单类型：0-开通会员 1-购买潮币
-    itemCode: targetPlan.productCode,
-    itemId: targetPlan.id ?? targetPlan.productCode,
-    platformType: 0, // 默认PC端
-    currencyType: 1, // 默认人民币
+  const productId = Number(targetPlan.id)
+  if (Number.isNaN(productId)) {
+    throw new Error('未找到购买商品ID（productId）')
+  }
+
+  const payload = {
+    channelId: Number(channelId),
+    productId,
   }
 
   const res = await paymentApi.createPaymentOrder(payload)
@@ -312,6 +314,15 @@ const handleCreatePaymentOrder = async (channelCode?: string) => {
   }
 
   return res.data as any
+}
+
+const loadPaymentMethods = async () => {
+  if (paymentMethods.value.length > 0) return
+  const res = await paymentApi.getPaymentMethod()
+  if (res.code !== '0000' || !Array.isArray(res.data) || res.data.length === 0) {
+    throw new Error(res.msg || '获取支付方式失败')
+  }
+  paymentMethods.value = res.data
 }
 
 // 支付弹窗关闭回调
@@ -323,42 +334,46 @@ const handlePayDialogClose = () => {
 const handlePaymentSuccess = async () => {
   showPayDialog.value = false
 
-  // 支付成功后刷新用户信息（更新是否为会员、剩余权益、潮币等）
+  // 支付成功后刷新用户信息与列表（更新是否为会员、灵衍值等）
   try {
-    const mobile = userInfo.value?.mobile || userInfo.value?.phone
-    if (mobile) {
-      await userStore.getUserInfo(mobile)
-    }
+    await userStore.getUserInfo()
+    await Promise.all([loadMembershipPlans(), loadTideCoinPlans()])
   } catch (error) {
-    console.error('支付成功后刷新用户信息失败:', error)
+    console.error('支付成功后刷新数据失败:', error)
   }
 
   // 通知父组件（用于继续无水印下载等后续流程）
   emit('success')
 }
 
-// 处理购买（会员或潮币）
-const handlePurchaseAction = (plan: any) => {
+// 处理购买（会员或灵衍值）
+const handlePurchaseAction = async (plan: any) => {
   // 记录当前选择的套餐
   selectedPlan.value = plan
   currentSelectedPlan.value = plan
 
-  // 判断是潮币购买还是会员购买
+  // 判断是灵衍值购买还是会员购买
   const isCoinPurchase = plan.productKind === 'Points'
+  if (!isCoinPurchase && isFreePlan(plan)) return
 
   // 设置购买类型和标题
   if (isCoinPurchase) {
     purchaseType.value = 'coin'
-    payDialogTitle.value = '潮币充值'
+    payDialogTitle.value = '灵衍值充值'
   } else {
     purchaseType.value = 'membership'
     payDialogTitle.value = getVipName(plan) || '会员购买'
   }
 
   // 设置初始支付金额（在创建订单前显示）
-  initialPayAmount.value = Number(plan.productPrice) || 0
+  initialPayAmount.value = Number(plan.productDiscountPrice ?? plan.productPrice) || 0
 
-  showPayDialog.value = true
+  try {
+    await loadPaymentMethods()
+    showPayDialog.value = true
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取支付方式失败')
+  }
 }
 
 // 价格单位
@@ -393,8 +408,26 @@ const getDiscountText = (plan: any) => {
   return `${zhe}折`
 }
 
-// 获取购买按钮文案（同一文案，避免依赖旧字段）
-const getPurchaseButtonText = (_plan: any) => '立即购买'
+const isFreePlan = (plan: any) => {
+  const level = Number(plan?.productType ?? 0)
+  const price = Number(plan?.productPrice)
+  return level === 0 || price === 0
+}
+
+const isCurrentMembershipPlan = (plan: any) => {
+  const info: any = userInfo.value || {}
+  const vipType = Number(info.vipType ?? 0)
+  const vipLevel = Number(info.vipLevel ?? 0)
+  const planLevel = Number(plan?.productType ?? 0)
+  const planUnit = Number(plan?.productUnit ?? 0)
+  if (vipType === 0 && vipLevel === 0) return planLevel === 0
+  return planLevel === vipLevel && planUnit === vipType
+}
+
+const getPurchaseButtonText = (plan: any) => {
+  if (isCurrentMembershipPlan(plan)) return '当前套餐'
+  return '立即购买'
+}
 
 // 弹窗标题和提示内容
 const modalConfig = computed(() => {
@@ -436,17 +469,17 @@ const modalConfigWithoutCustom = computed(() => {
 
   // 如果不是会员
   if (!props.isVip) {
-    // 场景一：明确是“潮币不足”（例如生成时提示先充值潮币）
+    // 场景一：明确是“灵衍值不足”（例如生成时提示先充值灵衍值）
     if (props.errorType === 'coin_deficiency') {
       return {
-        title: '潮币不足',
-        content: '您当前潮币不足，开通会员可获得潮币，继续生成还能享受更多会员权益。',
+        title: '灵衍值不足',
+        content: '您当前灵衍值不足，开通会员可获得灵衍值，继续生成还能享受更多会员权益。',
         buttonText: '订阅',
         action: 'subscribe',
       }
     }
 
-    // 场景二：仅需要开通会员（例如去除水印、提升权益），不需要提示“潮币不足”
+    // 场景二：仅需要开通会员（例如去除水印、提升权益），不需要提示“灵衍值不足”
     // 统一文案为「会员购买」
     return {
       title: '会员购买',
@@ -456,11 +489,11 @@ const modalConfigWithoutCustom = computed(() => {
     }
   }
 
-  // 如果是会员且错误类型是潮币不足
+  // 如果是会员且错误类型是灵衍值不足
   if (props.isVip && props.errorType === 'coin_deficiency') {
     return {
-      title: '潮币不足',
-      content: '您当前潮币不足，请充值潮币后继续生成',
+      title: '灵衍值不足',
+      content: '您当前灵衍值不足，请充值灵衍值后继续生成',
       buttonText: '充值',
       action: 'recharge',
     }
@@ -843,7 +876,7 @@ const handleClose = () => {
       }
     }
 
-    // 潮币信息卡片
+    // 灵衍值信息卡片
     .coin-info-card {
       margin-top: 17px;
       padding: 14px;
@@ -979,7 +1012,7 @@ const handleClose = () => {
           rgba(204, 166, 244, 1) 99%) !important;
     }
 
-    // 潮币信息卡片
+    // 灵衍值信息卡片
     .coin-info-card {
       background-color: rgba(192, 132, 252, 0.04);
       border: 1px solid rgba(192, 132, 252, 0.08);
@@ -1101,7 +1134,7 @@ const handleClose = () => {
   }
 }
 
-// 潮币值页面样式
+// 灵衍值页面样式
 .tidecoins-notice {
   padding: 30px 0 40px;
   text-align: center;
@@ -1199,6 +1232,15 @@ const handleClose = () => {
     .tidecoin-price {
       font-size: var(--font-xxxl);
       color: var(--text-primary);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+
+      .origin {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+        text-decoration: line-through;
+      }
     }
 
     .tidecoin-button {

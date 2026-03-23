@@ -105,10 +105,10 @@ body {
 
 /* primary 按钮样式：渐变背景 + 白色文字 */
 .el-button--primary {
-  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%) !important;
+  color: $color-text-white !important;
   border: none !important;
   box-shadow: none !important;
-  color: $color-text-white !important;
 }
 
 /* 全局：primary 按钮禁用态黑色透明遮罩（统一“不可点击”视觉） */
@@ -120,7 +120,7 @@ body {
   border-color: transparent !important;
   box-shadow: none !important;
   border: transparent !important;
-  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%) !important;
 
   &::after {
     content: '';

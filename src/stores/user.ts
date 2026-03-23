@@ -10,6 +10,29 @@ export interface UserInfo {
   [key: string]: any
 }
 
+const getVipDisplayText = (vipType?: number, vipLevel?: number, emptyText = '未开通会员') => {
+  const tVipType = Number(vipType ?? 0)
+  const tVipLevel = Number(vipLevel ?? 0)
+
+  if (tVipType === 0 && tVipLevel === 0) return emptyText
+
+  const tierTextMap: Record<number, string> = {
+    1: '基础版',
+    2: '标准版',
+    3: '高级版',
+  }
+  const periodTextMap: Record<number, string> = {
+    1: '月度会员',
+    2: '季度会员',
+    3: '年度会员',
+  }
+
+  const tierText = tierTextMap[tVipLevel] || ''
+  const periodText = periodTextMap[tVipType] || ''
+
+  return tierText && periodText ? `${tierText}-${periodText}` : '会员版'
+}
+
 export const useUserStore = defineStore('user', {
   state: () => ({
     // 初始化时尝试从 localStorage 读取，防止刷新页面后丢失登录状态
@@ -18,6 +41,18 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
+    // 统一 VIP 展示文案（用于 Header/Membership 等回显）
+    // vipType: 0 普通用户；1 月度会员；2 季度会员；3 年度会员
+    // vipLevel: 0 普通用户；1 基础；2 标准；3 高级
+    vipDisplayText: (state) => {
+      const info: any = state.userInfo || {}
+      return getVipDisplayText(info.vipType, info.vipLevel, '未开通会员')
+    },
+    // Membership 页面使用“免费版”作为空状态文案（与 Header 不同）
+    vipMembershipDisplayText: (state) => {
+      const info: any = state.userInfo || {}
+      return getVipDisplayText(info.vipType, info.vipLevel, '免费版')
+    },
   },
 
   actions: {

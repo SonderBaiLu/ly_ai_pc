@@ -1,5 +1,7 @@
 <template>
   <div class="membership-page">
+    <Header />
+
     <div class="membership-content">
       <div class="main-content">
         <div class="main-inner">
@@ -12,22 +14,15 @@
               </div>
               <!-- 基本信息 -->
               <div class="user-details">
-                <div class="user-nickname">
-                  {{ userInfo?.nickname || '未登录' }}
-                  <template v-if="userInfo?.isVip === 1">
-                    <text v-if="userInfo?.vipType === 1" class="user-type">基础会员</text>
-                    <text v-if="userInfo?.vipType === 0" class="user-type">标准会员</text>
-                    <text v-if="userInfo?.vipType === 2" class="user-type">高级会员</text>
-                  </template>
-                </div>
-                <div class="user-mobile">{{ userInfo?.mobile || '未登录' }}</div>
+                <div class="user-nickname">{{ userInfo?.userName || '' }}</div>
+                <div class="user-mobile" v-if="userInfo?.mobile">+86 {{ userInfo?.mobile || '' }}</div>
               </div>
-              <!-- 右侧：潮币与订单 -->
+              <!-- 右侧：灵衍与订单 -->
               <div class="user-extra">
                 <div class="coin-badge" @click="activeTab = 'tidecoins'">
-                  <img :src="images.coin" alt="潮币" class="coin-icon" />
+                  <img :src="images.coin" alt="灵衍值" class="coin-icon" />
                   <span class="coin-number">{{ userInfo?.wavePoints || 0 }}</span>
-                  <span class="coin-text">潮币</span>
+                  <span class="coin-text">灵衍值</span>
                 </div>
                 <el-button class="order-btn" type="primary" @click="showInspirationModal = true">
                   订单记录
@@ -42,14 +37,14 @@
             <div class="user-info-meta">
               <div class="meta-item">
                 <div class="meta-label">订阅计划</div>
-                <div :class="['meta-value', getMembershipTypeClass(userInfo?.effectUnit)]">
-                  {{ getMembershipTypeText(userInfo?.effectUnit, userInfo?.isVip) }}
+                <div :class="['meta-value', getMembershipTypeClass(userInfo?.vipType)]">
+                  {{ userStore.vipMembershipDisplayText }}
                 </div>
               </div>
               <div class="meta-item">
                 <div class="meta-label">到期时间</div>
-                <div :class="['meta-value', getMembershipTypeClass(userInfo?.effectUnit)]">
-                  {{ userInfo?.expirationDate || '永久' }}
+                <div :class="['meta-value', getMembershipTypeClass(userInfo?.vipType)]">
+                  {{ userInfo?.expirationTime || '永久' }}
                 </div>
               </div>
             </div>
@@ -62,15 +57,17 @@
                 <el-tab-pane v-for="tab in membershipTabs" :key="tab.key" :label="tab.name" :name="tab.key" />
               </el-tabs>
 
-              <!-- 基础版 / 标准版 切换：0=标准版 1=基础版（接口 vipType：0 标准版 1 基础版） -->
+              <!-- 基础版 / 标准版 切换：1=基础版 2=标准版（对齐 vipLevel/productType） -->
               <div v-if="activeTab === 'membership'" class="member-version-toggle">
-                <div class="toggle-segment" :class="{ active: memberVersion === 1 }" @click="switchMemberVersion(1)">
-                  <span>基础版</span>
-                </div>
-                <div class="toggle-segment" :class="{ active: memberVersion === 0 }" @click="switchMemberVersion(0)">
+                <el-button class="toggle-segment" :type="memberVersion === 1 ? 'primary' : 'default'"
+                  @click="switchMemberVersion(1)">
+                  基础版
+                </el-button>
+                <el-button class="toggle-segment" :type="memberVersion === 2 ? 'primary' : 'default'"
+                  @click="switchMemberVersion(2)">
                   <span class="recommend-tag">推荐</span>
-                  <span>标准版</span>
-                </div>
+                  标准版
+                </el-button>
               </div>
             </div>
 
@@ -101,15 +98,18 @@
                     :class="`theme-${index}`">
                     <div class="card-header">
                       <h3 class="card-title title">{{ getVipName(plan) }}</h3>
+                      <!-- 右上角折扣角标（使用接口 productDiscount 动态计算） -->
+                      <div v-if="getDiscountText(plan)" class="corner-discount-tag">
+                        {{ getDiscountText(plan) }}
+                      </div>
                       <div class="price-section">
                         <span class="price">¥{{ plan.productDiscountPrice ?? plan.productPrice }}</span>
                         <span class="price-unit">{{ getPriceUnit(plan) }}</span>
-                        <span v-if="getDiscountText(plan)" class="discount-tag">{{ getDiscountText(plan) }}</span>
                         <!-- 显示原价（删除线） -->
                         <span
                           v-if="getDiscountText(plan) && plan.productPrice !== undefined && plan.productPrice !== null"
                           class="original-price">
-                          ¥{{ plan.productPrice }}
+                          {{ plan.productPrice }}
                         </span>
                       </div>
                     </div>
@@ -120,13 +120,16 @@
                         {{ getPurchaseButtonText(plan) }}
                       </el-button>
 
-                      <!-- 潮币信息卡片 -->
-                      <div v-if="plan.itemDescList && plan.itemDescList.length > 0" class="coin-info-card">
-                        <!-- <img :src="getCoinIcon(index)" class="coin-icon" alt="潮币图标" /> -->
+                      <!-- 灵衍信息卡片：使用新接口字段 waveCoin / productDesc -->
+                      <div v-if="plan.waveCoin && plan.productDesc && !isFreePlan(plan)" class="coin-info-card">
                         <div class="coin-content">
-                          <div v-for="(desc, descIdx) in (plan.itemDescList || []).slice(-2)" :key="descIdx"
-                            :class="descIdx === 0 ? 'coin-amount' : 'coin-detail'">
-                            {{ desc }}
+                          <!-- 第一行：单月 X 个灵衍值 -->
+                          <div v-if="plan.waveCoin" class="coin-amount">
+                            单月{{ plan.waveCoin }}个灵衍值
+                          </div>
+                          <!-- 第二行：接口返回的描述 -->
+                          <div v-if="plan.productDesc" class="coin-detail">
+                            {{ plan.productDesc }}
                           </div>
                         </div>
                       </div>
@@ -146,36 +149,39 @@
               </div>
             </template>
 
-            <!-- 潮币值页面 -->
+            <!-- 灵衍值页面 -->
             <template v-else-if="activeTab === 'tidecoins'">
               <!-- 温馨提示 -->
               <div class="tidecoins-notice">
                 温馨提示：
                 <span class="notice-text">
-                  潮币值不可兑换会员，不可转赠与提现；充值后有效期为{{
+                  灵衍值不可兑换会员，不可转赠与提现；充值后有效期为{{
                     selectedPlan?.effectDate || '2'
                   }}年，不支持退换或反向兑换成人民币。
                 </span>
                 <span class="rules-link" @click="() => navigateToAgreement('COIN_RULES_DESCRIPTION')">
-                  潮币值规则
+                  灵衍值规则
                 </span>
               </div>
 
-              <!-- 潮币套餐网格 -->
+              <!-- 灵衍套餐网格 -->
               <div class="tidecoins-grid">
                 <div v-for="plan in tideCoinsPlans" :key="plan.id" class="tidecoin-card"
                   :class="{ selected: (plan as any).isSelected }" @click="selectTideCoin(plan)">
                   <!-- 上半部分：暗色背景 -->
                   <div class="tidecoin-top">
                     <div class="tidecoin-amount">
-                      <img class="flame-icon" :src="images.logoMini" alt="" srcset="" />
+                      <img class="flame-icon" :src="images.money" alt="" srcset="" />
                       <span class="amount">{{ plan.waveCoin }}</span>
                     </div>
                   </div>
 
                   <!-- 下半部分：更深背景 -->
                   <div class="tidecoin-bottom flex-between">
-                    <div class="tidecoin-price">¥ {{ plan.productPrice }}</div>
+                    <div class="tidecoin-price">
+                      <span class="current">¥ {{ plan.productDiscountPrice }}</span>
+                      <span v-if="Number(plan.productDiscount) < 100" class="origin">¥ {{ plan.productPrice }}</span>
+                    </div>
                     <el-button class="tidecoin-button" type="primary" @click.stop="handlePurchaseAction(plan)">
                       立即购买
                     </el-button>
@@ -184,40 +190,34 @@
               </div>
             </template>
           </div>
-
-          <!-- 服务条款链接 -->
-          <!-- <div class="terms-links">
-        <el-button text class="term-link" @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">
-          服务条款
-        </el-button>
-        <el-divider direction="vertical" />
-        <el-button text class="term-link" @click="navigateToAgreement('ANDROID_PRIVACY_POLICY')">
-          隐私协议
-        </el-button>
-        <el-divider direction="vertical" />
-        <el-button text class="term-link" @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">
-          付费服务协议
-        </el-button>
-        </div> -->
         </div>
-
-        <!-- 潮币值明细弹窗 -->
-        <InspirationValueModal v-model="showInspirationModal" />
-        <!-- 订阅管理弹窗 -->
-        <SubscriptionManageModal v-model="showSubscriptionModal" />
       </div>
     </div>
+
+    <!-- 灵衍值明细弹窗 -->
+    <InspirationValueModal v-model="showInspirationModal" />
+
+    <!-- 订阅管理弹窗 -->
+    <SubscriptionManageModal v-model="showSubscriptionModal" />
+
     <!-- 客服弹窗 -->
     <ContactModal v-model="showCustomerServiceModal" />
 
     <!-- 支付弹窗 -->
     <PaymentModal v-model="showPayDialog" :title="payDialogTitle" :initial-amount="initialPayAmount"
-      :create-payment-order="createVipPaymentOrder" :purchase-type="purchaseType" :show-customer-service="true"
-      :on-open-customer-service="openCustomerService" @close="closePayDialog" @success="handlePaymentSuccess" />
+      :payment-methods="paymentMethods" :create-payment-order="createVipPaymentOrder" :purchase-type="purchaseType"
+      :show-customer-service="true" :on-open-customer-service="openCustomerService" @close="closePayDialog"
+      @success="handlePaymentSuccess" />
 
     <!-- 会员变更计划弹窗 -->
-    <el-dialog v-model="showChangePlanDialog" title="会员变更计划" width="800px" class="change-plan-dialog" :show-close="true"
+    <el-dialog v-model="showChangePlanDialog" width="800px" class="change-plan-dialog" :show-close="false"
       :close-on-click-modal="false">
+      <template #header>
+        <div class="change-plan-header flex-between">
+          <div>会员变更计划</div>
+          <img :src="images.closeVip" class="close-icon" alt="" @click="showChangePlanDialog = false" />
+        </div>
+      </template>
       <div class="change-plan-body">
         <div class="change-plan-tip">
           <img :src="images.warning" class="tip-icon" alt="" />
@@ -236,9 +236,9 @@
             </p>
 
             <p class="tip-sub">
-              如订阅周期内的会员潮币消耗完，可额外
+              如订阅周期内的会员灵衍消耗完，可额外
               <span class="link-text" @click="() => ((activeTab = 'tidecoins'), (showChangePlanDialog = false))">
-                购买潮币
+                购买灵衍
               </span>
             </p>
           </div>
@@ -255,7 +255,7 @@
         <div class="change-plan-list">
           <!-- 新购计划（顺序1） -->
           <div class="plan-item">
-            <div class="plan-order">1</div>
+            <div class="plan-order active">1</div>
             <div class="plan-info">
               <div class="plan-row">
                 <span class="plan-title">
@@ -266,12 +266,7 @@
               <div class="plan-meta">
                 <img :src="images.date" class="meta-icon" alt="" />
                 到期时间：
-                {{
-                  vipChangeDetail?.effectiveDate ||
-                  effectiveDate ||
-                  userInfo?.expirationDate ||
-                  '--'
-                }}
+                {{ newPlanDisplay?.endTime || '--' }}
               </div>
             </div>
           </div>
@@ -289,7 +284,7 @@
               <div class="plan-meta">
                 <img :src="images.date" class="meta-icon" alt="" />
                 到期时间：
-                {{ vipChangeDetail?.oldExpirationDate || userInfo?.expirationDate || '--' }}
+                {{ oldPlanDisplay?.endTime || '--' }}
               </div>
             </div>
           </div>
@@ -301,8 +296,16 @@
           <div class="pay-summary">
             <span>需支付：</span>
             <span class="amount">
-              {{ Number(vipChangeDetail?.payAmount ?? vipChangeDetail?.vipItemNew?.itemPrice ??
-                selectedPlan?.productPrice ?? 0) }}
+              {{
+                Number(
+                  vipChangeDetail?.payAmount ??
+                  vipChangeDetail?.productNewVO?.productDiscountPrice ??
+                  vipChangeDetail?.productNewVO?.productPrice ??
+                  selectedPlan?.productDiscountPrice ??
+                  selectedPlan?.productPrice ??
+                  0
+                )
+              }}
             </span>
           </div>
           <el-button type="primary" size="large" class="confirm-btn" @click="confirmChangePlanPurchase">
@@ -320,20 +323,21 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { membershipApi, type AppProduct } from '@/api/membership'
-import { paymentApi } from '@/api/payment'
+import { paymentApi, type PaymentMethod } from '@/api/payment'
 import { images } from '@/assets'
 
 const router = useRouter()
+const route = useRoute()
 
 // 用户信息
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
 
 const avatarSrc = computed(() =>
-  String(userInfo.value?.headImgUrl || '').trim() ? userInfo.value?.headImgUrl : images.avatar
+  String(userInfo.value?.headImgUrl || '').trim() ? userInfo.value?.headImgUrl : images.avatarDefault
 )
 
-// 潮币值明细弹窗
+// 灵衍值明细弹窗
 const showInspirationModal = ref(false)
 // 订阅管理弹窗
 const showSubscriptionModal = ref(false)
@@ -347,30 +351,56 @@ const membershipTabs = ref([
   { key: 'tidecoins', name: '充值' },
 ])
 
-const activeTab = ref('membership')
+const activeTab = ref(
+  String(route.query.tab ?? '') === '1' || String(route.query.tab ?? '') === 'tidecoins'
+    ? 'tidecoins'
+    : 'membership'
+)
 
-// 基础版 / 标准版 切换：0=标准版 1=基础版（接口 vipType：0 标准版 1 基础版 2 高级版）
+// 当页面已打开时，仅更新路由 query（例如从其他入口 push `/membership?tab=1`）
+// 组件不会重新初始化，所以需要监听 route.query.tab 同步切换 tab。
+watch(
+  () => route.query.tab,
+  async (tab) => {
+    const tabStr = String(tab ?? '')
+    const nextTab = tabStr === '1' || tabStr === 'tidecoins' ? 'tidecoins' : 'membership'
+    if (activeTab.value === nextTab) return
+    activeTab.value = nextTab
+
+    // 兜底：切到充值 tab 时，若套餐尚未加载则补载
+    if (nextTab === 'tidecoins' && tideCoinsPlans.value.length === 0) {
+      await loadTideCoinPlans()
+    }
+    if (nextTab === 'membership' && membershipPlansFromApi.value.length === 0) {
+      await loadMembershipPlans()
+    }
+  }
+)
+
+// 基础版 / 标准版 切换：1=基础版 2=标准版（对齐 vipLevel/productType）
 // 默认展示“基础版”，若用户是会员则按实际 vipType 展示对应内容
 const memberVersion = ref<number>(1)
 
 // 会员套餐数据（直接使用接口返回字段）
 const membershipPlansFromApi = ref<AppProduct[]>([])
 
-// 潮币值套餐数据（从API加载）
+// 灵衍值套餐数据（从API加载）
 const tideCoinsPlans = ref<any[]>([])
 
 // 选中的套餐
 const selectedPlan = ref<any>(null)
+// 支付方式（父组件获取后传给支付弹窗）
+const paymentMethods = ref<PaymentMethod[]>([])
 
 // ===== 会员变更计划相关状态（参考 uniapp 实现） =====
 // 会员变更计划弹窗
 const showChangePlanDialog = ref(false)
-// 生效日期（若后端未返回，则前端计算兜底）
+// 生效日期（
 const effectiveDate = ref('')
 // 会员变更计划详情（来自 vipTip 接口：包含 vipItemOld / vipItemNew 等）
 const vipChangeDetail = ref<any | null>(null)
 
-// 选择潮币值
+// 选择灵衍值
 const selectTideCoin = (plan: any) => {
   // 取消所有选择
   tideCoinsPlans.value.forEach((p) => (p.isSelected = false))
@@ -382,7 +412,7 @@ const selectTideCoin = (plan: any) => {
 // === 支付弹窗相关状态 ===
 const showPayDialog = ref(false)
 const payDialogTitle = ref('')
-const purchaseType = ref<'membership' | 'coin'>('membership') // 购买类型：会员或潮币
+const purchaseType = ref<'membership' | 'coin'>('membership') // 购买类型：会员或灵衍值
 const initialPayAmount = ref(0) // 初始支付金额
 
 // 打开客服弹窗
@@ -398,31 +428,32 @@ const navigateToAgreement = (agreementType: string) => {
   })
 }
 
-// 创建支付订单并展示二维码（支持会员和潮币购买）
-const createVipPaymentOrder = async (plan?: any) => {
+// 创建支付订单并展示二维码（支持会员和灵衍购买）
+// 后端 /v1/payment/submit 只需要 channelId、productId
+const createVipPaymentOrder = async (channelId?: number) => {
   if (!userInfo.value) {
     ElMessage.warning('请先登录后再购买')
     router.push('/login')
     throw new Error('用户未登录')
   }
 
-  const targetPlan = plan || selectedPlan.value
+  const targetPlan = selectedPlan.value
   if (!targetPlan) {
     throw new Error('未选择套餐')
   }
 
-  // 判断是潮币购买还是会员购买
-  const isCoinPurchase = purchaseType.value === 'coin' || targetPlan.productKind === 'Points'
+  if (channelId === undefined || channelId === null || Number.isNaN(channelId)) {
+    throw new Error('未选择支付渠道')
+  }
 
-  // 根据购买类型构建不同的支付参数
+  const productId = Number(targetPlan.id ?? targetPlan.productCode)
+  if (Number.isNaN(productId)) {
+    throw new Error('未找到购买商品ID（productId）')
+  }
+
   const payload: any = {
-    userId: userInfo.value.userId || userInfo.value.logicId || userInfo.value.phone,
-    paymentType: 0, // 0-支付宝
-    orderType: isCoinPurchase ? 1 : 0, // 订单类型：0-开通会员 1-购买潮币
-    itemCode: targetPlan.productCode,
-    itemId: targetPlan.id ?? targetPlan.productCode,
-    platformType: 0, // 默认PC端
-    currencyType: 1, // 默认人民币
+    channelId,
+    productId,
   }
 
   const res = await paymentApi.createPaymentOrder(payload)
@@ -433,19 +464,33 @@ const createVipPaymentOrder = async (plan?: any) => {
   return res.data as any
 }
 
+const loadPaymentMethods = async () => {
+  if (paymentMethods.value.length > 0) return
+  const res = await paymentApi.getPaymentMethod()
+  if (res.code !== '0000' || !Array.isArray(res.data) || res.data.length === 0) {
+    throw new Error(res.msg || '获取支付方式失败')
+  }
+  paymentMethods.value = res.data
+}
+
 // 支付弹窗关闭回调
 const closePayDialog = () => {
   showPayDialog.value = false
 }
 
-// 支付成功回调
-const handlePaymentSuccess = () => {
+// 支付成功回调：刷新用户信息与页面数据，确保灵衍值/会员状态即时更新
+const handlePaymentSuccess = async () => {
   showPayDialog.value = false
-  // 支付成功后可以在这里做额外处理，比如刷新列表等
+  try {
+    await userStore.getUserInfo()
+    await Promise.all([loadMembershipPlans(), loadTideCoinPlans()])
+  } catch (error) {
+    console.error('支付成功后刷新数据失败:', error)
+  }
 }
 
 // 打开支付弹窗（封装公共逻辑）
-const openPaymentForPlan = (plan: any) => {
+const openPaymentForPlan = async (plan: any) => {
   if (!plan) return
 
   // 记录当前选择的套餐
@@ -455,7 +500,7 @@ const openPaymentForPlan = (plan: any) => {
 
   if (isCoinPurchase) {
     purchaseType.value = 'coin'
-    payDialogTitle.value = '潮币充值'
+    payDialogTitle.value = '灵衍充值'
     initialPayAmount.value = Number(plan.productPrice) || 0
   } else {
     purchaseType.value = 'membership'
@@ -463,41 +508,40 @@ const openPaymentForPlan = (plan: any) => {
     initialPayAmount.value = Number(plan.productPrice) || 0
   }
 
-  showPayDialog.value = true
-}
-
-// 计算生效日期（后端未返回时的兜底文案）
-const calculateEffectiveDate = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const day = now.getDate()
-  effectiveDate.value = `${year}年${month}月${day}日`
+  try {
+    await loadPaymentMethods()
+    showPayDialog.value = true
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取支付方式失败')
+  }
 }
 
 // 会员类型 & 周期映射（仅用于变更计划文案）
-// vipType：0 标准版 1 基础版 2 高级版（与后端保持一致）
-const vipLevelNameMap: Record<string | number, string> = {
-  0: '标准会员',
-  1: '基础会员',
-  2: '高级会员',
+// productType：0 积分/普通会员；1 基础版；2 标准版；3 高级版
+const productTypeNameMap: Record<string | number, string> = {
+  0: '普通会员',
+  1: '基础版',
+  2: '标准版',
+  3: '高级版',
 }
 const vipPeriodNameMap: Record<string | number, string> = {
-  '-1': '永久会员',
-  0: '月度会员',
-  1: '季度会员',
-  2: '年度会员',
+  '-1': '终身会员',
+  0: '普通会员',
+  1: '月度会员',
+  2: '季度会员',
+  3: '年度会员',
 }
 const vipPeriodUnitMap: Record<string | number, string> = {
   '-1': '终身',
-  0: '月',
-  1: '季',
-  2: '年',
+  0: '',
+  1: '月',
+  2: '季',
+  3: '年',
 }
 
 const getVipLevelName = (vipType?: number | string) => {
   const key = String(vipType ?? '')
-  return vipLevelNameMap[key] || vipLevelNameMap[Number(key)] || ''
+  return productTypeNameMap[key] || productTypeNameMap[Number(key)] || ''
 }
 const getVipPeriodName = (unit?: number | string) => {
   const key = String(unit ?? '')
@@ -508,80 +552,64 @@ const getVipPeriodUnit = (unit?: number | string) => {
   return vipPeriodUnitMap[key] || vipPeriodUnitMap[Number(key)] || ''
 }
 
-// 会员变更卡片展示文案（旧套餐）
-const oldPlanDisplay = computed(() => {
-  const info = vipChangeDetail.value?.vipItemOld
+type VipTipPlanVO = {
+  productType?: string | number
+  productUnit?: string | number
+  productDiscountPrice?: string | number
+  productPrice?: string | number
+  endTime?: string
+}
+
+const normalizeVipPlanDisplay = (info?: VipTipPlanVO) => {
   if (!info) {
-    return {
-      levelLabel: '',
-      periodLabel: '',
-      priceText: '',
-    }
+    return { levelLabel: '', periodLabel: '', priceText: '', endTime: '' }
   }
-  const levelLabel = getVipLevelName(info.vipType)
-  const periodLabel = getVipPeriodName(info.itemUnit)
-  const unitShort = getVipPeriodUnit(info.itemUnit)
+  const levelLabel = getVipLevelName(info.productType)
+  const periodLabel = getVipPeriodName(info.productUnit)
+  const unitShort = getVipPeriodUnit(info.productUnit)
+  const priceVal = info.productDiscountPrice ?? info.productPrice
   const price =
-    info.itemPrice !== null && info.itemPrice !== undefined ? Number(info.itemPrice).toFixed(0) : ''
+    priceVal !== null && priceVal !== undefined && priceVal !== ''
+      ? Number(priceVal).toFixed(0)
+      : ''
   const priceText = price ? `¥${price} / ${unitShort}` : ''
+
   return {
     levelLabel,
     periodLabel,
     priceText,
+    // 直接使用接口返回的到期时间（不做本地计算/兜底拼接）
+    endTime: info.endTime ?? '',
   }
-})
+}
 
-// 会员变更卡片展示文案（新套餐）
-const newPlanDisplay = computed(() => {
-  const info = vipChangeDetail.value?.vipItemNew
-  if (!info) {
-    return {
-      levelLabel: '',
-      periodLabel: '',
-      priceText: '',
-    }
-  }
-  const levelLabel = getVipLevelName(info.vipType)
-  const periodLabel = getVipPeriodName(info.itemUnit)
-  const unitShort = getVipPeriodUnit(info.itemUnit)
-  const price =
-    info.itemPrice !== null && info.itemPrice !== undefined ? Number(info.itemPrice).toFixed(0) : ''
-  const priceText = price ? `¥${price} / ${unitShort}` : ''
-  return {
-    levelLabel,
-    periodLabel,
-    priceText,
-  }
-})
+// 会员变更卡片展示文案（旧/新套餐）
+const oldPlanDisplay = computed(() => normalizeVipPlanDisplay(vipChangeDetail.value?.productOldVO))
+const newPlanDisplay = computed(() => normalizeVipPlanDisplay(vipChangeDetail.value?.productNewVO))
 
-// 处理购买（会员或潮币）
+// 处理购买（会员或灵衍）
 const handlePurchaseAction = async (plan: any) => {
-  if (isFreePlan(plan)) return
+  // 注意：当会员购买触发 vipTip 弹窗后会 return，openPaymentForPlan 不会立刻执行，
+  // 这会导致 selectedPlan.value 可能还是上一次选择的“灵衍值”套餐。
+  // 在这里先同步 selectedPlan，确保弹窗“确认购买”使用的就是当前 plan。
+  selectedPlan.value = plan
 
-  // 判断是潮币购买还是会员购买
+  // 判断是灵衍购买还是会员购买
   const isCoinPurchase = plan.productKind === 'Points'
+  // 仅会员场景拦截免费版，灵衍值（Points）允许购买
+  if (!isCoinPurchase && isFreePlan(plan)) return
 
   // 会员购买前先调用 vipTip 接口，判断是否需要展示“会员变更计划”弹窗
   if (!isCoinPurchase && userInfo.value) {
     try {
+      // memberVersion: 1 基础版 / 2 标准版（对齐 vipLevel/productType）
       const res = await membershipApi.vipTip({
-        userId: userInfo.value.userId || userInfo.value.logicId || userInfo.value.phone,
-        vipItemId: plan.id,
-        vipType: memberVersion.value,
+        productId: String(plan.id ?? plan.productCode),
       })
 
-      if (res && res.code === '0000' && res.data && (res.data as any).vipTip) {
-        // 缓存会员变更详情用于弹窗展示
-        vipChangeDetail.value = res.data as any
-        selectedPlan.value = plan
-
-        // 使用后端返回的生效时间文案，若没有则本地计算
-        if ((res.data as any).effectiveDate) {
-          effectiveDate.value = (res.data as any).effectiveDate
-        } else {
-          calculateEffectiveDate()
-        }
-
+      if (res.code === '0000' && res.data.vipTip) {
+        vipChangeDetail.value = res.data
+        effectiveDate.value = res.data.effectiveDate || ''
         showChangePlanDialog.value = true
         return
       }
@@ -590,17 +618,17 @@ const handlePurchaseAction = async (plan: any) => {
     }
   }
 
-  openPaymentForPlan(plan)
+  await openPaymentForPlan(plan)
 }
 
 // 确认变更会员计划 -> 打开支付弹窗
-const confirmChangePlanPurchase = () => {
+const confirmChangePlanPurchase = async () => {
   if (!selectedPlan.value) {
     showChangePlanDialog.value = false
     return
   }
   showChangePlanDialog.value = false
-  openPaymentForPlan(selectedPlan.value)
+  await openPaymentForPlan(selectedPlan.value)
 }
 
 // 切换会员版本（基础版 / 标准版）
@@ -620,9 +648,13 @@ const loadMembershipPlans = async () => {
     if (res.code === '0000' && res.data) {
       const products: AppProduct[] = Array.isArray(res.data) ? res.data : []
 
-      // memberVersion: 1 基础版 / 0 标准版（与 productType：1 基础 / 2 标准 对齐）
-      const targetProductType = memberVersion.value === 1 ? 1 : 2
-      const filtered = products.filter((p) => Number(p.productType) === targetProductType)
+      // memberVersion: 1 基础版 / 2 标准版（与 productType：1 基础 / 2 标准 对齐）
+      const targetProductType = memberVersion.value
+      // productType=0 是“免费版/普通会员”，需要在基础版/标准版切换时都展示
+      const filtered = products.filter((p) => {
+        const t = Number(p.productType)
+        return t === targetProductType || t === 0
+      })
 
       membershipPlansFromApi.value = filtered
     } else {
@@ -639,10 +671,11 @@ const loadMembershipPlans = async () => {
 // - 非会员（isVip !== 1）-> 标准版（0）
 // - 会员：vipType === 1 -> 基础版（1）；其他（0 标准 / 2 高级 / 空）-> 标准版（0）
 watch(
-  () => [userInfo.value?.isVip, userInfo.value?.vipType] as const,
-  async ([isVip, vipType]) => {
-    // 非会员保持默认“基础版”；会员则按实际 vipType 决定显示基础/标准
-    const nextVersion = isVip === 1 ? (vipType === 1 ? 1 : 0) : 1
+  () => [userInfo.value?.isVip, userInfo.value?.vipLevel] as const,
+  async ([isVip, vipLevel]) => {
+    // 非会员保持默认“基础版”；会员则按 vipLevel 决定显示基础/标准
+    // vipLevel: 1 基础 / 2 标准 / 3 高级（此页面仅展示基础&标准两档）
+    const nextVersion = isVip === 1 ? vipLevel : 1
     if (memberVersion.value === nextVersion) return
     memberVersion.value = nextVersion
     await loadMembershipPlans()
@@ -650,55 +683,42 @@ watch(
   { immediate: true }
 )
 
-// 加载潮币套餐数据
+// 加载灵衍套餐数据
 const loadTideCoinPlans = async () => {
   try {
     // 新接口：/api/v1/app/getAppProductList?productKind=Points
     const res = await membershipApi.getAppProductList({ productKind: 'Points' })
     if (res.code === '0000' && res.data) {
-      tideCoinsPlans.value = Array.isArray(res.data) ? res.data : []
+      const rows = Array.isArray(res.data) ? res.data : []
+      tideCoinsPlans.value = rows.map((item: any) => ({
+        ...item,
+        isSelected: false,
+      }))
+      if (tideCoinsPlans.value.length > 0) {
+        selectTideCoin(tideCoinsPlans.value[0])
+      }
     } else {
-      console.error('获取潮币套餐失败:', res.msg)
-      ElMessage.error(res.msg || '获取潮币套餐失败')
+      console.error('获取灵衍套餐失败:', res.msg)
+      ElMessage.error(res.msg || '获取灵衍套餐失败')
     }
   } catch (error) {
-    console.error('加载潮币套餐失败:', error)
-    ElMessage.error('加载潮币套餐失败')
+    console.error('加载灵衍套餐失败:', error)
+    ElMessage.error('加载灵衍套餐失败')
   }
 }
 
-// 根据 effectUnit 获取会员类型文本
-const getMembershipTypeText = (effectUnit?: number, isVip?: number) => {
-  if (isVip !== 1) {
-    return '免费版'
+// 根据 vipType 获取会员类型颜色类
+const getMembershipTypeClass = (vipType?: number) => {
+  if (vipType === -1) {
+    return 'membership-permanent'
   }
-  if (effectUnit === -1) {
-    return '永久会员'
-  }
-  if (effectUnit === 0) {
-    return '月度会员'
-  }
-  if (effectUnit === 1) {
-    return '季度会员'
-  }
-  if (effectUnit === 2) {
-    return '年度会员'
-  }
-  return '会员版'
-}
-
-// 根据 effectUnit 获取会员类型颜色类
-const getMembershipTypeClass = (effectUnit?: number) => {
-  if (effectUnit === -1) {
-    return 'membership-permanent' // 永久会员 - 金色
-  }
-  if (effectUnit === 0) {
+  if (vipType === 1) {
     return 'membership-monthly' // 月度会员 - 紫色
   }
-  if (effectUnit === 1) {
-    return 'membership-quarterly' // 季度会员 - 蓝绿色
+  if (vipType === 2) {
+    return 'membership-quarterly' // 季度会员 - 蓝色
   }
-  if (effectUnit === 2) {
+  if (vipType === 3) {
     return 'membership-yearly' // 年度会员 - 金黄色
   }
   return ''
@@ -783,7 +803,7 @@ const scrollCards = (direction: 'left' | 'right') => {
 onMounted(async () => {
   console.log('Membership 组件挂载，当前用户信息:', userInfo.value)
 
-  // 加载会员和潮币套餐数据
+  // 加载会员和灵衍套餐数据
   await Promise.all([loadMembershipPlans(), loadTideCoinPlans()])
 
   // 等待DOM更新后检查是否需要滚动模式
@@ -809,12 +829,14 @@ watch(
   }
 )
 
-// 价格单位：使用接口 productUnit
+// 价格单位：优先使用新字段 productUnit（0 永久 1 月度会员 2 季度会员 3 年度会员）
 const getPriceUnit = (plan: any) => {
-  // 商品单位：0个/普通会员 1月 2季度 3年度
-  if (plan.productUnit === 1) return '/月'
-  if (plan.productUnit === 2) return '/季'
-  if (plan.productUnit === 3) return '/年'
+  const unit = Number(plan?.productUnit ?? 0)
+  // 1 月度会员 2 季度会员 3 年度会员
+  if (unit === 0) return '/永久'
+  if (unit === 1) return '/月'
+  if (unit === 2) return '/季'
+  if (unit === 3) return '/年'
   return '/年'
 }
 // 会员名字
@@ -832,12 +854,38 @@ const getDiscountText = (plan: any) => {
   return `${zhe}折`
 }
 
-// 判断是否免费版（新字段下不做兜底免费版注入，因此默认都可购买）
-const isFreePlan = (_plan: any) => false
+// 判断是否免费版（等级为免费 或 价格为 0）
+const isFreePlan = (plan: any) => {
+  // 套餐里没有 vipLevel，这里用 productType：0 免费 1 基础 2 标准 3 高级
+  const level = Number(plan?.productType ?? 0)
+  const price = Number(plan?.productPrice)
+  return level === 0 || price === 0
+}
+
+// 当前会员是否为该套餐（用于按钮“当前套餐”文案）
+const isCurrentMembershipPlan = (plan: any) => {
+  const info: any = userInfo.value || {}
+  const vipType = Number(info.vipType ?? 0) // 用户：0 普通用户 1 月度会员 2 季度会员 3 年度会员
+  const vipLevel = Number(info.vipLevel ?? 0) // 用户：0 普通用户 1 基础 2 标准 3 高级
+
+  // 套餐侧字段：使用 productType/productUnit（0 免费 1 基础 2 标准 3 高级; 1 月 2 季 3 年）
+  const planLevel = Number(plan?.productType ?? 0)
+  const planUnit = Number(plan?.productUnit ?? 0)
+
+  // 非会员（vipType=0 && vipLevel=0）：当前套餐就是“免费版”（vipLevel=0）
+  if (vipType === 0 && vipLevel === 0) {
+    return planLevel === 0
+  }
+
+  // 会员：等级 + 周期都一致时，为当前套餐
+  return planLevel === vipLevel && planUnit === vipType
+}
 
 // 获取购买按钮文案
 const getPurchaseButtonText = (plan: any) => {
-  void plan
+  if (isCurrentMembershipPlan(plan)) {
+    return '当前套餐'
+  }
   return '立即购买'
 }
 </script>
@@ -845,6 +893,9 @@ const getPurchaseButtonText = (plan: any) => {
 <style lang="scss" scoped>
 .membership-page {
   display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(11, 79, 141, 1) 0%, rgba(11, 7, 23, 1) 70%);
 }
 
 .membership-content {
@@ -854,14 +905,10 @@ const getPurchaseButtonText = (plan: any) => {
   overflow-y: auto;
   overflow-x: visible; // 确保横向内容不被裁剪
   max-height: 100vh;
-  padding: 34px 34px 34px var(--sidebar-width);
+  padding: 54px 0 41px;
 }
 
 .main-content {
-  background: linear-gradient(143.13deg,
-      rgba(15, 23, 42, 0.5) 14.29%,
-      rgba(30, 27, 75, 0.5) 50%,
-      rgba(2, 6, 23, 1) 85.71%);
 
   // 内容区域居中，最大宽度80%
   .main-inner {
@@ -885,11 +932,12 @@ const getPurchaseButtonText = (plan: any) => {
 
 // 用户信息卡片
 .user-info-card {
-  background-color: rgba(255, 255, 255, 0.05);
+  margin-bottom: 15px;
+  padding: 26px 34px 19px;
   border-radius: $border-radius-xl;
-  padding: $spacing-xl;
-  margin-bottom: 60px;
+  background-color: rgba(18, 18, 18, 1);
   box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 
   .user-main-info {
     display: flex;
@@ -914,23 +962,9 @@ const getPurchaseButtonText = (plan: any) => {
       flex: 1;
 
       .user-nickname {
-        font-size: $font-size-xl;
+        font-size: $font-size-lg;
         font-weight: bold;
-        color: $color-text-secondary;
-
-        .user-type {
-          line-height: 1;
-          background: linear-gradient(90deg,
-              rgba(204, 166, 244, 1) 0%,
-              rgba(192, 126, 255, 1) 53%,
-              rgba(204, 166, 244, 1) 99%);
-          color: $color-text-white;
-          font-size: $font-size-md;
-          font-weight: bold;
-          padding: 4px 8px;
-          border-radius: 8px;
-          margin-left: 10px;
-        }
+        color: $color-text-nickname;
       }
 
       .user-mobile {
@@ -945,8 +979,8 @@ const getPurchaseButtonText = (plan: any) => {
     gap: $spacing-lg;
 
     .meta-item {
-      padding: $spacing-sm $spacing-2xl;
-      border-radius: $border-radius-sm;
+      padding: 8px 31px;
+      border-radius: $border-radius-md;
       background-color: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(63, 62, 62, 0.5);
       text-align: center;
@@ -954,30 +988,26 @@ const getPurchaseButtonText = (plan: any) => {
       .meta-label {
         margin-bottom: 5px;
         font-size: $font-size-sm;
-        color: $color-text-light;
+        color: $color-text-placeholder;
       }
 
       .meta-value {
         font-size: $font-size-md;
-        color: $color-text-secondary;
-
-        .membership-permanent {
-          color: $color-primary;
-        }
+        color: $color-text-nickname;
 
         // 月度会员 - 紫色
         &.membership-monthly {
-          color: $color-primary-light;
+          color: #C7B4EC;
         }
 
         // 季度会员 - 蓝绿色
         &.membership-quarterly {
-          color: $color-primary-light;
+          color: $color-primary-dark;
         }
 
         // 年度会员 - 金黄色
         &.membership-yearly {
-          color: $color-primary;
+          color: #F4E8BE;
         }
       }
     }
@@ -988,42 +1018,41 @@ const getPurchaseButtonText = (plan: any) => {
     align-items: center;
 
     .coin-badge {
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      gap: $spacing-sm;
-      padding: 0 $spacing-md;
+      padding: 10px 7px;
       height: 36px;
-      margin-right: 12px;
+      margin-right: 21px;
+      border-radius: $border-radius-md;
       background-color: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(63, 62, 62, 0.5);
-      border-radius: $border-radius-sm;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        border-color: $color-primary;
-      }
+      color: $color-primary-dark;
 
       .coin-icon {
-        width: 24px;
-        height: 24px;
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
       }
 
       .coin-number {
-        font-size: 18px;
-        font-weight: 700;
-        color: white;
+        margin-right: 6px;
+        font-size: $font-size-lg;
+        font-weight: bold;
+        font-family: NotoSans-bold;
       }
 
       .coin-text {
         font-size: $font-size-sm;
-        color: $color-text-gray;
+        font-family: NotoSans-regular;
       }
     }
 
     .order-btn {
       height: 36px;
-      border-radius: $border-radius-sm;
+
+      &:last-child {
+        margin-left: 18px;
+      }
     }
   }
 
@@ -1305,10 +1334,10 @@ const getPurchaseButtonText = (plan: any) => {
 
 // 会员卡片
 .membership-card {
-  background-color: rgba(255, 255, 255, 0.01);
+  background-color: rgba(18, 18, 18, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  padding: 26px 20px;
-  border: 1px solid transparent;
+  padding: 25px 20px;
   transition: all 0.3s ease;
   position: relative;
   overflow: visible;
@@ -1330,7 +1359,7 @@ const getPurchaseButtonText = (plan: any) => {
     .card-title {
       font-size: 20px;
       font-weight: 600;
-      color: $color-text-secondary;
+      color: $color-text-nickname;
       margin: 0;
     }
 
@@ -1343,30 +1372,40 @@ const getPurchaseButtonText = (plan: any) => {
       .price {
         font-size: 30px;
         font-weight: 700;
-        color: $color-text-secondary;
+        color: $color-text-nickname;
         line-height: 1;
       }
 
       .price-unit {
-        font-size: $font-size-md;
+        font-size: $font-size-base;
         color: $color-text-gray;
       }
 
       .original-price {
-        font-size: 15px;
+        font-size: 12px;
         color: $color-text-gray;
         text-decoration: line-through;
-      }
 
-      .discount-tag {
-        padding: 2px 6px;
-        font-size: 12px;
-        line-height: 16px;
-        border-radius: 6px;
-        color: #fff;
-        background: rgba(255, 77, 79, 0.95);
+        &::before {
+          content: '¥';
+          font-size: 15px;
+        }
       }
     }
+  }
+
+  // 顶部右侧折扣角标（使用接口 productDiscount 动态渲染）
+  .corner-discount-tag {
+    position: absolute;
+    top: -36px;
+    right: -13px;
+    z-index: 10;
+    color: $color-text-white;
+    padding: 3px 16px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+    font-family: NotoSans-bold;
   }
 
   .card-body {
@@ -1374,12 +1413,11 @@ const getPurchaseButtonText = (plan: any) => {
 
     .purchase-button {
       width: 100%;
-      height: 50px;
+      height: 47px;
       border-radius: 12px;
-      font-size: $font-size-lg !important;
+      font-size: $font-size-base !important;
       font-weight: 600;
-      background: $color-bg-dark-tertiary;
-      color: $color-text-white;
+      color: $color-text-gray;
       border: none !important;
       box-shadow: none !important;
 
@@ -1396,7 +1434,7 @@ const getPurchaseButtonText = (plan: any) => {
       }
     }
 
-    // 潮币信息卡片
+    // 灵衍信息卡片
     .coin-info-card {
       margin-top: 17px;
       padding: 14px;
@@ -1418,6 +1456,7 @@ const getPurchaseButtonText = (plan: any) => {
         gap: 6px;
 
         .coin-amount {
+          margin-bottom: 6px;
           font-size: 14px;
           font-weight: 600;
         }
@@ -1436,7 +1475,7 @@ const getPurchaseButtonText = (plan: any) => {
       gap: 8px;
       padding: 8px 0;
       font-size: $font-size-sm;
-      color: #d1d5db;
+      color: $color-text-light;
 
       .feature-icon {
         width: 15px;
@@ -1449,17 +1488,28 @@ const getPurchaseButtonText = (plan: any) => {
 
   // 主题0 - 免费版（灰色调，禁用状态）
   &.theme-0 {
-    border-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 
     &:hover {
       background: none;
     }
 
     .purchase-button {
-      background-color: rgba(255, 255, 255, 0.04) !important;
+      background: rgba(255, 255, 255, 0.04) !important;
       color: $color-text-gray !important;
       border: none !important;
       cursor: not-allowed !important;
+    }
+
+    .card-features {
+      .feature-item {
+        .feature-icon {
+          width: 12px;
+          height: 11px;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+      }
     }
   }
 
@@ -1468,28 +1518,26 @@ const getPurchaseButtonText = (plan: any) => {
     border: 1px solid rgba(216, 180, 254, 1);
 
     &:hover {
-      background: linear-gradient(180deg, rgba(46, 16, 101, 1) 0%, rgba(2, 6, 23, 1) 100%);
+      background: rgba(216, 180, 254, 0.3);
     }
 
     .title {
-      color: #c7b4ec !important;
+      color: #C7B4EC !important;
     }
 
+    .corner-discount-tag,
     .purchase-button {
-      background: linear-gradient(90deg,
-          rgba(204, 166, 244, 1) 0%,
-          rgba(192, 126, 255, 1) 53%,
-          rgba(204, 166, 244, 1) 99%) !important;
+      background: linear-gradient(90deg, rgba(204, 166, 244, 1) 0%, rgba(192, 126, 255, 1) 53%, rgba(204, 166, 244, 1) 99%) !important;
     }
 
-    // 潮币信息卡片
+    // 灵衍信息卡片
     .coin-info-card {
       background-color: rgba(192, 132, 252, 0.04);
       border: 1px solid rgba(192, 132, 252, 0.08);
 
       .coin-content {
         .coin-amount {
-          color: #e9d5ff;
+          color: #E9D5FF;
         }
 
         .coin-detail {
@@ -1501,31 +1549,18 @@ const getPurchaseButtonText = (plan: any) => {
 
   // 主题2 - 季度会员（蓝绿色调，推荐）
   &.theme-2 {
-    border: 1px solid rgba(80, 199, 253, 0.5);
+    border: 1px solid rgba(23, 160, 225, 1);
 
     &:hover {
-      background: linear-gradient(180deg, rgba(0, 66, 102, 1) 0%, rgba(2, 6, 23, 1) 100%);
-    }
-
-    .card-header::before {
-      content: '9.5折';
-      position: absolute;
-      top: -36px;
-      right: -13px;
-      z-index: 10; // 确保标签在最上层
-      background: linear-gradient(90deg,
-          rgba(145, 213, 243, 1) 0%,
-          rgba(79, 179, 250, 1) 47%,
-          rgba(142, 204, 232, 1) 100%);
-      color: $color-text-white;
-      padding: 4px 16px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: bold;
+      background: rgba(150, 221, 255, 0.3);
     }
 
     .title {
       color: #50c7fd !important;
+    }
+
+    .corner-discount-tag {
+      background: linear-gradient(90deg, rgba(145, 213, 243, 1) 0%, rgba(79, 179, 250, 1) 47%, rgba(142, 204, 232, 1) 100%);
     }
 
     .purchase-button {
@@ -1541,7 +1576,7 @@ const getPurchaseButtonText = (plan: any) => {
 
       .coin-content {
         .coin-amount {
-          color: #c5eff4;
+          color: rgba(197, 239, 244, 1);
         }
 
         .coin-detail {
@@ -1556,28 +1591,15 @@ const getPurchaseButtonText = (plan: any) => {
     border: 1px solid rgba(196, 170, 117, 0.5);
 
     &:hover {
-      background: linear-gradient(180deg, rgba(56, 50, 36, 1) 4%, rgba(2, 6, 23, 1) 100%);
-    }
-
-    .card-header::before {
-      content: '8.5折';
-      position: absolute;
-      top: -36px;
-      right: -13px;
-      z-index: 10; // 确保标签在最上层
-      background: linear-gradient(90deg,
-          rgba(244, 232, 190, 1) 0%,
-          rgba(196, 170, 117, 1) 47%,
-          rgba(244, 232, 190, 1) 100%);
-      color: $color-text-white;
-      padding: 4px 16px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: bold;
+      background: rgba(196, 170, 117, 0.3);
     }
 
     .title {
       color: #c4aa75 !important;
+    }
+
+    .corner-discount-tag {
+      background: linear-gradient(90deg, rgba(244, 232, 190, 1) 0%, rgba(196, 170, 117, 1) 47%, rgba(244, 232, 190, 1) 100%);
     }
 
     .purchase-button {
@@ -1593,7 +1615,7 @@ const getPurchaseButtonText = (plan: any) => {
 
       .coin-content {
         .coin-amount {
-          color: #f4e8be;
+          color: rgba(244, 232, 190, 1);
         }
 
         .coin-detail {
@@ -1621,39 +1643,11 @@ const getPurchaseButtonText = (plan: any) => {
     width: 100%;
 
     :deep(.el-tabs__item) {
-      color: $color-text-secondary;
-      font-size: 16px;
-      height: 48px;
-      line-height: 48px;
-      border: none;
-      background: transparent;
-      transition: all 0.3s ease;
-
-      &:hover {
-        color: $color-text-white;
-      }
+      height: 60px;
+      line-height: 60px;
 
       &.is-active {
-        color: $color-primary;
-        font-weight: 600;
-      }
-    }
-
-    :deep(.el-tabs__active-bar) {
-      background: linear-gradient(135deg, $color-primary, #a67ce8);
-      height: 3px;
-    }
-
-    :deep(.el-tabs__content) {
-      display: none;
-    }
-
-    // 让 tabs 的下划线拉满一整行，视觉上形成顶部细线
-    :deep(.el-tabs__nav-wrap) {
-      &::after {
-        left: 0;
-        right: 0;
-        background-color: rgba(55, 65, 81, 0.6);
+        color: $color-text-white;
       }
     }
   }
@@ -1662,36 +1656,27 @@ const getPurchaseButtonText = (plan: any) => {
   .member-version-toggle {
     position: relative;
     display: inline-flex;
-    padding: 4px;
-    border-radius: 999px;
-    background: #111115;
+    padding: 5px;
+    border-radius: 12px;
+    background-color: rgba(17, 17, 21, 1);
+    border: 1px solid rgba(255, 255, 255, 0.02);
 
     .toggle-segment {
-      padding: 12px 52px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 14px;
-      color: $color-text-gray;
-      cursor: pointer;
-      transition: all 0.25s ease;
+      position: relative;
+      width: 162px;
+      height: 44px;
+      border-radius: 12px 12px 12px 12px;
+      border: none;
+      margin: 0;
 
-      &:hover {
-        color: #e5e7eb;
-      }
-
-      &.active {
-        border-radius: 12px 12px 12px 12px;
-        background-color: #6366f1;
-        font-weight: 600;
-        color: $color-text-white;
+      &.el-button--default {
+        background-color: rgba(43, 40, 49, 1);
       }
 
       .recommend-tag {
         position: absolute;
-        top: 0;
-        right: 0;
+        top: -5px;
+        right: -5px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1712,7 +1697,7 @@ const getPurchaseButtonText = (plan: any) => {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 
-  // 潮币值页面布局
+  // 灵衍值页面布局
   &.tidecoins-layout {
     display: flex;
     flex-direction: column;
@@ -1720,186 +1705,193 @@ const getPurchaseButtonText = (plan: any) => {
   }
 }
 
-// 潮币值页面样式
+// 灵衍值页面样式
 .tidecoins-notice {
-  padding: 30px 0 40px;
+  padding: 21px 0 40px;
   text-align: center;
-  color: rgba(209, 213, 219, 1);
+  color: $color-text-light;
   font-size: 13px;
 
-  // 小屏幕优化
-  @media (max-width: 1024px) {
-    padding: 20px 0 30px;
-    font-size: 12px;
-  }
-
-  @media (max-width: 600px) {
-    padding: 15px 0 25px;
-    font-size: 11px;
-  }
-
   .notice-text {
-    color: rgba(156, 163, 175, 1);
-    font-size: 13px;
-
-    @media (max-width: 1024px) {
-      font-size: 12px;
-    }
-
-    @media (max-width: 600px) {
-      font-size: 11px;
-    }
+    color: $color-primary-dark;
   }
 
   .rules-link {
-    color: $color-primary;
+    color: $color-text-gray;
     cursor: pointer;
   }
 }
 
-.change-plan-dialog :deep(.el-dialog__title) {
-  font-size: $font-size-xl;
-  font-weight: 600;
-  color: $color-text-white;
-}
+// 升级会员弹窗
+.change-plan-dialog {
 
-.change-plan-body {
-  font-size: $font-size-md;
-  color: $color-text-gray;
-}
-
-.change-plan-tip {
-  display: flex;
-  gap: 16px;
-  padding: 34px 25px;
-  border-radius: 12px 12px 12px 12px;
-  background: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.05) 14.6%,
-      rgba(255, 255, 255, 0.02) 85.4%);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-
-  .tip-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-  }
-
-  .tip-main {
-    margin-bottom: 4px;
-  }
-
-  .plan-name {
+  .change-plan-header {
+    padding: 21px 33px 28px;
+    font-size: $font-size-2xl;
+    font-weight: 600;
     color: $color-text-white;
-    font-weight: bold;
+
+    .close-icon {
+      width: 24px;
+      height: 24px;
+    }
   }
 
-  .link-text {
-    color: $color-primary;
-    cursor: pointer;
-  }
-}
-
-.change-plan-desc {
-  margin: 32px 0 24px;
-  font-size: $font-size-md;
-  color: $color-text-light;
-
-  .highlight {
-    color: $color-text-white;
-  }
-}
-
-.plan-item {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 40px;
-
-  .plan-order {
-    width: 32px;
-    height: 32px;
-    border-radius: 999px;
-    background-color: rgba(26, 26, 26, 1);
-    border: 1px solid rgba(192, 126, 255, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(192, 126, 255, 1);
+  .change-plan-body {
+    padding: 0 33px;
     font-size: $font-size-md;
-  }
+    color: $color-text-gray;
 
-  .plan-info {
-    flex: 1;
-  }
+    .change-plan-tip {
+      display: flex;
+      gap: 16px;
+      padding: 35px 25px;
+      border-radius: 12px 12px 12px 12px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 14.6%, rgba(255, 255, 255, 0.02) 85.4%);
+      border: 1px solid rgba(255, 255, 255, 0.04);
 
-  .plan-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+      .tip-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+      }
 
-    .plan-title {
-      font-size: $font-size-xl;
-      color: $color-text-white;
-      font-weight: 500;
+      .tip-main {
+        margin-bottom: 4px;
+      }
 
-      &.text-content {
-        color: $color-text-light;
+      .plan-name {
+        color: $color-text-white;
+        font-weight: bold;
+      }
+
+      .link-text {
+        color: $color-primary;
+        cursor: pointer;
       }
     }
-  }
 
-  .plan-meta {
-    font-size: $font-size-md;
-    color: $color-text-light;
+    .change-plan-desc {
+      margin: 32px 0 24px;
+      font-size: $font-size-md;
+      color: $color-text-light;
 
-    .meta-icon {
-      width: 16px;
-      height: 16px;
-      margin-right: 6px;
+      .highlight {
+        color: $color-text-white;
+      }
     }
-  }
-}
 
-.plan-tag {
-  padding: 3px 9px;
-  border-radius: 4px 4px 4px 4px;
-  background-color: rgba(192, 126, 255, 0.04);
-  color: rgba(16, 16, 16, 1);
-  font-size: $font-size-sm;
+    .plan-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
 
-  &.plan-tag-primary {
-    color: $color-primary;
-  }
+      .plan-order {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background-color: rgba(26, 26, 26, 1);
+        border: 1px solid rgba(75, 85, 99, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: $font-size-sm;
+        color: $color-text-gray;
 
-  &.plan-tag-gray {
-    color: #999999;
-  }
-}
+        &.active {
+          border-color: $color-primary-dark;
+          color: $color-primary-dark;
+        }
+      }
 
-.change-plan-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+      .plan-info {
+        flex: 1;
+      }
 
-  .pay-summary {
-    font-size: $font-size-md;
+      .plan-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
 
-    .amount {
-      margin-left: 8px;
-      font-size: $font-size-4xl;
-      font-weight: 600;
-      color: $color-primary;
+        .plan-title {
+          font-family: Inter-semiBold;
+          font-size: $font-size-lg;
+          color: $color-text-white;
+          font-weight: 500;
 
-      &:before {
-        content: '¥';
+          &.text-content {
+            color: $color-text-light;
+          }
+        }
+      }
+
+      .plan-meta {
+        display: flex;
+        align-items: center;
         font-size: $font-size-md;
+        color: $color-text-placeholder;
+
+        .meta-icon {
+          width: 16px;
+          height: 16px;
+          margin-right: 6px;
+        }
+      }
+    }
+
+    .plan-tag {
+      padding: 0 9px;
+      border-radius: 4px 4px 4px 4px;
+      background-color: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      font-size: $font-size-sm;
+      line-height: 22px;
+
+      &.plan-tag-primary {
+        color: $color-primary;
+        border-color: $color-primary;
+      }
+
+      &.plan-tag-gray {
+        color: #999999;
       }
     }
   }
 
-  .confirm-btn {
-    padding: 0 36px;
-    margin-left: 34px;
+  .change-plan-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 24px 32px;
+    background: $color-bg-dark-two;
+
+    .pay-summary {
+      font-size: $font-size-md;
+      font-family: Inter-bold;
+      font-weight: bold;
+
+      .amount {
+        font-size: $font-size-2xl;
+        font-weight: 600;
+        color: $color-primary-dark;
+
+        &:before {
+          content: '¥';
+          margin-right: 8px;
+          font-size: $font-size-md;
+          font-weight: normal;
+        }
+      }
+    }
+
+    .confirm-btn {
+      width: 142px;
+      height: 44px;
+      margin-left: 40px;
+      // 覆盖 el-button--primary 默认渐变/边框，否则视觉会有差距
+      border-radius: 12px;
+    }
   }
 }
 
@@ -1947,38 +1939,38 @@ const getPurchaseButtonText = (plan: any) => {
 
   // 上半部分
   .tidecoin-top {
-    background: $color-bg-dark-card url('@/assets/images/logo.png') no-repeat right 4px top 17px;
-    background-size: 144px 162px;
-    padding: 20px;
     position: relative;
     height: 132px;
+    padding: 28px 34px;
+    background: $color-bg-dark-secondary;
+    border-radius: 0 0 12px 12px;
 
     .tidecoin-amount {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: $spacing-sm;
 
       .flame-icon {
-        width: 40px;
-        height: 40px;
-        margin-top: 5px;
+        width: 33px;
+        height: 33px;
       }
 
       .amount {
         font-size: 36px;
         font-weight: bold;
-        color: $color-text-white;
+        color: $color-primary-dark;
       }
     }
   }
 
   // 下半部分
   .tidecoin-bottom {
-    background-color: rgba(23, 19, 27, 1);
-    padding: 15px 35px;
+    background: linear-gradient(135deg, rgba(5, 7, 10, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+    padding: 15px 39px 15px 35px;
+    border-radius: 0 0 12px 12px;
 
     .tidecoin-price {
-      font-size: $font-size-3xl;
+      font-size: $font-size-2xl;
       color: $color-text-white;
     }
 
@@ -1986,60 +1978,11 @@ const getPurchaseButtonText = (plan: any) => {
       width: 102px;
       height: 40px;
       border-radius: 20px;
-      background: linear-gradient(90deg,
-          rgba(204, 166, 244, 1) 0%,
-          rgba(192, 126, 255, 1) 53%,
-          rgba(204, 166, 244, 1) 99%);
-      border: none !important;
-      box-shadow: none !important;
-
-      &:hover,
-      &:focus,
-      &:focus-visible,
-      &:active {
-        border: none !important;
-        box-shadow: none !important;
-      }
+      font-size: $font-size-base;
+      text-align: center;
+      font-family: NotoSans-bold;
+      color: $color-text-white;
     }
-  }
-}
-
-// 服务条款链接
-.terms-links {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 40px;
-  padding: 20px 0;
-
-  .term-link {
-    color: $color-primary;
-    font-size: 12px;
-  }
-}
-</style>
-<style lang="scss">
-.change-plan-dialog.el-dialog {
-  .el-dialog__header {
-    padding: 33px 33px 16px;
-    background-color: $color-bg-dark-primary !important;
-  }
-
-  .el-dialog__body {
-    padding: 0 33px 24px;
-    background-color: $color-bg-dark-primary !important;
-    border: none !important;
-  }
-
-  .el-dialog__footer {
-    padding: 24rpx 32px;
-    border-radius: 0px 0px 12px 12px;
-    background-color: rgba(34, 34, 34, 1);
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    border: none !important;
   }
 }
 </style>

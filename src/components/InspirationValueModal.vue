@@ -1,48 +1,37 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    width="1152px"
-    :before-close="handleClose"
-    class="inspiration-modal"
-    :show-close="false"
-    style="background: var(--bg-secondary) !important"
-  >
+  <el-dialog v-model="visible" width="1152px" :before-close="handleClose" class="inspiration-modal" :show-close="false">
     <template #header>
       <div class="modal-header">
-        <img :src="images.logo" alt="潮币" class="coin-logo" />
+        <img :src="images.inspirationValue" alt="灵衍值" class="coin-logo" />
         <span class="coin-number">{{ userInfo?.wavePoints || 0 }}</span>
       </div>
     </template>
 
     <div class="header-title-section">
-      <h3 class="modal-title">潮币值明细</h3>
-      <div class="header-desc">
-        <span class="desc-text">
-          图片与视频的生成由于生成数量、模式、时长等参数不同,费用会存在差异。
-        </span>
-        <span class="rules-link" @click="showRules">潮币值规则</span>
-      </div>
+      <span class="modal-title">灵衍值值明细</span>
+      图片与视频的生成由于生成数量、模式、时长等参数不同,费用会存在差异。
+      <span class="rules-link" @click="showRules">灵衍值值规则</span>
     </div>
-    <!-- 潮币汇总 -->
+    <!-- 灵衍值汇总 -->
     <div class="inspiration-summary">
       <div class="summary-bar">
         <div class="summary-item">
-          <span class="label">当前潮币</span>
+          <span class="label">当前灵衍值</span>
           <span class="value">{{ userInfo?.wavePoints || 0 }}</span>
         </div>
         <span class="equals">=</span>
         <div class="summary-item">
-          <span class="label">会员潮币</span>
+          <span class="label">会员灵衍值</span>
           <span class="value">{{ userInfo?.vipPoints || 0 }}</span>
         </div>
         <span class="plus">+</span>
         <div class="summary-item">
-          <span class="label">购买潮币</span>
+          <span class="label">购买灵衍值</span>
           <span class="value">{{ userInfo?.buyPoints || 0 }}</span>
         </div>
         <span class="plus">+</span>
         <div class="summary-item">
-          <span class="label">赠送潮币</span>
+          <span class="label">赠送灵衍值</span>
           <span class="value">{{ userInfo?.giftPoints || 0 }}</span>
         </div>
       </div>
@@ -50,46 +39,42 @@
 
     <!-- 筛选标签 -->
     <el-tabs v-model="tabIdx" class="filter-tabs" @tab-change="handleTabChange">
-      <el-tab-pane
-        v-for="(tab, index) in tabsList"
-        :key="tab.type"
-        :label="tab.name"
-        :name="index"
-      />
+      <el-tab-pane v-for="(tab, index) in tabsList" :key="tab.type" :label="tab.name" :name="index" />
     </el-tabs>
 
     <!-- 交易记录列表 -->
     <div class="transaction-list">
       <div v-if="!loading && transactions.length > 0">
         <div v-for="transaction in transactions" :key="transaction.id" class="transaction-item">
-          <div class="transaction-info">
-            <div class="transaction-type">{{ transaction.remark || '' }}</div>
-            <div class="transaction-time">
-              <img :src="images.time" alt="" srcset="" class="time-icon" />
-              {{ transaction.createTime || '' }}
+          <div class="transaction-left">
+            <img :src="transaction.headImgUrl || userInfo?.headImgUrl || images.avatarDefault" alt=""
+              class="transaction-avatar" />
+            <div class="transaction-name">
+              {{ transaction.userName || transaction.nickname || userInfo?.nickname || userInfo?.userName || '' }}
             </div>
           </div>
-          <div
-            class="transaction-amount"
-            :class="{
-              positive: (transaction.wavePoints || 0) > 0,
-              negative: (transaction.wavePoints || 0) < 0,
-            }"
-          >
-            {{ (transaction.wavePoints || 0) > 0 ? '+' : ''
-            }}{{ Number(transaction.wavePoints || 0).toFixed(2) }}
+          <div class="transaction-info">
+            <div class="transaction-type">{{ getCoinRecordTitle(transaction) }}252</div>
+            <div class="transaction-time">
+              <img :src="images.time" alt="" srcset="" class="time-icon" />
+              {{ transaction.createTime || transaction.payTime || '' }}
+            </div>
+          </div>
+          <div class="transaction-amount" :class="{
+            positive: Number(transaction.wavePoints ?? transaction.amount ?? 0) > 0,
+            negative: Number(transaction.wavePoints ?? transaction.amount ?? 0) < 0,
+          }">
+            {{
+              Number(transaction.wavePoints ?? transaction.amount ?? 0) > 0 ? '+' : ''
+            }}{{ Number(transaction.wavePoints ?? transaction.amount ?? 0).toFixed(2) }}
           </div>
         </div>
       </div>
 
       <!-- 统一加载组件 -->
-      <InfiniteScrollLoader
-        :loading="loading"
-        :has-more="false"
-        :data-length="transactions.length"
-        :show-empty-state="true"
-        empty-text="暂无记录"
-      />
+      <InfiniteScrollLoader :loading="loading" :has-more="false" :data-length="transactions.length"
+        :show-empty-state="true" empty-text="暂无记录" :empty-image="images.noRecord" image-size="140px"
+        empty-text-color="#474B64" empty-text-font-size="13px" />
     </div>
 
     <!-- 底部说明 -->
@@ -170,8 +155,48 @@ const tabsList = ref([
   },
 ])
 
+const getCoinRecordTitle = (item: any) => {
+  // 优先后端 remark
+  if (item?.remark) return String(item.remark)
+
+  // 再根据 orderType（如后端返回）
+  const orderType = item?.orderType
+  const orderTypeNum = orderType != null && orderType !== '' ? Number(orderType) : NaN
+  const orderTypeMap: Record<number, string> = {
+    0: '灵衍值消费',
+    1: '灵衍值购买',
+    2: '灵衍值获得',
+  }
+  if (!Number.isNaN(orderTypeNum) && orderTypeMap[orderTypeNum]) return orderTypeMap[orderTypeNum]
+
+  // 最后兜底：按当前 tab 显示标题
+  const tabMap: Record<string, string> = {
+    consume: '灵衍值消费',
+    purchase: '灵衍值购买',
+    earn: '灵衍值获得',
+  }
+  return tabMap[currentTabType.value] || ''
+}
+
 // 交易记录数据（直接使用接口返回的数据）
-const transactions = ref<any[]>([])
+const transactions = ref<any[]>([{
+  id: 1,
+  headImgUrl: 'https://img.yzcdn.cn/vant/ipad.png',
+  userName: '张三',
+  nickname: '张三',
+  createTime: '2026-03-23 10:00:00',
+  payTime: '2026-03-23 10:00:00',
+  wavePoints: -106,
+}, {
+  id: 2,
+  headImgUrl: 'https://img.yzcdn.cn/vant/ipad.png',
+  userName: '李四',
+  nickname: '李四',
+  createTime: '2026-03-23 10:00:00',
+  payTime: '2026-03-23 10:00:00',
+  wavePoints: 50,
+}])
+
 
 // 分页信息
 const pagination = ref({
@@ -180,7 +205,7 @@ const pagination = ref({
   total: 0,
 })
 
-// 加载潮币记录
+// 加载灵衍值记录
 const loadCoinRecords = async () => {
   if (!userInfo?.userId) return
 
@@ -206,8 +231,8 @@ const loadCoinRecords = async () => {
       pagination.value.total = data.total || 0
     }
   } catch (error) {
-    console.error('加载潮币记录失败:', error)
-    ElMessage.error('加载潮币记录失败')
+    console.error('加载灵衍值记录失败:', error)
+    ElMessage.error('加载灵衍值记录失败')
   } finally {
     loading.value = false
   }
@@ -229,7 +254,7 @@ const navigateToAgreement = (agreementType: string) => {
 }
 
 const showRules = () => {
-  // 跳转到潮币值规则说明
+  // 跳转到灵衍值值规则说明
   navigateToAgreement('COIN_RULES_DESCRIPTION')
 }
 
@@ -251,62 +276,61 @@ watch(visible, (newValue) => {
   width: 100%;
   height: 133px;
   padding: 15px 17px;
-  background: var(--bg-card) url('@/assets/images/coin_logo.png') no-repeat right -13px top 19px;
-  background-size: 160px 160px;
-  border-radius: 12px 12px 5px 5px;
+  background: $color-bg-black url('@/assets/images/logo_hui.png') no-repeat right 18px top 36px;
+  background-size: 132px 97px;
+  border-radius: 12px 12px 0 0;
 
   .coin-logo {
     width: 50px;
     height: 50px;
     object-fit: contain;
-    margin-bottom: 20px;
+    margin-bottom: 26px;
   }
 
   .coin-number {
+    margin-left: 18px;
     font-weight: 800;
-    color: rgba(214, 175, 233, 1);
+    color: $color-primary-dark;
     font-size: 48px;
   }
 }
-// 潮币值明细
+
+// 灵衍值值明细
 .header-title-section {
-  display: flex;
-  gap: 20px;
   padding: 23px 11px 14px;
+  border-radius: 0px 0px 12px 12px;
+  background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+  font-size: 13px;
+  font-family: NotoSans-regular;
+  color: $color-text-gray;
 
   .modal-title {
-    line-height: 1.2;
-    font-size: var(--font-xxxl);
+    margin-right: 20px;
+    font-size: $font-size-2xl;
     font-weight: 700;
-    color: var(--text-primary);
+    color: $color-text-white;
+    font-family: NotoSans-bold;
   }
 
-  .header-desc {
-    display: flex;
-    align-items: flex-end;
-    line-height: 1.5;
-    font-size: 13px;
-    color: var(--text-hui);
-    .rules-link {
-      color: var(--primary-color);
-      cursor: pointer;
-    }
+  .rules-link {
+    color: $color-primary-dark;
+    cursor: pointer;
   }
 }
-// 潮币汇总
+
+// 灵衍值汇总
 .inspiration-summary {
-  margin: 20px 0 32px;
+  margin: 16px 0 23px;
 
   .summary-bar {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--spacing-xxl);
+    gap: $spacing-2xl;
     padding: 28px 13px;
-    border-radius: var(--radius-3xl);
+    border-radius: $border-radius-2xl;
     background-color: rgba(24, 24, 27, 0.2);
-    color: rgba(16, 16, 16, 1);
-    font-size: var(--font-md);
+    font-size: $font-size-md;
     text-align: center;
     font-family: -regular;
     border: 1px solid rgba(39, 39, 42, 1);
@@ -325,17 +349,20 @@ watch(visible, (newValue) => {
 
     .value {
       color: rgba(212, 212, 216, 1);
-      font-size: var(--font-xxxl);
+      font-size: $font-size-2xl;
       font-weight: bold;
     }
+
     .equals {
-      margin: 0 var(--spacing-md);
+      margin: 0 $spacing-md;
     }
+
     .equals,
     .plus {
       color: rgba(63, 63, 70, 1);
       font-size: 30px;
     }
+
     .plus {
       font-size: 20px;
     }
@@ -344,11 +371,21 @@ watch(visible, (newValue) => {
 
 // 筛选标签
 .filter-tabs {
-  padding: 0;
 
-  :deep(.el-tabs__active-bar) {
-    font-size: var(--font-md) !important;
-    background-color: var(--primary-color) !important;
+  :deep(.el-tabs__item) {
+    height: 52px;
+    line-height: 52px;
+    color: $color-text-seven;
+    font-size: $font-size-md;
+
+    &.is-active {
+      color: $color-text-white;
+      font-family: NotoSans-bold;
+    }
+  }
+
+  &:deep(.el-tabs__nav-wrap::after) {
+    background: $color-bg-dark-clear;
   }
 }
 
@@ -359,26 +396,52 @@ watch(visible, (newValue) => {
 
   .transaction-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 26px 20px;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 26px 24px;
+    border-radius: 16px 16px 16px 16px;
+    background-color: rgba(24, 24, 27, 0.2);
+    border: 1px solid rgba(39, 39, 42, 0.2);
+    color: $color-text-desc-secondary;
+    font-size: $font-size-md;
+    font-family: NotoSans-regular;
+
+    .transaction-left {
+      display: flex;
+      align-items: center;
+
+      .transaction-avatar {
+        width: 54px;
+        height: 54px;
+        margin-right: 9px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .transaction-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
 
     .transaction-info {
       flex: 1;
+      padding-left: 120px;
 
       .transaction-type {
-        color: var(--text-primary);
-        font-size: 14px;
-        font-weight: 500;
-        margin-bottom: 6px;
+        color: $color-text-white;
+        font-size: $font-size-lg;
+        font-weight: bold;
+        font-family: NotoSans-bold;
+        margin-bottom: $spacing-sm;
       }
 
       .transaction-time {
         display: flex;
         align-items: center;
         gap: 4px;
-        color: rgba(161, 161, 170, 1);
-        font-size: var(--font-md);
 
         .time-icon {
           width: 14px;
@@ -388,17 +451,17 @@ watch(visible, (newValue) => {
     }
 
     .transaction-amount {
-      font-size: 16px;
-      font-weight: 600;
-      min-width: 80px;
+      font-size: $font-size-2xl;
+      font-weight: bold;
       text-align: right;
+      font-family: NotoSans-bold;
 
       &.positive {
-        color: var(--primary-color);
+        color: $color-primary-dark;
       }
 
       &.negative {
-        color: #ef4444;
+        color: $color-color-red;
       }
     }
   }
@@ -410,8 +473,9 @@ watch(visible, (newValue) => {
   align-items: center;
   gap: 2px;
   padding: 12px 0 14px;
-  color: var(--text-placeholder);
+  color: $color-text-placeholder;
   font-size: 12px;
+
   img {
     width: 13px;
     height: 13px;
@@ -451,11 +515,11 @@ watch(visible, (newValue) => {
 <style lang="scss">
 // 全局样式，确保覆盖 Element Plus 的默认样式
 .el-dialog.inspiration-modal {
+  border-radius: 25px !important;
+  border: none !important;
+
   .el-dialog__header {
-    background: var(--bg-secondary) !important;
-    padding: 20px 25px 0 !important;
-    border-radius: 25px 25px 0 0 !important;
-    margin: 0 !important;
+    padding: 21px 25px 0 !important;
   }
 
   .el-dialog__body {

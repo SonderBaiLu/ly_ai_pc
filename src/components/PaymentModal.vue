@@ -20,7 +20,7 @@
       <div v-if="!payQrCode" class="vip-pay-agreement-card">
         <div class="agreement-text-top">支付前请阅读</div>
         <div class="agreement-name" @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">
-          《潮推手付费服务协议》
+          《灵衍AI付费服务协议》
         </div>
         <el-button class="agree-button" type="primary" :loading="isCreatingPayment" @click="createVipPaymentOrder()">
           同意并支付
@@ -39,20 +39,14 @@
             </el-icon>
           </div>
         </div>
-      </div>
-
-      <div v-if="!isQrCodeExpired" class="vip-pay-footer-row">
-        <div class="pay-channel">
-          <img v-if="selectedMethod?.iconUrl" :src="selectedMethod.iconUrl" alt="" class="pay-icon" />
-          <img v-else :src="images.alipay" alt="" class="pay-icon" />
-          <span>{{ selectedMethod?.channelName || '支付宝扫码支付' }}</span>
-          <span v-if="payExpireText" class="expire-text">{{ payExpireText }}</span>
+        <div class="pay-expire-tip">
+          {{ isQrCodeExpired ? '二维码已过期，点击二维码重新获取' : payExpireText }}
         </div>
       </div>
 
       <!-- 支付方式选择（创建订单前可选） -->
-      <div v-if="!payQrCode && paymentMethods.length > 0" class="pay-methods">
-        <div v-for="m in paymentMethods" :key="m.id" class="pay-method-item"
+      <div v-if="!payQrCode && props.paymentMethods.length > 0" class="pay-methods">
+        <div v-for="m in props.paymentMethods" :key="m.id" class="pay-method-item"
           :class="{ active: m.channelCode === selectedChannelCode }" @click="selectedChannelCode = m.channelCode">
           <img v-if="m.iconUrl" :src="m.iconUrl" alt="" class="method-icon" />
           <span class="method-name">{{ m.channelName }}</span>
@@ -70,7 +64,7 @@
         <p>
           •
           <span class="bold">服务有效期：</span>
-          服务到期后，套餐内未使用的“潮币”将自动清零。
+          服务到期后，套餐内未使用的“灵衍值”将自动清零。
         </p>
         <p>
           •
@@ -86,7 +80,7 @@
         </p>
         <p class="link-text">
           • 支付即视您已同意
-          <span @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">《潮推手付费服务协议》</span>
+          <span @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">《灵衍AI付费服务协议》</span>
         </p>
       </div>
     </div>
@@ -94,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, type PropType } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
@@ -128,6 +122,11 @@ const props = defineProps({
   createPaymentOrder: {
     type: Function,
     required: true,
+  },
+  // 支付方式列表（由父组件拉取并传入）
+  paymentMethods: {
+    type: Array as PropType<PaymentMethod[]>,
+    default: () => [],
   },
   // 购买类型：用于显示不同的成功消息
   purchaseType: {
@@ -178,11 +177,9 @@ let payTimer: number | null = null
 // 当前支付订单号（用于轮询支付结果）
 let currentPayOrderId: string | null = null
 
-// 支付方式
-const paymentMethods = ref<PaymentMethod[]>([])
 const selectedChannelCode = ref<string>('alipay')
 const selectedMethod = computed(() =>
-  paymentMethods.value.find((m) => m.channelCode === selectedChannelCode.value)
+  props.paymentMethods.find((m) => m.channelCode === selectedChannelCode.value)
 )
 
 // 初始化金额从 props 获取（始终使用传过来的 initialAmount）
@@ -200,14 +197,13 @@ watch(
 const isQrCodeExpired = computed(() => payExpireSeconds.value <= 0 && payQrCode.value)
 
 const payExpireText = computed(() => {
-  if (!payExpireSeconds.value) return
+  if (!payExpireSeconds.value) return ''
   const m = Math.floor(payExpireSeconds.value / 60)
   const s = payExpireSeconds.value % 60
   const mm = m.toString().padStart(2, '0')
   const ss = s.toString().padStart(2, '0')
   return `${mm}分${ss}秒后失效`
 })
-
 const clearPayTimer = () => {
   if (payTimer !== null) {
     window.clearInterval(payTimer)
@@ -243,42 +239,47 @@ watch(dialogVisible, (newVal) => {
     payAmount.value = props.initialAmount || 0 // 重置为初始金额
     payExpireSeconds.value = 0
     currentPayOrderId = null
-    paymentMethods.value = []
     selectedChannelCode.value = 'alipay'
   } else {
     // 弹窗打开时，设置初始金额（即使为0也要设置，确保金额正确）
     payAmount.value = props.initialAmount || 0
-    // 弹窗打开时加载支付方式
-    loadPaymentMethods()
+    // 弹窗打开时，根据父组件传入的支付方式自动选择默认渠道
+    if (props.paymentMethods.some((m) => m.channelCode === 'alipay')) {
+      selectedChannelCode.value = 'alipay'
+    } else if (props.paymentMethods[0]?.channelCode) {
+      selectedChannelCode.value = props.paymentMethods[0].channelCode
+    }
   }
 })
 
-const loadPaymentMethods = async () => {
-  try {
-    const res = await paymentApi.getPaymentMethod()
-    if (res.code === '0000' && Array.isArray(res.data)) {
-      paymentMethods.value = res.data
-      // 默认选择：优先支付宝，其次列表第一个
-      if (paymentMethods.value.some((m) => m.channelCode === 'alipay')) {
-        selectedChannelCode.value = 'alipay'
-      } else if (paymentMethods.value[0]?.channelCode) {
-        selectedChannelCode.value = paymentMethods.value[0].channelCode
-      }
+watch(
+  () => props.paymentMethods,
+  (list) => {
+    // 父组件异步更新支付方式后，自动选择有效渠道
+    if (!Array.isArray(list) || list.length === 0) return
+    const exists = list.some((m) => m.channelCode === selectedChannelCode.value)
+    if (exists) return
+    if (list.some((m) => m.channelCode === 'alipay')) {
+      selectedChannelCode.value = 'alipay'
+      return
     }
-  } catch (e) {
-    console.error('loadPaymentMethods error', e)
-  }
-}
+    selectedChannelCode.value = list[0].channelCode
+  },
+  { immediate: true }
+)
 
-// 轮询查询支付宝支付结果
+// 轮询查询订单支付结果
 const checkAlipayPayStatus = async () => {
   if (!currentPayOrderId) return
 
   try {
     const res = await paymentApi.queryPayment(currentPayOrderId)
-    // 当 code === '0000' 且 data === 1 时，支付成功
-    const data = res.data as any
-    if (res.code === '0000' && data === 1) {
+    const data = (res.data || {}) as any
+    const orderStatus = Number(data.orderStatus)
+
+    // orderStatus: -2 支付请求失败 -1 支付失败 0 初始化 1 待支付 2 支付完成 3 超时未支付
+    if (res.code === '0000' && orderStatus === 2) {
+      const paidOrderNo = currentPayOrderId
       // 停止轮询
       clearPayTimer()
       currentPayOrderId = null
@@ -287,7 +288,7 @@ const checkAlipayPayStatus = async () => {
       // 根据购买类型显示不同的成功提示
       let successMessage = '支付成功'
       if (props.purchaseType === 'coin') {
-        successMessage = '支付成功，潮币已充值'
+        successMessage = '支付成功，灵衍值已充值'
       } else {
         successMessage = '支付成功，会员已开通'
       }
@@ -296,19 +297,32 @@ const checkAlipayPayStatus = async () => {
       // 关闭弹窗
       handleClose()
 
-      // 支付成功后刷新用户信息（更新 isVip、expirationDate、潮币等）
+      // 支付成功后刷新用户信息
       const userInfo = userStore.userInfo
       const mobile = userInfo?.phone
       if (mobile) {
         try {
-          await userStore.getUserInfo(mobile)
+          await userStore.getUserInfo()
         } catch (error) {
           console.error('更新用户信息失败:', error)
         }
       }
 
       // 通知父组件支付成功
-      emit('success', { orderId: currentPayOrderId })
+      emit('success', { orderId: paidOrderNo, orderNo: data.orderNo || paidOrderNo, payTime: data.payTime })
+      return
+    }
+
+    if (res.code === '0000' && (orderStatus === -2 || orderStatus === -1 || orderStatus === 3)) {
+      clearPayTimer()
+      currentPayOrderId = null
+      payExpireSeconds.value = 0
+
+      if (orderStatus === 3) {
+        ElMessage.warning('订单超时未支付，请重新获取二维码')
+      } else {
+        ElMessage.error('支付失败，请重新发起支付')
+      }
     }
   } catch (error) {
     console.error('查询支付结果异常:', error)
@@ -349,26 +363,38 @@ const handleCreatePayment = async () => {
   try {
     // 调用父组件传入的创建支付订单函数
     const createFn = props.createPaymentOrder as unknown as (
-      channelCode?: string
+      channelId?: number
     ) => Promise<any>
-    const data = await createFn(selectedChannelCode.value)
+    const rawChannelId = selectedMethod.value?.id
+    const channelId = typeof rawChannelId === 'string' ? Number(rawChannelId) : rawChannelId
+    if (channelId === undefined || channelId === null || Number.isNaN(channelId)) {
+      ElMessage.error('请选择支付方式')
+      return
+    }
+    const data = await createFn(channelId)
 
     if (!data) {
       ElMessage.error('创建支付订单失败')
       return
     }
 
-    currentPayOrderId = data.orderNo || data.orderId || null
+    // 新接口字段：只使用 orderNo + paymentInfo
+    currentPayOrderId = data.orderNo || null
+    const payContent = data.paymentInfo
 
-    if (data.alipayOrderInfo) {
+    if (payContent) {
       try {
-        const qrCodeDataUrl = await generateQRCode(data.alipayOrderInfo)
+        const qrCodeDataUrl = await generateQRCode(payContent)
         payQrCode.value = qrCodeDataUrl
       } catch (error) {
         console.error('生成二维码失败:', error)
         ElMessage.error('生成二维码失败，请稍后重试')
         payQrCode.value = ''
       }
+    } else {
+      ElMessage.error('未获取到支付二维码信息，请稍后重试')
+      payQrCode.value = ''
+      return
     }
 
     // 默认 10 分钟有效期
@@ -414,9 +440,9 @@ onBeforeUnmount(() => {
   position: relative;
 
   .vip-pay-title {
-    font-size: var(--font-xxl);
+    font-size: $font-size-2xl;
     font-weight: 700;
-    color: var(--text-primary);
+    color: $color-text-white;
   }
 
   .vip-pay-close-icon {
@@ -430,20 +456,20 @@ onBeforeUnmount(() => {
 }
 
 .vip-pay-body {
-  font-size: var(--font-md);
-  color: var(--text-hui);
+  font-size: $font-size-md;
+  color: $color-text-gray;
   text-align: center;
 
   .vip-pay-amount-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    // display: flex;
+    // align-items: center;
+    // justify-content: center;
     margin-bottom: 20px;
 
     .amount {
-      margin: 0 14px;
-      color: rgba(192, 126, 255, 1);
-      font-size: var(--font-5xl);
+      margin: 0 4px;
+      color: $color-primary;
+      font-size: $font-size-5xl;
       font-weight: bold;
     }
   }
@@ -456,11 +482,11 @@ onBeforeUnmount(() => {
     align-items: center;
     width: 216px;
     height: 216px;
-    border-radius: var(--radius-sm);
+    border-radius: $border-radius-sm;
     background-color: #333333;
     box-sizing: border-box;
-    font-size: var(--font-md);
-    color: var(--text-primary);
+    font-size: $font-size-md;
+    color: $color-text-white;
 
     .agreement-text-top {
       margin-bottom: 8px;
@@ -474,23 +500,8 @@ onBeforeUnmount(() => {
       width: 166px;
       height: 37px;
       border-radius: 12px 12px 12px 12px;
-      background: linear-gradient(90deg,
-          rgba(204, 166, 244, 1) 0%,
-          rgba(192, 126, 255, 1) 53%,
-          rgba(204, 166, 244, 1) 99%);
-      font-size: var(--font-lg);
+      font-size: $font-size-base;
       font-weight: 600;
-      color: var(--text-primary);
-      border: none !important;
-      box-shadow: none !important;
-
-      &:hover,
-      &:focus,
-      &:focus-visible,
-      &:active {
-        border: none !important;
-        box-shadow: none !important;
-      }
     }
   }
 
@@ -499,16 +510,22 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24px;
+
+    .pay-expire-tip {
+      margin: 19px auto 29px;
+      font-size: $font-size-base;
+      color: $color-primary-dark;
+      text-align: center;
+    }
   }
 
   .vip-pay-qrcode {
     position: relative;
     width: 216px;
     height: 216px;
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    background: #333333;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+    background-color: $color-bg-dark-clear;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -518,7 +535,7 @@ onBeforeUnmount(() => {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      border-radius: var(--radius-sm);
+      border-radius: $border-radius-sm;
     }
 
     // 过期遮罩层
@@ -532,7 +549,7 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: var(--radius-sm);
+      border-radius: $border-radius-sm;
       cursor: pointer;
       z-index: 10;
 
@@ -549,7 +566,7 @@ onBeforeUnmount(() => {
     justify-content: center;
     gap: 16px;
     margin-bottom: 29px;
-    font-size: var(--font-md);
+    font-size: $font-size-md;
 
     .pay-channel {
       display: flex;
@@ -571,7 +588,7 @@ onBeforeUnmount(() => {
   .vip-pay-notice {
     text-align: left;
     color: rgba(255, 255, 255, 1);
-    font-size: var(--font-xs);
+    font-size: $font-size-xs;
 
     p {
       margin-bottom: 11px;
@@ -582,7 +599,7 @@ onBeforeUnmount(() => {
     }
 
     .link-text {
-      color: var(--primary-color);
+      color: $color-primary-dark;
       cursor: pointer;
 
       span {
@@ -604,8 +621,8 @@ onBeforeUnmount(() => {
 .pay-methods {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin: 10px 0 18px;
+  gap: 16px;
+  margin-bottom: 29px;
   flex-wrap: wrap;
 
   .pay-method-item {
@@ -620,17 +637,17 @@ onBeforeUnmount(() => {
     user-select: none;
 
     &.active {
-      border-color: rgba(59, 130, 246, 0.9);
+      border-color: $color-primary-dark;
     }
 
     .method-icon {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       object-fit: contain;
     }
 
     .method-name {
-      font-size: var(--font-sm);
+      font-size: $font-size-sm;
       color: rgba(255, 255, 255, 0.9);
       white-space: nowrap;
     }
@@ -649,6 +666,7 @@ onBeforeUnmount(() => {
   .el-dialog {
     border-radius: 16px !important;
     overflow: hidden;
+    background-color: #1A1A1A;
     background-color: rgba(26, 26, 26, 1);
     border: 1px solid rgba(255, 255, 255, 0.04);
   }

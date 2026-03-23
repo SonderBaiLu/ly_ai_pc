@@ -3,21 +3,11 @@ import request from '@/utils/request'
 
 // 支付相关类型定义（根据后端支付中心接口）
 export interface PaymentOrderData {
-  // 用户ID
-  userId: string | number
-  // 支付方式：0-支付宝 等
-  paymentType: number
-  // 订单类型：0-开通会员 1-购买潮币 等
-  orderType: number
-  // 商品编码
-  itemCode: string
-  // 商品ID
-  itemId: string | number
-  // 货币类型：0-人民币 2-美元（可选）
-  currencyType?: number
-  // 平台类型：0-PC 1-安卓 2-鸿蒙 3-iOS（可选）
-  platformType?: number
-  // 预留扩展字段
+  // 支付渠道ID
+  channelId: string | number
+  // 购买商品ID
+  productId: number | string
+  // 预留扩展字段（后端如果未来增加字段，不需要再改类型）
   [key: string]: any
 }
 
@@ -54,7 +44,7 @@ export interface AlipayQueryResult {
 }
 
 export type PaymentMethod = {
-  id: string
+  id: string | number
   channelCode: 'wechat_pay' | 'alipay' | 'apple_pay' | string
   channelName: string
   iconUrl?: string
@@ -72,25 +62,18 @@ export const paymentApi = {
     request.get('/v1/payment/getPaymentMethod'),
 
   /**
-   * 创建支付订单（统一下单 - 新接口）
+   * 创建支付订单
    * - POST /api/v1/payment/submit
    */
   createPaymentOrder: (data: PaymentOrderData): Promise<ApiResponse<PaymentOrderResponse>> =>
     request.post('/v1/payment/submit', data),
 
   /**
-   * 查询支付结果（新接口）
+   * 查询支付结果
    * - GET /api/v1/payment/query
    * @param orderNo 支付订单号
    */
   queryPayment: (orderNo: string): Promise<ApiResponse<any>> =>
-    request.get('/v1/payment/query', { params: { orderNo } }),
-
-  /**
-   * 兼容旧方法名（内部已切换到新接口）
-   * @deprecated 请使用 queryPayment
-   */
-  queryAlipayOrder: (orderNo: string): Promise<ApiResponse<any>> =>
     request.get('/v1/payment/query', { params: { orderNo } }),
 }
 

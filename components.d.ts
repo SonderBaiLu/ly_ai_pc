@@ -69,7 +69,6 @@ declare module 'vue' {
     ThumbnailGallery: typeof import('./src/components/ThumbnailGallery.vue')['default']
     TransformRow: typeof import('./src/sections/home/TransformRow.vue')['default']
     UserLogin: typeof import('./src/components/UserLogin.vue')['default']
-    UserProfileMenu: typeof import('./src/components/UserProfileMenu.vue')['default']
     VideoOptionsSection: typeof import('./src/components/VideoOptionsSection.vue')['default']
     WatermarkDisclaimerModal: typeof import('./src/components/WatermarkDisclaimerModal.vue')['default']
     WriteOffModal: typeof import('./src/components/WriteOffModal.vue')['default']

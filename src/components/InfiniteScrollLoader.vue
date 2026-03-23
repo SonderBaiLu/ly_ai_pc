@@ -16,7 +16,7 @@
     <!-- 空状态 -->
     <div v-if="showEmpty" class="empty-state">
       <img :src="emptyImage" fit="contain" :style="{ width: imageSize, height: 'auto' }" />
-      <p class="empty-text">{{ emptyText }}</p>
+      <p class="empty-text" :style="{ color: emptyTextColor, fontSize: emptyTextFontSize }">{{ emptyText }}</p>
     </div>
 
     <!-- 返回顶部按钮 -->
@@ -45,6 +45,8 @@ interface Props {
   loadingText?: string
   noMoreText?: string
   emptyText?: string
+  emptyTextColor?: string
+  emptyTextFontSize?: string
   emptyImage?: string
   imageSize?: string
 
@@ -64,6 +66,8 @@ const props = withDefaults(defineProps<Props>(), {
   loadingText: '',
   noMoreText: '',
   emptyText: '',
+  emptyTextColor: 'rgba(150,221,255,0.8)',
+  emptyTextFontSize: '16px',
   emptyImage: images.noneData,
   imageSize: '200px',
   showBackTop: true,
