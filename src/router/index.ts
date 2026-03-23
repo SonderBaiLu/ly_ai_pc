@@ -41,6 +41,12 @@ const routes: RouteRecordRaw[] = [
     name: 'NotFound',
     component: () => import('../views/NotFound.vue'),
   },
+  {
+    path: '/team-management',
+    name: 'TeamManagement',
+    component: () => import('../views/TeamManagement.vue'),
+    meta: { requiresAuth: true }
+  }
 ]
 
 const router = createRouter({

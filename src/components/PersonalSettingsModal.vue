@@ -71,9 +71,11 @@
   </el-dialog>
   <Teleport to="body">
     <Transition name="modal">
-      <ResetPassword v-if="isVisible" :mode="currentMode" @close="isVisible = false" />
+      <ResetPassword v-if="isVisible" :mode="currentMode" :is-from-settings="true" @close="isVisible = false" />
     </Transition>
   </Teleport>
+
+
 </template>
 
 <script setup lang="ts">
@@ -211,8 +213,9 @@ const isVisible = ref(false)
 const currentMode = ref('0')
 // 定义变量 决定 按钮显示 修改密码 还是 重置密码
 const hasPassword = ref(false)
-// 检查用户是否 设置了 密码
-onBeforeMount(async () => {
+
+// 获取密码状态
+const fetchPasswordStatus = async () => {
   try {
     const res = await userApi.getUserSetPwd()
     if (String((res as any).code) === '0000') {
@@ -222,7 +225,27 @@ onBeforeMount(async () => {
   } catch (error) {
     console.error("获取密码状态失败", error)
   }
-})
+}
+// 监视密码是否有修改 是否有设置
+watch(
+    () => props.modelValue,
+    (newVal) => {
+      if (newVal) {
+        const userInfo = userStore.userInfo
+        if (userInfo) {
+          editingData.value = {
+            headImgUrl: userInfo.headImgUrl || '',
+            nickname: userInfo.nickname || '',
+            introduction: userInfo.introduction || '',
+          }
+        }
+        // 每次弹窗打开时，重新获取密码设置状态
+        fetchPasswordStatus()
+      }
+    },
+    { immediate: true }
+)
+
 // 修改密码
 const updatePwd = () => {
   // getUserSetPwd 获取用户是否设置了 密码返回 true or false

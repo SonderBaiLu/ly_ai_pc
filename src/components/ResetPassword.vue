@@ -4,27 +4,33 @@
       <button class="close-btn" @click="closeModal">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M1 1L13 13M1 13L13 1" stroke="#999999" stroke-width="1.5" stroke-linecap="round"
-            stroke-linejoin="round" />
+                stroke-linejoin="round" />
         </svg>
       </button>
 
       <h2 class="modal-title">{{ modalTitle }}</h2>
 
-
       <div class="form-container">
         <div class="form-group" v-if="modeType === '0' || modeType === '1'">
           <label class="form-label">手机号</label>
-          <div class="input-wrapper">
+          <div class="input-wrapper" :class="{ 'disabled-wrapper': isFromSettings }">
             <span class="prefix">+86</span>
             <span class="divider"></span>
-            <input type="tel" maxlength="11" v-model="formData.phone" class="form-input" placeholder="请输入手机号" />
+            <input
+                type="tel"
+                maxlength="11"
+                v-model="formData.phone"
+                class="form-input"
+                placeholder="请输入手机号"
+                :disabled="isFromSettings"
+            />
           </div>
         </div>
 
         <div class="form-group" v-if="modeType === '2'">
           <label class="form-label">账号名</label>
           <div class="input-wrapper disabled-wrapper">
-            <input type="text" v-model="formData.accountName" class="form-input" disabled />
+            <input type="text" v-model="formData.accountName" class="form-input" disabled=""/>
           </div>
         </div>
 
@@ -35,8 +41,8 @@
             <button @click='GetSmSCode' :disabled="!formData.phone || isCounting" class="get-code-btn">
               {{
                 isCounting
-                  ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
-                  : t('LoginPopUpPage.getVerificationCode')
+                    ? t('LoginPopUpPage.smsCountdown', { seconds: countdown })
+                    : t('LoginPopUpPage.getVerificationCode')
               }}
             </button>
           </div>
@@ -65,7 +71,7 @@
           <label class="form-label">确认密码</label>
           <div class="input-wrapper">
             <input :type="TwoPasswordInputType" v-model="formData.twoPassword" class="form-input"
-              placeholder="请再次输入密码确认" />
+                   placeholder="请再次输入密码确认" />
             <span class="icon-eye" @click="twoShowPersonalPwd = !twoShowPersonalPwd">
               <img :src="twoShowPersonalPwd ? images.eye : images.eyeClose" alt="" />
             </span>
@@ -79,28 +85,36 @@
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, computed, onUnmounted } from 'vue'
 import { images } from '@/assets'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus';
 import { changePwdBySms, getSmsCodeApi } from "@/api/userLogin";
 import userApi from '@/api/user';
 import { useUserStore } from '@/stores/user';
+
 const userStore = useUserStore()
 const { t } = useI18n()
 
-// 有三种模式 
+// 有三种模式
 // 0 = "用户第一次手机号注册 没有密码时候弹"
-// 1 = "用户修改密码 有密码的时候" 
+// 1 = "用户修改密码 有密码的时候"
 // 2 = "团队修改密码"
-// 这里设为 ref 方便你在父组件中通过 ref 或者 props 动态修改
 const props = defineProps({
   mode: {
     type: String,
     default: '0' // 默认为模式 0
+  },
+  // 接收从设置页面传来的标识
+  isFromSettings: {
+    type: Boolean,
+    default: false
   }
 });
+
 const emit = defineEmits(['close']) //定义抛出给父组件的关闭事件
 const modeType = ref<'0' | '1' | '2'>(props.mode as '0')
+
 // 标题修改
 const modalTitle = computed(() => {
   switch (modeType.value) {
@@ -121,13 +135,27 @@ const twoShowPersonalPwd = ref(false)
 
 // 表单数据
 const formData = reactive({
-  phone: '',
-  accountName: userStore.getUserInfo.length,
+  // 如果是从设置页面来的，自动填入用户当前绑定的手机号
+  phone: props.isFromSettings ? (userStore.userInfo?.mobile || '') : '',
+  accountName: userStore.userInfo?.accountName || '',
   code: '',
   oldPassword: '',
   onepassword: '',
   twoPassword: '',
 })
+watch(
+    () => props.isFromSettings,
+    (isFromSettings) => {
+      if (isFromSettings) {
+        const info = userStore.userInfo
+        if (info) {
+          // 这个userName 就是他的手机号
+          formData.phone = info.userName
+        }
+      }
+    },
+    { immediate: true }
+)
 
 const onePasswordInputType = computed(() => {
   return oneShowPersonalPwd.value ? 'text' : 'password';
@@ -196,11 +224,11 @@ const resetPassword = async () => {
       if (!formData.oldPassword) return ElMessage.warning("请输入旧密码");
       console.log("oldPwd", formData)
       await userApi.changePwdByOldPwd(
-        {
-          oldPwd: Number(formData.oldPassword),
-          newPwd: Number(formData.onepassword),
-          newPwdAgain: Number(formData.twoPassword),
-        })
+          {
+            oldPwd: Number(formData.oldPassword),
+            newPwd: Number(formData.onepassword),
+            newPwdAgain: Number(formData.twoPassword),
+          })
       ElMessage.success('修改成功')
       emit('close')
     }
@@ -220,12 +248,7 @@ const closeModal = () => {
   // 触发关闭弹窗的事件
   emit('close')
 }
-//
-/*const setPwd = ref(false as any)
-onMounted(async() => {
-  //查询用户是否设置了密码 如果没有就弹出 设置密码弹窗
-  setPwd.value = await userApi.getUserSetPwd()
-})*/
+
 onUnmounted(() => {
   if (smsTimer) {
     clearInterval(smsTimer)
