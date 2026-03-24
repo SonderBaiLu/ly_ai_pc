@@ -86,7 +86,7 @@
                 </span>
                 <span>{{ t('LoginPopUpPage.wechatScanLogin') }}</span>
               </div>
-              <p class="sub-hint">{{ t('LoginPopUpPage.subHint') }}</p>
+              <p class="sub-hint">扫码关注「灵衍AI」公众号完成登录</p>
             </div>
 
             <div class="invite-link-wrap qrcode-invite">
