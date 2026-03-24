@@ -222,7 +222,7 @@ const handleClose = () => {
 // 2. 微信扫码登录逻辑模块
 // ==========================================
 const qrCodeImg = ref('')
-const sceneId = ref('') // 轮询参数 (改为驼峰)
+const sceneId = ref('') // 轮询参数
 const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading')
 let qrCodeTimer: ReturnType<typeof setInterval> | null = null
 const qrCountdown = ref(0) // 二维码剩余有效秒数
