@@ -114,9 +114,13 @@ export const useUserStore = defineStore('user', {
       await this.getUserInfo()
     },
 
-    logout() {
-      const res = logout();
-      if (String((res as any).code) === '0000') {
+    async logout() {
+      try {
+        await logout()
+      } catch (error) {
+        console.error('退出登录接口失败', error)
+      } finally {
+        // 无论接口是否成功，都先清理本地登录态，保证 UI 立即切回未登录
         this.setToken('')
         this.setUserInfo(null)
       }

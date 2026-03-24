@@ -12,50 +12,65 @@
         <el-tabs v-model="activeTab" class="membership-tabs">
           <el-tab-pane v-for="tab in membershipTabs" :key="tab.key" :label="tab.name" :name="tab.key" />
         </el-tabs>
+
+        <div v-if="activeTab === 'membership'" class="member-version-toggle">
+          <el-button class="toggle-segment" :type="memberVersion === 1 ? 'primary' : 'default'"
+            @click="switchMemberVersion(1)">
+            基础版
+          </el-button>
+          <el-button class="toggle-segment" :type="memberVersion === 2 ? 'primary' : 'default'"
+            @click="switchMemberVersion(2)">
+            <span class="recommend-tag">推荐</span>
+            标准版
+          </el-button>
+        </div>
       </div>
 
       <!-- 会员内容 -->
       <template v-if="activeTab === 'membership'">
-        <!-- 会员卡片网格 -->
-        <div class="membership-cards-grid">
-          <!-- 循环渲染会员卡片 -->
-          <div v-for="(plan, index) in membershipPlansFromApi" :key="(plan.id ?? plan.productCode ?? index) as any"
-            class="membership-card" :class="`theme-${index}`">
-            <div class="card-header">
-              <h3 class="card-title title">{{ getVipName(plan) }}</h3>
-              <div class="price-section">
-                <span class="price">¥{{ plan.productDiscountPrice ?? plan.productPrice }}</span>
-                <span class="price-unit">{{ getPriceUnit(plan) }}</span>
-                <span v-if="getDiscountText(plan)" class="discount-tag">{{ getDiscountText(plan) }}</span>
-                <!-- 显示原价（删除线） -->
-                <span v-if="getDiscountText(plan) && plan.productPrice !== undefined && plan.productPrice !== null"
-                  class="original-price">
-                  ¥{{ plan.productPrice }}
-                </span>
-              </div>
-            </div>
-
-            <div class="card-body">
-              <el-button class="purchase-button" type="primary" @click="handlePurchaseAction(plan)">
-                {{ getPurchaseButtonText(plan) }}
-              </el-button>
-
-              <!-- 灵衍信息卡片：使用新接口字段 waveCoin / productDesc -->
-              <div v-if="plan.waveCoin && plan.productDesc && !isFreePlan(plan)" class="coin-info-card">
-                <div class="coin-content">
-                  <div class="coin-amount">单月{{ plan.waveCoin }}个灵衍值</div>
-                  <div class="coin-detail">{{ plan.productDesc }}</div>
+        <div class="membership-cards-wrapper">
+          <!-- 会员卡片网格 -->
+          <div class="membership-cards-grid">
+            <!-- 循环渲染会员卡片 -->
+            <div v-for="(plan, index) in membershipPlansFromApi" :key="(plan.id ?? plan.productCode ?? index) as any"
+              class="membership-card" :class="`theme-${index}`">
+              <div class="card-header">
+                <h3 class="card-title title">{{ getVipName(plan) }}</h3>
+                <div v-if="getDiscountText(plan)" class="corner-discount-tag">{{ getDiscountText(plan) }}</div>
+                <div class="price-section">
+                  <span class="price">¥{{ plan.productDiscountPrice ?? plan.productPrice }}</span>
+                  <span class="price-unit">{{ getPriceUnit(plan) }}</span>
+                  <!-- 显示原价（删除线） -->
+                  <span v-if="getDiscountText(plan) && plan.productPrice !== undefined && plan.productPrice !== null"
+                    class="original-price">
+                    {{ plan.productPrice }}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div class="card-features">
-              <div v-for="(right, idx) in plan.privilegesListVOS" :key="idx" class="feature-item">
-                <img v-if="index === 0" :src="images.right" class="feature-icon" alt="" />
-                <img v-if="index === 1" :src="images.check1" class="feature-icon" alt="" />
-                <img v-if="index === 2" :src="images.check2" class="feature-icon" alt="" />
-                <img v-if="index === 3" :src="images.check3" class="feature-icon" alt="" />
-                <span>{{ right.privilegesName || right.privilegesCode }}</span>
+              <div class="card-body">
+                <el-button class="purchase-button" type="primary" :disabled="isFreePlan(plan)"
+                  @click="handlePurchaseAction(plan)">
+                  {{ getPurchaseButtonText(plan) }}
+                </el-button>
+
+                <!-- 灵衍信息卡片：使用新接口字段 waveCoin / productDesc -->
+                <div v-if="plan.waveCoin && plan.productDesc && !isFreePlan(plan)" class="coin-info-card">
+                  <div class="coin-content">
+                    <div class="coin-amount">单月{{ plan.waveCoin }}个灵衍值</div>
+                    <div class="coin-detail">{{ plan.productDesc }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-features">
+                <div v-for="(right, idx) in plan.privilegesListVOS" :key="idx" class="feature-item">
+                  <img v-if="idx === 0" :src="images.check" class="feature-icon" alt="" />
+                  <img v-if="idx === 1" :src="images.check1" class="feature-icon" alt="" />
+                  <img v-if="idx === 2" :src="images.check2" class="feature-icon" alt="" />
+                  <img v-if="idx === 3" :src="images.check3" class="feature-icon" alt="" />
+                  <span>{{ right.privilegesName || right.privilegesCode }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -170,6 +185,9 @@ const membershipTabs = computed(() => {
 
 const activeTab = ref('membership')
 
+// 基础版 / 标准版 切换：1=基础版 2=标准版
+const memberVersion = ref<number>(1)
+
 // 会员套餐数据（直接使用接口返回字段）
 const membershipPlansFromApi = ref<AppProduct[]>([])
 
@@ -194,7 +212,15 @@ const loadMembershipPlans = async () => {
     const res = await membershipApi.getAppProductList({ productKind: 'vip' })
 
     if (res.code === '0000' && res.data) {
-      membershipPlansFromApi.value = Array.isArray(res.data) ? res.data : []
+      const products: AppProduct[] = Array.isArray(res.data) ? res.data : []
+
+      // memberVersion: 1 基础版 / 2 标准版（与 productType：1 基础 / 2 标准 对齐）
+      // productType=0 是“免费版/普通会员”，在基础版/标准版切换时都需要展示
+      const targetProductType = memberVersion.value
+      membershipPlansFromApi.value = products.filter((p) => {
+        const t = Number(p.productType ?? 0)
+        return t === targetProductType || t === 0
+      })
     } else {
       ElMessage.error(res.msg || '获取会员套餐失败')
     }
@@ -256,6 +282,13 @@ watch(
           activeTab.value = 'membership'
         }
       }
+
+      // 初始化基础版/标准版：保持与 Membership.vue 一致
+      // - userInfo.isVip === 1 -> 按 vipLevel 展示（通常为 1/2）
+      // - 否则展示基础版（1）
+      const isVipUser = Number(userInfo.value?.isVip ?? props.isVip ?? 0) === 1
+      memberVersion.value = isVipUser ? Number(userInfo.value?.vipLevel ?? 1) : 1
+
       loadMembershipPlans()
       loadTideCoinPlans()
     } else {
@@ -298,7 +331,7 @@ const handleCreatePaymentOrder = async (channelId?: string | number) => {
     throw new Error('未选择支付渠道')
   }
 
-  const productId = Number(targetPlan.id)
+  const productId = Number(targetPlan.id ?? targetPlan.productCode)
   if (Number.isNaN(productId)) {
     throw new Error('未找到购买商品ID（productId）')
   }
@@ -359,14 +392,15 @@ const handlePurchaseAction = async (plan: any) => {
   // 设置购买类型和标题
   if (isCoinPurchase) {
     purchaseType.value = 'coin'
-    payDialogTitle.value = '灵衍值充值'
+    payDialogTitle.value = '灵衍充值'
   } else {
     purchaseType.value = 'membership'
     payDialogTitle.value = getVipName(plan) || '会员购买'
   }
 
   // 设置初始支付金额（在创建订单前显示）
-  initialPayAmount.value = Number(plan.productDiscountPrice ?? plan.productPrice) || 0
+  // 与 Membership.vue 保持一致：展示/支付金额使用 productPrice
+  initialPayAmount.value = Number(plan.productPrice) || 0
 
   try {
     await loadPaymentMethods()
@@ -379,10 +413,19 @@ const handlePurchaseAction = async (plan: any) => {
 // 价格单位
 const getPriceUnit = (plan: any) => {
   // 商品单位：0个/普通会员 1月 2季度 3年度
-  if (plan.productUnit === 1) return '/月'
-  if (plan.productUnit === 2) return '/季'
-  if (plan.productUnit === 3) return '/年'
+  const unit = Number(plan?.productUnit ?? 0)
+  if (unit === 0) return '/永久'
+  if (unit === 1) return '/月'
+  if (unit === 2) return '/季'
+  if (unit === 3) return '/年'
   return '/年'
+}
+
+// 切换会员版本（基础版 / 标准版）
+const switchMemberVersion = async (version: number) => {
+  if (memberVersion.value === version) return
+  memberVersion.value = version
+  await loadMembershipPlans()
 }
 
 // 会员名字
@@ -674,52 +717,101 @@ const handleClose = () => {
       display: none;
     }
   }
+
+  // 基础会员 / 标准会员 切换按钮组（参考 Membership.vue 图二样式）
+  .member-version-toggle {
+    position: relative;
+    display: inline-flex;
+    padding: 5px;
+    border-radius: 12px;
+    background-color: rgba(17, 17, 21, 1);
+    border: 1px solid rgba(255, 255, 255, 0.02);
+
+    .toggle-segment {
+      position: relative;
+      width: 162px;
+      height: 44px;
+      border-radius: 12px 12px 12px 12px;
+      border: none;
+      margin: 0;
+
+      &.el-button--default {
+        background-color: rgba(43, 40, 49, 1);
+      }
+
+      .recommend-tag {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 18px;
+        border-radius: 0px 8px 0px 8px;
+        background-color: rgba(244, 63, 94, 1);
+        color: $color-text-white;
+        font-size: 9px;
+        font-weight: 400;
+      }
+    }
+  }
+}
+
+// 会员卡片容器（参考 Membership.vue）
+.membership-cards-wrapper {
+  position: relative;
+  padding: 60px 0 86px;
+  margin: 0;
+  overflow: visible; // 确保右上角标签不被裁剪
 }
 
 // 会员卡片网格
 .membership-cards-grid {
-  // 默认网格布局（大屏幕，能显示4个）
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  padding: 60px;
-  overflow: visible; // 确保右上角标签不被裁剪
+  padding: 0;
+  overflow: visible;
 
-  // 小屏幕优化：减少左右内边距，让更多内容可见
   @media (max-width: 1400px) {
-    padding: 50px 40px 60px;
+    padding: 15px 40px 0;
+  }
+
+  @media (min-width: 1401px) and (max-width: 1820px) {
+    padding: 15px 60px 0 0;
   }
 
   @media (max-width: 1200px) {
-    padding: 40px 20px 60px;
+    padding: 15px 20px 0;
     gap: 16px;
-    grid-template-columns: repeat(2, 1fr); // 中等屏幕改为2列
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (max-width: 1024px) {
-    padding: 30px 10px 60px;
+    padding: 15px 10px 0;
     gap: 16px;
-    grid-template-columns: repeat(2, 1fr); // 平板改为2列
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (max-width: 768px) {
-    padding: 20px 5px 60px;
+    padding: 15px 5px 0;
     gap: 12px;
-    grid-template-columns: 1fr; // 小屏幕改为1列
+    grid-template-columns: 1fr;
   }
 
   @media (max-width: 480px) {
-    padding: 15px 0 40px;
+    padding: 10px 0 0;
     gap: 12px;
   }
 }
 
 // 会员卡片
 .membership-card {
-  background-color: rgba(255, 255, 255, 0.01);
+  background-color: rgba(18, 18, 18, 1);
   border-radius: 16px;
-  padding: 26px 20px;
-  border: 1px solid transparent;
+  padding: 25px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: all 0.3s ease;
   position: relative;
   overflow: visible;
@@ -727,7 +819,10 @@ const handleClose = () => {
   flex-direction: column;
 
   &:hover {
-    background: var(--gradient-active);
+    background: linear-gradient(135deg,
+        $color-primary 0%,
+        $color-primary-light 50%,
+        #96ddff 100%);
   }
 
   // 小屏幕优化
@@ -753,7 +848,7 @@ const handleClose = () => {
     .card-title {
       font-size: 20px;
       font-weight: 600;
-      color: var(--text-secondary);
+      color: $color-text-nickname;
       margin: 0;
 
       @media (max-width: 768px) {
@@ -783,7 +878,7 @@ const handleClose = () => {
       .price {
         font-size: 30px;
         font-weight: 700;
-        color: var(--text-secondary);
+        color: $color-text-nickname;
         line-height: 1;
 
         @media (max-width: 768px) {
@@ -796,8 +891,8 @@ const handleClose = () => {
       }
 
       .price-unit {
-        font-size: var(--font-md);
-        color: var(--text-hui);
+        font-size: $font-size-base;
+        color: $color-text-gray;
 
         @media (max-width: 480px) {
           font-size: var(--font-sm);
@@ -805,27 +900,35 @@ const handleClose = () => {
       }
 
       .original-price {
-        font-size: 15px;
-        color: var(--text-hui);
+        font-size: 12px;
+        color: $color-text-gray;
         text-decoration: line-through;
+
+        &::before {
+          content: '¥';
+          font-size: 15px;
+          font-weight: normal;
+        }
 
         @media (max-width: 480px) {
           font-size: 13px;
         }
       }
 
-      .discount-tag {
-        padding: 2px 6px;
-        font-size: 12px;
-        line-height: 16px;
-        border-radius: 6px;
-        color: #fff;
-        background: rgba(255, 77, 79, 0.95);
+      // discount-tag moved to .corner-discount-tag
+    }
 
-        @media (max-width: 480px) {
-          font-size: 11px;
-        }
-      }
+    .corner-discount-tag {
+      position: absolute;
+      top: -36px;
+      right: -13px;
+      z-index: 10;
+      color: $color-text-white;
+      padding: 3px 16px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+      font-family: NotoSans-bold;
     }
   }
 
@@ -842,24 +945,23 @@ const handleClose = () => {
 
     .purchase-button {
       width: 100%;
-      height: 50px;
+      height: 47px;
       border-radius: 12px;
-      font-size: var(--font-lg) !important;
+      font-size: $font-size-base !important;
       font-weight: 600;
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      color: $color-text-gray;
       border: none !important;
       box-shadow: none !important;
 
       @media (max-width: 768px) {
         height: 44px;
-        font-size: var(--font-md) !important;
+        font-size: $font-size-md !important;
         border-radius: 10px;
       }
 
       @media (max-width: 480px) {
         height: 40px;
-        font-size: var(--font-sm) !important;
+        font-size: $font-size-sm !important;
         border-radius: 8px;
       }
 
@@ -979,7 +1081,7 @@ const handleClose = () => {
 
   // 主题0 - 免费版（灰色调，禁用状态）
   &.theme-0 {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 
     &:hover {
       background: none;
@@ -987,7 +1089,7 @@ const handleClose = () => {
 
     .purchase-button {
       background-color: rgba(255, 255, 255, 0.04) !important;
-      color: var(--text-hui) !important;
+      color: $color-text-gray !important;
       border: none !important;
       cursor: not-allowed !important;
     }
@@ -998,13 +1100,14 @@ const handleClose = () => {
     border: 1px solid rgba(216, 180, 254, 1);
 
     &:hover {
-      background: linear-gradient(180deg, rgba(46, 16, 101, 1) 0%, rgba(2, 6, 23, 1) 100%);
+      background: rgba(216, 180, 254, 0.3);
     }
 
     .title {
       color: #c7b4ec !important;
     }
 
+    .corner-discount-tag,
     .purchase-button {
       background: linear-gradient(90deg,
           rgba(204, 166, 244, 1) 0%,
@@ -1031,31 +1134,21 @@ const handleClose = () => {
 
   // 主题2 - 季度会员（蓝绿色调，推荐）
   &.theme-2 {
-    border: 1px solid rgba(80, 199, 253, 0.5);
+    border: 1px solid rgba(23, 160, 225, 1);
 
     &:hover {
-      background: linear-gradient(180deg, rgba(0, 66, 102, 1) 0%, rgba(2, 6, 23, 1) 100%);
-    }
-
-    .card-header::before {
-      content: '9.5折';
-      position: absolute;
-      top: -36px;
-      right: -13px;
-      z-index: 10; // 确保标签在最上层
-      background: linear-gradient(90deg,
-          rgba(145, 213, 243, 1) 0%,
-          rgba(79, 179, 250, 1) 47%,
-          rgba(142, 204, 232, 1) 100%);
-      color: var(--text-primary);
-      padding: 4px 16px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: bold;
+      background: rgba(150, 221, 255, 0.3);
     }
 
     .title {
       color: #50c7fd !important;
+    }
+
+    .corner-discount-tag {
+      background: linear-gradient(90deg,
+          rgba(145, 213, 243, 1) 0%,
+          rgba(79, 179, 250, 1) 47%,
+          rgba(142, 204, 232, 1) 100%);
     }
 
     .purchase-button {
@@ -1086,24 +1179,11 @@ const handleClose = () => {
     border: 1px solid rgba(196, 170, 117, 0.5);
 
     &:hover {
-      background: linear-gradient(180deg, rgba(56, 50, 36, 1) 4%, rgba(2, 6, 23, 1) 100%);
+      background: rgba(196, 170, 117, 0.3);
     }
 
-    .card-header::before {
-      content: '8.5折';
-      position: absolute;
-      top: -36px;
-      right: -13px;
-      z-index: 10; // 确保标签在最上层
-      background: linear-gradient(90deg,
-          rgba(244, 232, 190, 1) 0%,
-          rgba(196, 170, 117, 1) 47%,
-          rgba(244, 232, 190, 1) 100%);
-      color: var(--text-primary);
-      padding: 4px 16px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: bold;
+    .corner-discount-tag {
+      background: linear-gradient(90deg, rgba(244, 232, 190, 1) 0%, rgba(196, 170, 117, 1) 47%, rgba(244, 232, 190, 1) 100%);
     }
 
     .title {
@@ -1136,18 +1216,17 @@ const handleClose = () => {
 
 // 灵衍值页面样式
 .tidecoins-notice {
-  padding: 30px 0 40px;
+  padding: 21px 0 40px;
   text-align: center;
-  color: rgba(209, 213, 219, 1);
+  color: $color-text-light;
   font-size: 13px;
 
   .notice-text {
-    color: rgba(156, 163, 175, 1);
-    font-size: 13px;
+    color: $color-primary-dark;
   }
 
   .rules-link {
-    color: var(--primary-color);
+    color: $color-text-gray;
     cursor: pointer;
   }
 }
@@ -1155,25 +1234,25 @@ const handleClose = () => {
 .tidecoins-grid {
   display: grid;
   // 使用 auto-fit 和 minmax，确保卡片固定大小，放不下时自动换行
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(332px, 1fr));
   gap: 40px;
-  padding: 0 60px 60px;
+  padding: 0 118px 130px;
 
   // 响应式设计
   @media (max-width: 1600px) {
-    padding: 0 40px 60px;
+    padding: 0 60px 130px;
     gap: 30px;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
 
   @media (max-width: 1024px) {
-    padding: 0 20px 60px;
+    padding: 0 20px 130px;
     gap: 20px;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
   @media (max-width: 600px) {
-    padding: 0 10px 60px;
+    padding: 0 10px 130px;
     gap: 12px;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
@@ -1191,76 +1270,58 @@ const handleClose = () => {
   min-width: 0; // 防止内容溢出
 
   &.selected {
-    border-color: var(--primary-color);
+    border-color: $color-primary;
   }
 
   // 上半部分
   .tidecoin-top {
-    background: var(--bg-btn) url('@/assets/images/logo.png') no-repeat right 4px top 17px;
-    background-size: 144px 162px;
-    padding: 20px;
     position: relative;
     height: 132px;
+    padding: 28px 34px;
+    background: $color-bg-dark-secondary;
+    border-radius: 0 0 12px 12px;
 
     .tidecoin-amount {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: $spacing-sm;
 
       .flame-icon {
-        width: 40px;
-        height: 40px;
-        margin-top: 5px;
+        width: 33px;
+        height: 33px;
       }
 
       .amount {
         font-size: 36px;
         font-weight: bold;
-        color: var(--text-primary);
+        color: $color-primary-dark;
       }
     }
   }
 
   // 下半部分
   .tidecoin-bottom {
+    background: linear-gradient(135deg, rgba(5, 7, 10, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+    padding: 15px 39px 15px 35px;
+    border-radius: 0 0 12px 12px;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: var(--bg-secondary);
-    padding: 15px 35px;
 
     .tidecoin-price {
-      font-size: var(--font-xxxl);
-      color: var(--text-primary);
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-
-      .origin {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.55);
-        text-decoration: line-through;
-      }
+      font-size: $font-size-2xl;
+      color: $color-text-white;
     }
 
     .tidecoin-button {
       width: 102px;
       height: 40px;
       border-radius: 20px;
-      background: linear-gradient(90deg,
-          rgba(204, 166, 244, 1) 0%,
-          rgba(192, 126, 255, 1) 53%,
-          rgba(204, 166, 244, 1) 99%);
-      border: none !important;
-      box-shadow: none !important;
-
-      &:hover,
-      &:focus,
-      &:focus-visible,
-      &:active {
-        border: none !important;
-        box-shadow: none !important;
-      }
+      font-size: $font-size-base;
+      text-align: center;
+      font-family: NotoSans-bold;
+      color: $color-text-white;
     }
   }
 }

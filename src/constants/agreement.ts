@@ -6,6 +6,7 @@ export const AGREEMENT_TYPES = {
   SOCIAL_COVENANT: 'SOCIAL_COVENANT',
   PERMISSION_LIST: 'PERMISSION_LIST',
   COIN_RULES_DESCRIPTION: 'COIN_RULES_DESCRIPTION',
+  INVITATION_ACTIVITY_RULES: 'INVITATION_ACTIVITY_RULES',
 } as const
 
 export type AgreementType = (typeof AGREEMENT_TYPES)[keyof typeof AGREEMENT_TYPES] | string
@@ -18,6 +19,7 @@ export const AGREEMENT_TABS: Array<{ type: AgreementType; label: string }> = [
   { type: AGREEMENT_TYPES.SOCIAL_COVENANT, label: '社区公约' },
   { type: AGREEMENT_TYPES.PERMISSION_LIST, label: '权限列表' },
   { type: AGREEMENT_TYPES.COIN_RULES_DESCRIPTION, label: '灵衍值规则说明' },
+  { type: AGREEMENT_TYPES.INVITATION_ACTIVITY_RULES, label: '邀请好友规则' },
 ]
 
 export const DEFAULT_AGREEMENT_TYPE: AgreementType = AGREEMENT_TYPES.USER_AGREEMENT

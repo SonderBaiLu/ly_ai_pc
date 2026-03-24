@@ -17,6 +17,18 @@ export type AppAgreementContent = {
   imageUrl?: string
 }
 
+export type SysPlatformMenuItem = {
+  id?: string | number
+  menuId?: string | number
+  name?: string
+  menuName?: string
+  code?: string
+  path?: string
+  icon?: string
+  sort?: number
+  children?: SysPlatformMenuItem[]
+}
+
 export const appApi = {
   /**
    * APP 协议内容
@@ -26,6 +38,14 @@ export const appApi = {
    */
   getContent(params: { code: AgreementType }) {
     return request.get('/v1/app/getContent', { params }) as unknown as Promise<ApiResponse<AppAgreementContent>>
+  },
+
+  /**
+   * 获取功能列表
+   * - GET /api/v1/app/getSysPlatformMenu
+   */
+  getSysPlatformMenu(params?: Record<string, unknown>) {
+    return request.get('/v1/app/getSysPlatformMenu', { params }) as unknown as Promise<ApiResponse<SysPlatformMenuItem[]>>
   },
 }
 

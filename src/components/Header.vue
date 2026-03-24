@@ -31,10 +31,10 @@
             <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
-          }}</span>
+            }}</span>
           <div v-show="isUserCardOpen" class="user-card">
             <el-button class="invitation-btn" type="primary"
-              @click="enterModule(() => router.push('/invitation-code'))">
+              @click="enterModule(() => router.push('/invitation-gift'))">
               邀请有礼
             </el-button>
             <div @click="openUserInfo()" class="user-card-header">
@@ -122,8 +122,12 @@
         <div class="auth-buttons" v-if="!isAuthed">
           <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
-            }}</span>
+          }}</span>
         </div>
+      </div>
+      <div v-if="showMonthlyLoginPointsTip" class="monthly-login-points-tip"
+        :class="{ 'is-hiding': isMonthlyTipHiding }">
+        每月{{ monthlyLoginPoints }}免费灵衍值已到账
       </div>
     </div>
 
@@ -260,7 +264,7 @@
             <div v-show="isUserCardOpen && !isUserMenuOpen" class="user-card user-card--ai"
               @mouseenter="openPersonalCenterOnHover">
               <el-button class="invitation-btn" type="primary"
-                @click="enterModule(() => router.push('/invitation-code'))">
+                @click="enterModule(() => router.push('/invitation-gift'))">
                 邀请有礼
               </el-button>
               <div class="user-card-header">
@@ -349,6 +353,10 @@
           <button class="ai-login-btn" type="button" @click="showLoginModal">登录</button>
         </template>
       </div>
+      <div v-if="showMonthlyLoginPointsTip" class="monthly-login-points-tip"
+        :class="{ 'is-hiding': isMonthlyTipHiding }">
+        每月{{ monthlyLoginPoints }}免费灵衍值已到账
+      </div>
     </div>
   </header>
 
@@ -356,7 +364,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -364,7 +371,6 @@ import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
 import { images } from '@/assets'
 import { useAuthGate } from '@/composables/useAuthGate'
-import InspirationValueModal from '@/components/InspirationValueModal.vue'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -522,6 +528,70 @@ const getMembershipStatusText = () => {
   return userStore.vipDisplayText
 }
 
+const monthlyLoginPoints = computed(() => {
+  const val = Number((userStore.userInfo as any)?.monthlyLoginPoints ?? 0)
+  return Number.isFinite(val) && val > 0 ? val : 0
+})
+
+const showMonthlyLoginPointsTip = ref(false)
+const isMonthlyTipHiding = ref(false)
+const hasPlayedMonthlyTip = ref(false)
+const hasRefreshedUserInfoAfterTip = ref(false)
+let monthlyTipShowTimer: number | null = null
+let monthlyTipHideTimer: number | null = null
+let monthlyTipRefreshTimer: number | null = null
+
+const clearMonthlyTipTimers = () => {
+  if (monthlyTipShowTimer) {
+    window.clearTimeout(monthlyTipShowTimer)
+    monthlyTipShowTimer = null
+  }
+  if (monthlyTipHideTimer) {
+    window.clearTimeout(monthlyTipHideTimer)
+    monthlyTipHideTimer = null
+  }
+  if (monthlyTipRefreshTimer) {
+    window.clearTimeout(monthlyTipRefreshTimer)
+    monthlyTipRefreshTimer = null
+  }
+}
+
+const playMonthlyTip = () => {
+  if (!isAuthed.value || monthlyLoginPoints.value <= 0 || hasPlayedMonthlyTip.value) return
+  hasPlayedMonthlyTip.value = true
+  showMonthlyLoginPointsTip.value = true
+  isMonthlyTipHiding.value = false
+
+  monthlyTipShowTimer = window.setTimeout(() => {
+    isMonthlyTipHiding.value = true
+    monthlyTipHideTimer = window.setTimeout(() => {
+      showMonthlyLoginPointsTip.value = false
+      if (!hasRefreshedUserInfoAfterTip.value) {
+        hasRefreshedUserInfoAfterTip.value = true
+        monthlyTipRefreshTimer = window.setTimeout(async () => {
+          try {
+            await userStore.getUserInfo()
+          } catch (error) {
+            console.error('月首灵衍值提示后刷新用户信息失败', error)
+          }
+        }, 5000)
+      }
+    }, 800)
+  }, 2000)
+}
+
+watch(
+  () => [isAuthed.value, monthlyLoginPoints.value],
+  () => {
+    playMonthlyTip()
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(() => {
+  clearMonthlyTipTimers()
+})
+
 const getCurrentLanguageLabel = () => (locale.value === 'zh' ? '简体中文' : 'English')
 
 const menuItems = [
@@ -538,8 +608,12 @@ const menuData = [
   { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
-// 规则：仅首页(Home)与关于(About)使用默认导航，其余页面统一使用“AI 专用导航”
-const isAiDesignPage = route.name !== 'Home' && route.name !== 'About'
+// 规则：仅 AI 工作台相关页面使用“AI 专用导航”
+// 其它业务页面（如会员/邀请有礼）使用首页同款“第一个导航样式”
+const isAiDesignPage = computed(() => {
+  const name = String(route.name ?? '')
+  return name === 'AiDesign' || name === 'AiFashionStudio' || name === 'MyCreations' || name === 'TeamManagement'
+})
 
 const handleMenuClick = (item: { key: string; path?: string; query?: Record<string, any> }) => {
   if (item.path) {
@@ -612,8 +686,8 @@ const openUserInfo = () => {
 }
 
 // 退出登录
-const handleLogout = () => {
-  userStore.logout()
+const handleLogout = async () => {
+  await userStore.logout()
   router.push('/')
 }
 </script>
@@ -631,6 +705,7 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
 
   .logo {
     margin-right: 51px;
@@ -640,6 +715,42 @@ const handleLogout = () => {
       height: 43px;
       cursor: pointer;
     }
+  }
+}
+
+.monthly-login-points-tip {
+  position: absolute;
+  right: 22px;
+  top: calc(100% + 8px);
+  padding: 15px 10px;
+  border-radius: 8px;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+  color: $color-text-white;
+  font-size: $font-size-base;
+  font-family: PingFangSC-bold;
+  white-space: nowrap;
+  line-height: 1;
+  z-index: 20;
+  animation: monthly-tip-enter 0.6s ease-out;
+  opacity: 1;
+  transform: translateY(0);
+
+  &.is-hiding {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+  }
+}
+
+@keyframes monthly-tip-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
