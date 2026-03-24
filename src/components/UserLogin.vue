@@ -225,6 +225,29 @@ const qrCodeImg = ref('')
 const sceneId = ref('') // 轮询参数 (改为驼峰)
 const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading')
 let qrCodeTimer: ReturnType<typeof setInterval> | null = null
+const qrCountdown = ref(0) // 二维码剩余有效秒数
+let qrCountdownTimer: ReturnType<typeof setInterval> | null = null // 倒计时定时器 二维码过期
+
+// 开启倒计时的方法
+const startQrCountdown = (expireSeconds: number) => {
+  if (qrCountdownTimer) clearInterval(qrCountdownTimer)
+  qrCountdown.value = expireSeconds
+
+  qrCountdownTimer = setInterval(() => {
+    qrCountdown.value--
+    if (qrCountdown.value <= 0) {
+      // 倒计时归零：清理倒计时、清理轮询、将状态置为过期
+      clearInterval(qrCountdownTimer!)
+      qrCountdownTimer = null
+
+      if (qrCodeTimer) {
+        clearInterval(qrCodeTimer)
+        qrCodeTimer = null
+      }
+      qrStatus.value = 'expired'
+    }
+  }, 1000)
+}
 
 const initQrCode = async () => {
   qrStatus.value = 'loading';
