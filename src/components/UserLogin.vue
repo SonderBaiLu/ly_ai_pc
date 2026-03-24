@@ -201,17 +201,31 @@ import InvitationCode from '@/components/InvitationCode.vue'
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
-// ----- 扫码登陆 ------------- 测试 --------
-// const qrCodeImg = ref('') // 二维码图片源
-// const currentTicket = ref('') // 这个是二维码的唯一凭证
-// WAITING：还没扫。
-// SCANNED：已扫码，但在手机上还没点确认
-// SUCCESS：登录成功。
-// EXPIRED：二维码过期了
-// const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading') // 二维码当前状态
-// let qrCodeTimer: ReturnType<typeof setInterval> | null = null
-// 初始化获取二维码
-/*
+
+const accountType = ref<'personal' | 'team'>('personal') // 账号类型：个人 / 团队
+const loginMethod = ref<'qrcode' | 'phone'>('phone')     // 个人登录方式：扫码 / 手机
+const phoneLoginType = ref<'code' | 'password'>('code')  // 手机登录方式：验证码 / 密码
+
+// 控制所有弹窗显示状态
+const dialogs = reactive({
+  isVisible: false,  // 忘记密码弹窗
+  invitation: false, // 邀请码弹窗
+})
+const currentMode = ref('0') // 忘记密码模式
+
+// 统一关闭弹窗的方法
+const handleClose = () => {
+  emit('close')
+}
+
+// ==========================================
+// 2. 微信扫码登录逻辑模块
+// ==========================================
+const qrCodeImg = ref('')
+const sceneId = ref('') // 轮询参数 (改为驼峰)
+const qrStatus = ref<'loading' | 'waiting' | 'scanned' | 'expired'>('loading')
+let qrCodeTimer: ReturnType<typeof setInterval> | null = null
+
 const initQrCode = async () => {
   qrStatus.value = 'loading';
   if (qrCodeTimer) clearInterval(qrCodeTimer) // 清理定时器
