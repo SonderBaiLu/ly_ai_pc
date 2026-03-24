@@ -88,6 +88,7 @@
               </div>
               <p class="sub-hint">{{ t('LoginPopUpPage.subHint') }}</p>
             </div>
+
             <div class="invite-link-wrap qrcode-invite">
               <a @click.prevent="openInviteLink" class="invite-link">
                 {{ confirmedInviteCode ? `邀请码: ${confirmedInviteCode}` : t('LoginPopUpPage.inviteLink') }}
