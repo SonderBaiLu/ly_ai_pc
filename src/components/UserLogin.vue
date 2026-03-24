@@ -756,8 +756,6 @@ const forgotPassword = () => {
     align-items: center;
     justify-content: center;
     margin-bottom: 20px;
-    background: #fff;
-    position: relative;
     overflow: hidden;
     border-radius: 8px 8px 8px 8px;
     background-color: rgba(255,255,255,1);
