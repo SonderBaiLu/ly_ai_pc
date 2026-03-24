@@ -81,10 +81,10 @@
 
             <div class="qrcode-instruction" v-if="qrStatus !== 'scanned'">
               <div class="wechat-hint">
-                <span class="wechat-icon">
-                  <img src="@/assets/images/login_popup/weixin.png" alt="" />
-                </span>
-                <span>{{ t('LoginPopUpPage.wechatScanLogin') }}</span>
+      <span class="wechat-icon">
+        <img src="@/assets/images/login_popup/weixin.png" alt=""/>
+      </span>
+                <span>打开微信 扫一扫登录</span>
               </div>
               <p class="sub-hint">扫码关注「灵衍AI」公众号完成登录</p>
             </div>
