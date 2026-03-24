@@ -761,6 +761,10 @@ const forgotPassword = () => {
     background: #fff;
     position: relative;
     overflow: hidden;
+    border-radius: 8px 8px 8px 8px;
+    background-color: rgba(255,255,255,1);
+    border: 1px solid rgba(243,244,246,1);
+
 
     .qrcode-image {
       width: 100%;
