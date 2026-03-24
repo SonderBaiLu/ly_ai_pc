@@ -292,12 +292,9 @@ const accountType = ref<'personal' | 'team'>('personal')
 const loginMethod = ref<'qrcode' | 'phone'>('phone')
 const phoneLoginType = ref<'code' | 'password'>('code')
 
-const confirmedInviteCode = ref('') // 用来保存用户填写的邀请码
-// 定义控制弹窗显示的变量 重置密码组件
-// 集中管理所有弹窗的显示状态
-const dialogs = reactive({
-  isVisible: false,
-  invitation: false,
+// 组件销毁前必须清理二维码定时器
+onBeforeUnmount(() => {
+  if (qrCodeTimer) clearInterval(qrCodeTimer)
 })
 const currentMode = ref('0')
 // 密码显示切换状态
