@@ -56,9 +56,30 @@
         <div class="method-content">
           <div v-if="accountType === 'personal' && loginMethod === 'qrcode'" class="qrcode-section">
             <div class="qrcode-container">
-              <div class="qrcode-placeholder"></div>
+              <div v-if="qrStatus === 'loading'" class="qrcode-mask loading-mask">
+                <span>加载中...</span>
+              </div>
+
+              <img
+                  v-if="qrCodeImg && qrStatus !== 'loading' && qrStatus !== 'scanned'"
+                  :src="qrCodeImg"
+                  class="qrcode-image"
+                  alt="微信登录二维码"
+              />
+              <div v-if="qrStatus === 'scanned'" class="qrcode-mask scanned-mask">
+<!--                <img class="success-icon"  src=" " alt="二维码过期"/>-->
+                <div class="scanned-title">扫描成功</div>
+                <div class="scanned-desc">关注「灵衍 AI」即可登录</div>
+              </div>
+
+              <div v-if="qrStatus === 'expired'" class="qrcode-mask expired-mask" @click="initQrCode" title="点击刷新二维码">
+                <div class="refresh-icon-wrapper">
+                  <img :src="images.recaptureQR" alt=""/>
+                </div>
+              </div>
             </div>
-            <div class="qrcode-instruction">
+
+            <div class="qrcode-instruction" v-if="qrStatus !== 'scanned'">
               <div class="wechat-hint">
                 <span class="wechat-icon">
                   <img src="@/assets/images/login_popup/weixin.png" alt="" />
