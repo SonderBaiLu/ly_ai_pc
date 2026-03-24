@@ -752,8 +752,6 @@ const forgotPassword = () => {
   .qrcode-container {
     width: 200px;
     height: 200px;
-    border: 1px solid #3bb1ff;
-    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
