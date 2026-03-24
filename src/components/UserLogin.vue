@@ -254,13 +254,14 @@ const initQrCode = async () => {
   if (qrCodeTimer) clearInterval(qrCodeTimer)
   if (qrCountdownTimer) clearInterval(qrCountdownTimer)
   try {
-    // 假设
-    // const res = await getWechatQrCodeApi()
-    qrCodeImg.value = "res.data.imgUrl"; // 获取后端给的图片地址
-    currentTicket.value = "rs.data.ticket";
-    qrStatus.value = 'waiting';
-    // 拿到 二维码之后 立刻开始轮询检查 二维码的状态
-  } catch (e) {
+    const res = await getWechatQrCodeApi()
+    qrCodeImg.value = res.data.qrUrl
+    sceneId.value = res.data.sceneId
+    const expireTime = res.data.expire || 1
+    startQrCountdown(expireTime)
+    qrStatus.value = 'waiting'
+    startPolling() // 获取成功后开始轮询
+  } catch {
     ElMessage.error('获取二维码失败，请重试')
     qrStatus.value = 'expired'
   }
