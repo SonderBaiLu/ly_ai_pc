@@ -250,8 +250,9 @@ const startQrCountdown = (expireSeconds: number) => {
 }
 
 const initQrCode = async () => {
-  qrStatus.value = 'loading';
-  if (qrCodeTimer) clearInterval(qrCodeTimer) // 清理定时器
+  qrStatus.value = 'loading'
+  if (qrCodeTimer) clearInterval(qrCodeTimer)
+  if (qrCountdownTimer) clearInterval(qrCountdownTimer)
   try {
     // 假设
     // const res = await getWechatQrCodeApi()
