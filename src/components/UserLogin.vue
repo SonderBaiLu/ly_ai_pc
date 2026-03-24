@@ -247,25 +247,23 @@ const initQrCode = async () => {
 const startPolling = () => {
   qrCodeTimer = setInterval(async () => {
     try {
-      // 假设
-      const res = "await checkScanStatusApi(currentTicket.value)";
-      const status = "scanned"//"res.data.status";
-      if (status === "scanned") {
-        // 用户手机扫了，但还没点确认
-        qrStatus.value = 'scanned'
-      } else if (status === "success") {
-        //登录成功
-        clearInterval(qrCodeTimer!)
-        qrCodeTimer = null
-        // 执行登录成功逻辑（存 token 等）
-        //userStore.setToken(res.data.token)
-        ElMessage.success('扫码登录成功')
-        emit('close') // 关闭弹窗
-      } else if (status === 'expired') {
-        // 二维码过期
-        clearInterval(qrCodeTimer!)
-        qrCodeTimer = null
-        qrStatus.value = 'expired'
+      const res = await getUserWechat({sceneId : sceneId.value})
+      if (String(res as any) === '0000') {
+        const apiStatus = res.data.status;
+        console.log(apiStatus);
+        if (apiStatus === 0) {
+          qrStatus.value = 'waiting';
+        } else if (apiStatus === 1) {
+          clearInterval(qrCodeTimer!);
+          qrCodeTimer = null;
+          userStore.setToken(res.data.accessToken);
+          ElMessage.success('扫码登录成功');
+          emit('close');
+        } else if (apiStatus === -1) {
+          clearInterval(qrCodeTimer!);
+          qrCodeTimer = null;
+          qrStatus.value = 'expired';
+        }
       }
     } catch (e) {
       console.error('查询状态异常', e)
