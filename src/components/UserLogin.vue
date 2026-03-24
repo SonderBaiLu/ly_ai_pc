@@ -95,6 +95,7 @@
             </div>
           </div>
 
+
           <div v-if="accountType === 'personal' && loginMethod === 'phone'" class="form-section">
             <div class="input-block">
               <label class="block-label">{{ t('LoginPopUpPage.mobilePhoneNumber') }}</label>
