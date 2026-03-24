@@ -284,6 +284,11 @@ const startPolling = () => {
       clearInterval(qrCodeTimer)
       qrCodeTimer = null;
     }
+    // 补充清理倒计时
+    if (qrCountdownTimer) {
+      clearInterval(qrCountdownTimer)
+      qrCountdownTimer = null
+    }
   }
 })
 */
