@@ -327,6 +327,19 @@ const formData = reactive({
   teamPassword: '',
 })
 
+// UI 交互状态
+const showPersonalPwd = ref(false)
+const pwdErrorMsg = ref('')
+const codeErrorMsg = ref('')
+
+const clearPwdError = () => pwdErrorMsg.value = ''
+
+// 切换手机登录方式时清空报错
+watch(phoneLoginType, () => {
+  pwdErrorMsg.value = ''
+  codeErrorMsg.value = ''
+})
+
 // 限制手机号只允许数字且最长 11 位
 const handlePhoneInput = () => {
   formData.phone = formData.phone.replace(/\D/g, '').slice(0, 11)
