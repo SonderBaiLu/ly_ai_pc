@@ -304,21 +304,9 @@ const currentMode = ref('0')
 const showPersonalPwd = ref(false)
 const showTeamPwd = ref(false)
 
-// 错误提示状态
-const pwdErrorMsg = ref('') // 密码错误提示
-const codeErrorMsg = ref('') // 手机号验证码 错误提示
-const teamErrorMsg = ref('') // 团队登录错误提示
-
-const clearPwdError = () => {
-  pwdErrorMsg.value = '' }
-const clearTeamError = () => {
-  teamErrorMsg.value = ''
-}
-watch(phoneLoginType, () => {
-  pwdErrorMsg.value = ''
-  codeErrorMsg.value = ''
-})
-// === 表单数据 ===
+// ==========================================
+// 3. 手机号/验证码/密码 登录表单模块
+// ==========================================
 const formData = reactive({
   phone: '',
   code: '',
