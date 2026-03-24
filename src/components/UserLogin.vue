@@ -266,9 +266,7 @@ const initQrCode = async () => {
     qrStatus.value = 'expired'
   }
 }
-*/
-// 轮询检查
-/*
+
 const startPolling = () => {
   qrCodeTimer = setInterval(async () => {
     try {
