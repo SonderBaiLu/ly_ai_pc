@@ -163,7 +163,7 @@ export const images = {
   rightTop: new URL('./images/right_top.png', import.meta.url).href,
   replace: new URL('./images/replace.png', import.meta.url).href,
   reset: new URL('./images/team/reset.png', import.meta.url).href,
-
+  recaptureQR: new URL('./images/login_popup/recaptureQR.png', import.meta.url).href,
   // S
   sketchActive: new URL('./images/sketch_active.png', import.meta.url).href,
   sketchIcon: new URL('./images/sketch_icon.png', import.meta.url).href,

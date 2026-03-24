@@ -88,8 +88,8 @@ export const useUserStore = defineStore('user', {
     },
 
     // 短信验证码登录
-    async loginWithSms(mobile: string, verifyCode: string, confirmedInviteCode:string) {
-      const res = await loginBySmsCodeApi({ mobile, verifyCode, confirmedInviteCode})
+    async loginWithSms(mobile: string, verifyCode: string, confirmedInviteCode: string) {
+      const res = await loginBySmsCodeApi({ mobile, verifyCode, confirmedInviteCode })
       const tokenStr = res.data?.accessToken
       this.setToken(tokenStr)
       await this.getUserInfo()
@@ -109,9 +109,11 @@ export const useUserStore = defineStore('user', {
     // 团队密码登录
     async teamLogin(userName: string, pwd: string) {
       const res = await teamLogin({ userName, pwd })
-      const tokenStr = res.data?.accessToken
-      this.setToken(tokenStr)
-      await this.getUserInfo()
+      if (String((res as any).code) === '0000') {
+        const tokenStr = res.data?.accessToken
+        this.setToken(tokenStr)
+        await this.getUserInfo()
+      }
     },
 
     async logout() {
