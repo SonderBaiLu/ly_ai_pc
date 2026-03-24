@@ -33,7 +33,7 @@
           <img :src="payQrCode" alt="支付二维码" />
           <!-- 过期遮罩层 -->
           <div v-if="isQrCodeExpired" class="qrcode-expired-overlay">
-            <img v-if="!isCreatingPayment" :src="images.refresh" alt="刷新" class="refresh-icon" />
+            <img v-if="!isCreatingPayment" :src="images.refreshCode" alt="刷新" class="refresh-icon" />
             <el-icon v-else class="refresh-icon loading-icon" :size="48">
               <Loading />
             </el-icon>

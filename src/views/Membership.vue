@@ -1713,12 +1713,12 @@ const getPurchaseButtonText = (plan: any) => {
   font-size: 13px;
 
   .notice-text {
-    color: $color-primary-dark;
+    color: $color-text-gray;
   }
 
   .rules-link {
-    color: $color-text-gray;
     cursor: pointer;
+    color: $color-primary-dark;
   }
 }
 
@@ -1843,8 +1843,8 @@ const getPurchaseButtonText = (plan: any) => {
     .plan-tag {
       padding: 0 9px;
       border-radius: 4px 4px 4px 4px;
-      background-color: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.04);
+      background-color: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
       font-size: $font-size-sm;
       line-height: 22px;
 

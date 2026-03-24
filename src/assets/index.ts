@@ -4,7 +4,6 @@
 
 // 所有图片统一导出（按字母顺序排列，方便查找）
 export const images = {
-  // ===== 已存在资源 =====
   // A
   add: new URL('./images/add.png', import.meta.url).href,
   aiDesign1: new URL('./images/ai_design1.png', import.meta.url).href,
@@ -27,7 +26,6 @@ export const images = {
 
   // B
   book: new URL('./images/book.png', import.meta.url).href,
-  // B
   ban: new URL('./images/team/ban.png', import.meta.url).href,
   banRedColor: new URL('./images/team/banRedColor.png', import.meta.url).href,
   banRedDot: new URL('./images/team/banRedDot.png', import.meta.url).href,
@@ -136,6 +134,7 @@ export const images = {
   logoMini: new URL('./images/logo.png', import.meta.url).href,
   logoHui: new URL('./images/logo_hui.png', import.meta.url).href,
   logout: new URL('./images/logout.png', import.meta.url).href,
+  link: new URL('./images/link.png', import.meta.url).href,
 
   // M
   more: new URL('./images/more.png', import.meta.url).href,
@@ -159,6 +158,7 @@ export const images = {
   redBook: new URL('./images/red book.png', import.meta.url).href,
   refresh: new URL('./images/refresh.png', import.meta.url).href,
   refreshTry: new URL('./images/refresh2.png', import.meta.url).href,
+  refreshCode: new URL('./images/refresh_code.png', import.meta.url).href,
   right: new URL('./images/right.png', import.meta.url).href,
   rightTop: new URL('./images/right_top.png', import.meta.url).href,
   replace: new URL('./images/replace.png', import.meta.url).href,
@@ -173,6 +173,10 @@ export const images = {
   shop: new URL('./images/shop.png', import.meta.url).href,
   shopActive: new URL('./images/shop_active.png', import.meta.url).href,
   set: new URL('./images/set.png', import.meta.url).href,
+  step1: new URL('./images/step1.png', import.meta.url).href,
+  step2: new URL('./images/step2.png', import.meta.url).href,
+  step3: new URL('./images/step3.png', import.meta.url).href,
+  stepRight: new URL('./images/step_right.png', import.meta.url).href,
 
   // T
   together: new URL('./images/together.png', import.meta.url).href,

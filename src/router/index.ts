@@ -42,6 +42,16 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/Membership.vue'),
   },
   {
+    path: '/invitation-gift',
+    name: 'InvitationGift',
+    component: () => import('../views/InvitationGift.vue'),
+  },
+  {
+    path: '/activity-rules',
+    name: 'ActivityRules',
+    component: () => import('../views/ActivityRules.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue'),
