@@ -76,7 +76,7 @@
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import { COLLECT_TYPE, type CollectTypeValue } from '@/constants'
+import { COLLECT_TYPE, type CollectTypeValue } from '@/constants/collectType'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import images from '@/assets'

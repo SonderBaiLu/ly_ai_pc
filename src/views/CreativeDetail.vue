@@ -37,12 +37,28 @@
       <div class="info-panel">
         <!-- 顶部操作图标 -->
         <div class="info-actions">
-          <div class="btn-icon-wrapper" @click.stop="handleDownloadCommand('download')">
-            <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
-              <Loading />
-            </el-icon>
-            <img v-else :src="images.downloadIcon" class="btn-icon" alt="下载" />
-          </div>
+          <el-popover placement="bottom" :width="146" trigger="click" popper-class="download-menu-popper">
+            <template #reference>
+              <div class="btn-icon-wrapper" @click.stop>
+                <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
+                  <Loading />
+                </el-icon>
+                <img v-else :src="images.downloadIcon" class="btn-icon" alt="下载" />
+              </div>
+            </template>
+            <div class="download-menu">
+              <div class="download-menu-item" @click.stop="handleDownloadCommand('download')">
+                <img :src="images.downloadIcon" class="download-menu-icon" alt="下载" />
+                <span>下载</span>
+              </div>
+              <div class="download-menu-item switch-row">
+                <el-switch :model-value="removeWatermarkEnabled"
+                  @change="(v) => handleWatermarkToggleChange(v as string | number | boolean)" />
+                <span>去除水印</span>
+                <span class="vip-text">VIP</span>
+              </div>
+            </div>
+          </el-popover>
           <img :src="templateDetail?.isCollect === 1 ? images.collectActive : images.collectNo" class="btn-icon" alt=""
             @click="handleAssetsCollect" />
           <el-dropdown trigger="click" @command="handleMoreCommand">
@@ -2241,6 +2257,36 @@ onUnmounted(() => {
         }
       }
 
+      .download-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .download-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: $color-text-white;
+          font-size: 14px;
+          line-height: 1;
+
+          .download-menu-icon {
+            width: 14px;
+            height: 14px;
+            object-fit: contain;
+          }
+        }
+
+        .switch-row {
+          .vip-text {
+            color: rgba(150, 221, 255, 1);
+            font-weight: 700;
+            font-style: italic;
+            margin-left: 2px;
+          }
+        }
+      }
+
       // 标题
       .section-title,
       .param-input,
@@ -2362,5 +2408,18 @@ onUnmounted(() => {
       }
     }
   }
+}
+</style>
+
+<style lang="scss">
+.download-menu-popper.el-popper {
+  background: rgba(34, 34, 34, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.download-menu-popper .el-popper__arrow::before {
+  background: rgba(34, 34, 34, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 </style>

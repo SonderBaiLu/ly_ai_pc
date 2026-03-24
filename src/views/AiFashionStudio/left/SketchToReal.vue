@@ -80,6 +80,7 @@ const props = defineProps<{
   taskResultId?: string | number
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
+  coin?: number
 }>()
 
 // 监听inspirationWords变化
@@ -117,7 +118,7 @@ const inspirationWords = ref<any[]>([])
 
 // 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
 const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
-const coin = computed(() => 0)
+const coin = computed(() => Number(props.coin ?? 0))
 const isGenerating = ref(false)
 
 const updateInspirationWords = (words: any[]) => {

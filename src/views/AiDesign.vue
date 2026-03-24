@@ -12,49 +12,28 @@
         </el-carousel>
       </section>
 
-      <!-- 服装设计 / AI 面料 切换 -->
+      <!-- 一级菜单切换（接口） -->
       <section class="ai-switch">
-        <div class="switch-toggle">
-          <button class="switch-btn" type="button" :class="{ active: activeTab === 'design' }"
-            @click="activeTab = 'design'">
-            {{ t('aiDesign.tabs.design') }}
-          </button>
-          <button class="switch-btn" type="button" :class="{ active: activeTab === 'fabric' }"
-            @click="activeTab = 'fabric'">
-            {{ t('aiDesign.tabs.fabric') }}
+        <div v-if="firstLevelMenus.length" class="switch-toggle">
+          <button v-for="menu in firstLevelMenus" :key="menu.id || menu.menuCode" class="switch-btn" type="button"
+            :class="{ active: activeTabCode === menu.menuCode }" @click="activeTabCode = menu.menuCode || ''">
+            {{ menu.menuName }}
           </button>
         </div>
 
-        <!-- 服装设计卡片：点击跳转到工作台对应模块 -->
-        <div v-if="activeTab === 'design'" class="card-row">
-          <div v-for="card in designCards" :key="card.titleKey" class="feature-card" role="button" tabindex="0"
-            @click="() => goToStudio(card.mode)">
+        <!-- 二级菜单卡片（接口） -->
+        <div class="card-row" :class="{ 'card-row--single': secondLevelCards.length === 1 }">
+          <div v-for="(card, index) in secondLevelCards" :key="card.id || card.menuCode" class="feature-card"
+            role="button" tabindex="0" @click="() => goToStudio(getModeByMenuCode(card.menuCode))">
             <div class="card-image">
-              <img :src="card.img" alt="" />
+              <img :src="card.imgUrl || images[`aiDesign${index + 1}` as keyof typeof images]" alt="" />
             </div>
             <div class="card-content">
               <h3 class="card-title">
-                {{ t(card.titleKey) }}
+                {{ card.menuName || '' }}
               </h3>
               <p class="card-desc">
-                {{ t(card.descKey) }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- AI 面料卡片：点击跳转到面料创拍模块 -->
-        <div v-else class="card-row card-row--single">
-          <div class="feature-card" role="button" tabindex="0" @click="() => goToStudio('fabricCreative')">
-            <div class="card-image">
-              <img src="@/assets/images/ai_design4.png" alt="" />
-            </div>
-            <div class="card-content">
-              <h3 class="card-title">
-                {{ t('aiDesign.fabric.title') }}
-              </h3>
-              <p class="card-desc">
-                {{ t('aiDesign.fabric.desc') }}
+                {{ card.functionDesc || '' }}
               </p>
             </div>
           </div>
@@ -62,49 +41,23 @@
       </section>
     </main>
   </div>
-<!--  TODO: 临时按钮 随时可删除-->
-  <button >团队管理</button>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { images } from '@/assets'
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useAuthGate } from '@/composables/useAuthGate'
+import { appApi, type SysPlatformMenuItem } from '@/api/app'
+import { APP_MENU_CODES } from '@/constants/appMenuCode'
 
 type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
-const activeTab = ref<'design' | 'fabric'>('design')
-const { t } = useI18n()
+const activeTabCode = ref('')
 const router = useRouter()
 const { requireAuth } = useAuthGate()
-
-const designCards: Array<{
-  img: string
-  titleKey: string
-  descKey: string
-  mode: StudioMode
-}> = [
-    {
-      img: images.aiDesign1,
-      titleKey: 'aiDesign.cards.design.title',
-      descKey: 'aiDesign.cards.design.desc',
-      mode: 'aiFashion',
-    },
-    {
-      img: images.aiDesign2,
-      titleKey: 'aiDesign.cards.sketchToReal.title',
-      descKey: 'aiDesign.cards.sketchToReal.desc',
-      mode: 'sketchToReal',
-    },
-    {
-      img: images.aiDesign3,
-      titleKey: 'aiDesign.cards.realToSketch.title',
-      descKey: 'aiDesign.cards.realToSketch.desc',
-      mode: 'realToSketch',
-    },
-  ]
+const menuList = ref<SysPlatformMenuItem[]>([])
 
 const goToStudio = (mode: StudioMode) => {
   // 点击模块入口时再做登录引导：未登录弹窗，已登录跳转
@@ -112,6 +65,48 @@ const goToStudio = (mode: StudioMode) => {
     router.push({ name: 'AiFashionStudio', query: { mode } })
   })
 }
+
+const firstLevelMenus = computed(() => {
+  return menuList.value.filter((item) => item.parentId === '0')
+})
+
+const activeFirstLevelMenu = computed(() => {
+  if (!firstLevelMenus.value.length) return null
+  if (!activeTabCode.value) return firstLevelMenus.value[0]
+  return firstLevelMenus.value.find((item) => item.menuCode === activeTabCode.value) || firstLevelMenus.value[0]
+})
+
+const menuCodeModeMap: Record<string, StudioMode> = {
+  [APP_MENU_CODES.AI_FASHION_DESIGN]: 'aiFashion',
+  [APP_MENU_CODES.LINE_DRAW_TO_PHYS_OBJ]: 'sketchToReal',
+  [APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW]: 'realToSketch',
+  [APP_MENU_CODES.FABRIC_DESIGN_CONCEPT]: 'fabricCreative',
+}
+
+const getModeByMenuCode = (menuCode?: string): StudioMode => {
+  if (!menuCode) return 'fabricCreative'
+  return menuCodeModeMap[menuCode] || 'fabricCreative'
+}
+
+const secondLevelCards = computed<SysPlatformMenuItem[]>(() => {
+  const children = activeFirstLevelMenu.value?.children || []
+  return children
+})
+
+const fetchSysPlatformMenu = async () => {
+  try {
+    const res = await appApi.getSysPlatformMenu()
+    menuList.value = Array.isArray(res.data) ? res.data : []
+    activeTabCode.value = firstLevelMenus.value[0]?.menuCode || ''
+  } catch (error: any) {
+    menuList.value = []
+    ElMessage.error(error?.message || '获取功能列表失败')
+  }
+}
+
+onMounted(() => {
+  fetchSysPlatformMenu()
+})
 </script>
 
 <style scoped lang="scss">

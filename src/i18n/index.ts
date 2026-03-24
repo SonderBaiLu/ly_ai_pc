@@ -111,31 +111,6 @@ const zh = {
     ctaSubtitle: '告别冗长流程，用 AI 驱动灵感，让每一次设计都快人一步。',
     ctaButton: '立即体验',
   },
-  aiDesign: {
-    tabs: {
-      design: '服装设计',
-      fabric: 'AI 面料',
-    },
-    cards: {
-      design: {
-        title: 'AI 服装设计',
-        desc: '灵感不用画，文字直接变服装',
-      },
-      sketchToReal: {
-        title: '线稿转实物',
-        desc: '线稿变实物，设计不等待',
-      },
-      realToSketch: {
-        title: '实物转线稿',
-        desc: 'AI 智能勾勒实物线稿',
-      },
-    },
-    // AI 面料卡片
-    fabric: {
-      title: '面料创款',
-      desc: '让一块面料，从 “布” 变成 “成衣”',
-    },
-  },
   footer: {
     // 注意：vue-i18n v11 message 编译器会把 `@` 当作 linked-message token；这里改用插值拼接，避免直接出现 `@`
     businessEmail: '商务邮箱：lingyanservice{at}126.com',
@@ -466,30 +441,6 @@ const en = {
     ctaTitle: 'One-click Unlock Instant Design + AI Empowerment',
     ctaSubtitle: 'Say goodbye to lengthy processes, drive inspiration with AI, and make every design one step ahead.',
     ctaButton: 'Experience Now',
-  },
-  aiDesign: {
-    tabs: {
-      design: 'Fashion Design',
-      fabric: 'AI Fabric',
-    },
-    cards: {
-      design: {
-        title: 'AI Fashion Design',
-        desc: 'Inspiration to garment, no drawing needed',
-      },
-      sketchToReal: {
-        title: 'Sketch to Real',
-        desc: 'Turn sketches into real garments instantly',
-      },
-      realToSketch: {
-        title: 'Real to Sketch',
-        desc: 'AI intelligently generates fashion sketches',
-      },
-    },
-    fabric: {
-      title: 'Fabric Creation',
-      desc: 'Turn a fabric into a finished garment',
-    },
   },
   footer: {
     // Avoid raw `@` token in vue-i18n message compiler by using interpolation

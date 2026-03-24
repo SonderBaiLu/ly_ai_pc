@@ -536,10 +536,8 @@ const monthlyLoginPoints = computed(() => {
 const showMonthlyLoginPointsTip = ref(false)
 const isMonthlyTipHiding = ref(false)
 const hasPlayedMonthlyTip = ref(false)
-const hasRefreshedUserInfoAfterTip = ref(false)
 let monthlyTipShowTimer: number | null = null
 let monthlyTipHideTimer: number | null = null
-let monthlyTipRefreshTimer: number | null = null
 
 const clearMonthlyTipTimers = () => {
   if (monthlyTipShowTimer) {
@@ -550,10 +548,15 @@ const clearMonthlyTipTimers = () => {
     window.clearTimeout(monthlyTipHideTimer)
     monthlyTipHideTimer = null
   }
-  if (monthlyTipRefreshTimer) {
-    window.clearTimeout(monthlyTipRefreshTimer)
-    monthlyTipRefreshTimer = null
-  }
+}
+
+const consumeMonthlyLoginPointsTip = () => {
+  const currentInfo = (userStore.userInfo as any) || {}
+  // 提示播放后本地消费 monthlyLoginPoints，避免后端延迟更新期间重复展示
+  userStore.setUserInfo({
+    ...currentInfo,
+    monthlyLoginPoints: 0,
+  })
 }
 
 const playMonthlyTip = () => {
@@ -566,16 +569,7 @@ const playMonthlyTip = () => {
     isMonthlyTipHiding.value = true
     monthlyTipHideTimer = window.setTimeout(() => {
       showMonthlyLoginPointsTip.value = false
-      if (!hasRefreshedUserInfoAfterTip.value) {
-        hasRefreshedUserInfoAfterTip.value = true
-        monthlyTipRefreshTimer = window.setTimeout(async () => {
-          try {
-            await userStore.getUserInfo()
-          } catch (error) {
-            console.error('月首灵衍值提示后刷新用户信息失败', error)
-          }
-        }, 5000)
-      }
+      consumeMonthlyLoginPointsTip()
     }, 800)
   }, 2000)
 }

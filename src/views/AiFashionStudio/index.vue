@@ -5,34 +5,12 @@
     <div class="studio-body">
       <!-- 左侧功能栏 -->
       <aside class="left-rail">
-        <div v-if="!isFabricEntry" class="rail-item" :class="{ active: leftMenu === 'aiFashion' }"
-          @click="leftMenu = 'aiFashion'">
+        <div v-for="item in leftRailItems" :key="item.key" class="rail-item" :class="{ active: leftMenu === item.key }"
+          @click="leftMenu = item.key">
           <div class="rail-icon">
-            <img :src="leftMenu !== 'aiFashion' ? images.designIcon : images.designActive" alt="" />
+            <img :src="getRailIcon(item.key, leftMenu === item.key)" alt="" />
           </div>
-          <div class="rail-text">AI服装设计</div>
-        </div>
-        <div v-if="!isFabricEntry" class="rail-item" :class="{ active: leftMenu === 'sketchToReal' }"
-          @click="leftMenu = 'sketchToReal'">
-          <div class="rail-icon">
-            <img :src="leftMenu !== 'sketchToReal' ? images.sketchIcon : images.sketchActive" alt="" />
-          </div>
-          <div class="rail-text">线稿转实物</div>
-        </div>
-        <div v-if="!isFabricEntry" class="rail-item" :class="{ active: leftMenu === 'realToSketch' }"
-          @click="leftMenu = 'realToSketch'">
-          <div class="rail-icon">
-            <img :src="leftMenu !== 'realToSketch' ? images.realIcon : images.realActive" alt="" />
-          </div>
-          <div class="rail-text">实物转线稿</div>
-        </div>
-
-        <div v-if="isFabricEntry" class="rail-item" :class="{ active: leftMenu === 'fabricCreative' }"
-          @click="leftMenu = 'fabricCreative'">
-          <div class="rail-icon">
-            <img :src="images.fabricActive" alt="" />
-          </div>
-          <div class="rail-text">面料创拍</div>
+          <div class="rail-text">{{ item.label }}</div>
         </div>
       </aside>
 
@@ -43,7 +21,8 @@
           <section class="param-panel">
             <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.aiFashion"
-              :inspiration-words="inspirationWords" @open-type-modal="() => openTypeModal('aiFashion')"
+              :inspiration-words="inspirationWords" :coin="imageCoin"
+              @open-type-modal="() => openTypeModal('aiFashion')"
               @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @inspiration-library="handleInspirationLibrary"
@@ -51,21 +30,23 @@
             <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
-              :inspiration-words="inspirationWords" @open-type-modal="() => openTypeModal('fabricCreative')"
+              :inspiration-words="inspirationWords" :coin="imageCoin"
+              @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
               @update:inspiration-words="(words) => inspirationWords = words" />
             <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
-              :inspiration-words="inspirationWords" @open-type-modal="() => openTypeModal('sketchToReal')"
+              :inspiration-words="inspirationWords" :coin="imageCoin"
+              @open-type-modal="() => openTypeModal('sketchToReal')"
               @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @inspiration-library="handleInspirationLibrary"
               @update:inspiration-words="(words) => inspirationWords = words" />
             <RealToSketch v-else v-model:image-url="refImageUrl" :task-result-id="refImageTaskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.realToSketch" :inspiration-words="inspirationWords"
-              @open-type-modal="() => openTypeModal('realToSketch')"
+              :coin="imageCoin" @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @inspiration-library="handleInspirationLibrary"
@@ -94,7 +75,7 @@
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
     <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
-      @confirm="handleTypeConfirm" />
+      :option-tree="creationTypeOptionTree" @confirm="handleTypeConfirm" />
 
     <!-- 灵感词词典弹窗（父层统一管理） -->
     <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData" :defaults="inspirationWords"
@@ -106,6 +87,9 @@
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
+import { appApi, type SysPlatformMenuItem, type InspirationWordsCategory } from '@/api/app'
+import { APP_MENU_CODES } from '@/constants/appMenuCode'
+import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { Asset } from '@/composables/useTaskPolling'
 import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import { useTemplateStore } from '@/stores/template'
@@ -115,6 +99,7 @@ import RealToSketch from './left/RealToSketch.vue'
 import Fabric from './left/FabricCreative.vue'
 
 type LeftMenuKey = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
+type RailItem = { key: LeftMenuKey; label: string; menuCode: string }
 
 const route = useRoute()
 const router = useRouter()
@@ -122,6 +107,91 @@ const templateStore = useTemplateStore()
 const leftMenu = ref<LeftMenuKey>('aiFashion')
 const isFabricEntry = route.query.mode === 'fabricCreative'
 const showComingSoon = () => ElMessage.warning('暂未开放')
+
+const menuKeyByCode: Record<string, LeftMenuKey> = {
+  [APP_MENU_CODES.AI_FASHION_DESIGN]: 'aiFashion',
+  [APP_MENU_CODES.LINE_DRAW_TO_PHYS_OBJ]: 'sketchToReal',
+  [APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW]: 'realToSketch',
+  [APP_MENU_CODES.FABRIC_DESIGN_CONCEPT]: 'fabricCreative',
+}
+const menuCodeByKey: Record<LeftMenuKey, string> = {
+  aiFashion: APP_MENU_CODES.AI_FASHION_DESIGN,
+  sketchToReal: APP_MENU_CODES.LINE_DRAW_TO_PHYS_OBJ,
+  realToSketch: APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW,
+  fabricCreative: APP_MENU_CODES.FABRIC_DESIGN_CONCEPT,
+}
+const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
+  aiFashion: CREATION_PARAM_CODES.CREATION_STYLE,
+  sketchToReal: CREATION_PARAM_CODES.SKETCH_TYPE,
+  realToSketch: CREATION_PARAM_CODES.GARMENT_STYLE,
+  fabricCreative: CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE,
+}
+
+const defaultRailLabelByKey: Record<LeftMenuKey, string> = {
+  aiFashion: 'AI服装设计',
+  sketchToReal: '线稿转实物',
+  realToSketch: '实物转线稿',
+  fabricCreative: '面料创拍',
+}
+
+const allPlatformMenus = ref<SysPlatformMenuItem[]>([])
+const activeMenuCode = ref<string>('')
+const lastFetchedMenuCode = ref<string>('')
+
+const leftRailItems = computed<RailItem[]>(() => {
+  const sourceItems: SysPlatformMenuItem[] = []
+  for (const item of allPlatformMenus.value || []) {
+    sourceItems.push(item)
+    if (Array.isArray(item.children) && item.children.length) {
+      sourceItems.push(...item.children)
+    }
+  }
+
+  const menuByCode = new Map<string, SysPlatformMenuItem>()
+  sourceItems.forEach((item) => {
+    const code = String(item.menuCode || '')
+    if (code && menuKeyByCode[code]) {
+      menuByCode.set(code, item)
+    }
+  })
+
+  const codes = isFabricEntry
+    ? [APP_MENU_CODES.FABRIC_DESIGN_CONCEPT]
+    : [
+      APP_MENU_CODES.AI_FASHION_DESIGN,
+      APP_MENU_CODES.LINE_DRAW_TO_PHYS_OBJ,
+      APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW,
+    ]
+
+  return codes.map((code) => {
+    const key = menuKeyByCode[code]
+    const apiItem = menuByCode.get(code)
+    return {
+      key,
+      menuCode: code,
+      label: String(apiItem?.menuName || defaultRailLabelByKey[key]),
+    }
+  })
+})
+
+const getRailIcon = (key: LeftMenuKey, isActive: boolean) => {
+  if (key === 'aiFashion') return isActive ? images.designActive : images.designIcon
+  if (key === 'sketchToReal') return isActive ? images.sketchActive : images.sketchIcon
+  if (key === 'realToSketch') return isActive ? images.realActive : images.realIcon
+  return images.fabricActive
+}
+
+const fetchSysPlatformMenu = async () => {
+  try {
+    const res = await appApi.getSysPlatformMenu()
+    if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
+      allPlatformMenus.value = res.data
+      syncActiveMenuCode()
+    }
+  } catch (error) {
+    console.error('获取功能菜单失败', error)
+  }
+}
 
 // FabricCreative 生成：先预留接口（子组件会产出“平铺+缩放后的纹理图文件”）
 const handleFabricGenerate = (payload: any) => {
@@ -156,6 +226,7 @@ const handleViewDetail = (index: number) => {
 // ==================== 款型选择弹窗（父层统一管理） ====================
 const showTypeModal = ref(false)
 const activeTypeMenu = ref<LeftMenuKey>('aiFashion')
+const creationTypeOptionTree = ref<any[]>([])
 
 const creationTypeSelectionByMenu = reactive<Record<LeftMenuKey, Partial<CreationTypeSelection>>>({
   aiFashion: {},
@@ -166,8 +237,29 @@ const creationTypeSelectionByMenu = reactive<Record<LeftMenuKey, Partial<Creatio
 
 const activeCreationTypeSelection = computed(() => creationTypeSelectionByMenu[activeTypeMenu.value] || {})
 
+const fetchCreationTypeWords = async (menu: LeftMenuKey) => {
+  const functionCode = menuCodeByKey[menu]
+  const typeCode = creationTypeCodeByMenu[menu]
+  if (!functionCode || !typeCode) {
+    creationTypeOptionTree.value = []
+    return
+  }
+  try {
+    const res = await appApi.getInspirationWords({ functionCode, typeCode })
+    if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
+      creationTypeOptionTree.value = res.data as any[]
+      return
+    }
+    creationTypeOptionTree.value = []
+  } catch (error) {
+    creationTypeOptionTree.value = []
+    console.error('获取创作款型词典失败', error)
+  }
+}
+
 const openTypeModal = (menu: LeftMenuKey) => {
   activeTypeMenu.value = menu
+  fetchCreationTypeWords(menu)
   showTypeModal.value = true
 }
 
@@ -185,55 +277,87 @@ const showInspirationLibrary = ref(false)
 const inspirationWords = ref<any[]>([])
 
 
-// 默认回显： [算法名称, 参数1, 参数2, ...]
-const imageDefaultParams = ref<string[]>(['LingImage 1.0', '3:4', '2K', '1'])
+// 默认回显选中模型
+const imageDefaultParams = ref<string[]>([])
+const imageCoin = ref(0)
 
-// 先用本地 mock 数据跑通弹窗展示；后续接接口时替换这里的数据即可
-const imageAlgorithmModels = ref<any[]>([
-  {
-    id: 1,
-    code: 'lingimage-1.0',
-    name: 'LingImage 1.0',
-    algorithmDesc: '视觉专业级生成模型',
-    imageUrl: images.logo,
-    isVip: 0,
-    isDefault: 1,
-    paramGroups: [
-      {
-        type: 1,
-        params: [
-          { templateName: '9:16', templateDesc: '竖屏/产品标准比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '3:4', templateDesc: '竖屏/产品标准比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '2:3', templateDesc: '竖屏/产品标准比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '1:1', templateDesc: '方图/标准比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '3:2', templateDesc: '横图/标准比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '4:3', templateDesc: '横图/标准比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '16:9', templateDesc: '横屏/宽屏比例', imageUrl: images.logo, isVip: 0 },
-          { templateName: '21:9', templateDesc: '横屏/宽屏比例', imageUrl: images.logo, isVip: 0 },
-        ],
-      },
-      {
-        type: 4,
-        params: [
-          { templateName: '2K', templateDesc: '', isVip: 0 },
-          { templateName: '4K', templateDesc: '', isVip: 1 },
-        ],
-      },
-      {
-        type: 5,
-        params: [
-          { templateName: '1', templateDesc: '', isVip: 0 },
-          { templateName: '2', templateDesc: '', isVip: 1 },
-          { templateName: '3', templateDesc: '', isVip: 1 },
-          { templateName: '4', templateDesc: '', isVip: 1 },
-        ],
-      },
-    ],
-  },
-])
+// 模型参数
+const imageAlgorithmModels = ref<any[]>([])
+
+const buildDefaultParamsFromModels = (models: any[]) => {
+  if (!Array.isArray(models) || models.length === 0) return
+  const defaultModel = models.find((m: any) => Number(m?.defaultStatus) === 1) || models[0]
+  const algorithmName = String(defaultModel?.name || '').trim()
+  const groups = (Array.isArray(defaultModel?.paramGroups) ? defaultModel.paramGroups : [])
+    .slice()
+    .sort((a: any, b: any) => Number(a?.type || 0) - Number(b?.type || 0))
+  const paramNames = groups
+    .map((group: any) => {
+      const params = Array.isArray(group?.params) ? group.params : []
+      if (!params.length) return ''
+      const defaultParam = params.find((p: any) => Number(p?.defaultStatus) === 1) || params[0]
+      return String(defaultParam?.templateName || '').trim()
+    })
+    .filter(Boolean)
+
+  if (algorithmName) {
+    imageDefaultParams.value = [algorithmName, ...paramNames]
+  }
+
+  const paramsCoin = groups.reduce((sum: number, group: any) => {
+    const params = Array.isArray(group?.params) ? group.params : []
+    if (!params.length) return sum
+    const defaultParam = params.find((p: any) => Number(p?.defaultStatus) === 1) || params[0]
+    return sum + Number(defaultParam?.waveCoin ?? 0)
+  }, 0)
+  imageCoin.value = Number(defaultModel?.waveCoin ?? 0) + paramsCoin
+}
+
+const normalizeAlgoConfigModels = (payload: any): any[] => {
+  const rawList = Array.isArray(payload) ? payload : (payload?.algorithmModels || [])
+  return Array.isArray(rawList) ? rawList : []
+}
+
+const fetchAlgoConfigTempRelation = async (menuCode: string) => {
+  console.log('fetchAlgoConfigTempRelation', menuCode, lastFetchedMenuCode.value)
+  if (!menuCode) return
+  if (lastFetchedMenuCode.value === menuCode) return
+  lastFetchedMenuCode.value = menuCode
+  try {
+    const res = await appApi.getAlgoConfigTempRelation({ menuCode })
+    if (String((res as any)?.code) === '0000') {
+      const models = normalizeAlgoConfigModels((res as any)?.data)
+      if (models.length > 0) {
+        imageAlgorithmModels.value = models
+        buildDefaultParamsFromModels(models)
+      }
+    }
+  } catch (error) {
+    lastFetchedMenuCode.value = ''
+    console.error('获取功能模型列表失败', error)
+  }
+}
 
 const openImageParams = () => {
+  fetchAlgoConfigTempRelation(activeMenuCode.value)
   showImageParamPopup.value = true
+}
+
+const resolveMenuCodeByLeftMenu = (menu: LeftMenuKey) => {
+  const targetCode = menuCodeByKey[menu]
+  const sourceItems: SysPlatformMenuItem[] = []
+  for (const item of allPlatformMenus.value || []) {
+    sourceItems.push(item)
+    if (Array.isArray(item.children) && item.children.length) {
+      sourceItems.push(...item.children)
+    }
+  }
+  const matched = sourceItems.find((x) => String(x?.menuCode || '') === targetCode)
+  return String(matched?.menuCode || targetCode || '')
+}
+
+const syncActiveMenuCode = () => {
+  activeMenuCode.value = resolveMenuCodeByLeftMenu(leftMenu.value)
 }
 
 const handleImageParamsConfirm = (result: any) => {
@@ -243,6 +367,13 @@ const handleImageParamsConfirm = (result: any) => {
     ? result.paramList.map((p: any) => String(p?.templateName || '').trim()).filter(Boolean)
     : []
   imageDefaultParams.value = [algorithmName || imageDefaultParams.value[0], ...paramNames]
+  const paramsCoin = Array.isArray(result?.paramList)
+    ? result.paramList.reduce((sum: number, p: any) => sum + Number(p?.waveCoin ?? 0), 0)
+    : 0
+  const modelCoin = Number(
+    imageAlgorithmModels.value.find((m: any) => String(m?.algorithmId ?? m?.id) === String(result?.algorithmId))?.waveCoin ?? 0
+  )
+  imageCoin.value = modelCoin + paramsCoin
 }
 
 const handleImageParamsClose = (_result: any) => {
@@ -251,6 +382,7 @@ const handleImageParamsClose = (_result: any) => {
 
 // ==================== 灵感词词典弹窗（父层统一管理） ====================
 const handleInspirationLibrary = () => {
+  fetchInspirationWords()
   showInspirationLibrary.value = true
 }
 
@@ -259,47 +391,50 @@ const handleInspirationConfirm = (words: any[]) => {
   showInspirationLibrary.value = false
 }
 
+const normalizeWordsList = (list: any[] = []) => {
+  return list
+    .map((item) => ({
+      id: String(item?.id ?? item?.wordsId ?? item?.code ?? ''),
+      name: String(item?.name ?? item?.wordsName ?? item?.content ?? item?.title ?? ''),
+      wordsDesc: String(item?.wordsDesc ?? ''),
+    }))
+    .filter((item) => item.id && item.name)
+}
+
+const normalizeInspirationCategories = (list: InspirationWordsCategory[] = []) => {
+  return list
+    .map((item: any) => ({
+      code: String(item?.code ?? item?.typeCode ?? item?.id ?? ''),
+      title: String(item?.title ?? item?.typeName ?? item?.content ?? ''),
+      wordsList: normalizeWordsList(item?.wordsList || item?.children || []),
+    }))
+    .filter((item) => item.code && item.title)
+}
+
 // 灵感词词典数据
-const libraryData = ref([
-  {
-    code: 'person_type',
-    title: '人物类型',
-    wordsList: [
-      { id: '1', name: '青年女性' },
-      { id: '2', name: '青年男性' },
-      { id: '3', name: '少年/少女' },
-      { id: '4', name: '中年女性' },
-      { id: '5', name: '中年男性' },
-      { id: '6', name: '儿童' },
-      { id: '7', name: '银发族' }
-    ]
-  },
-  {
-    code: 'person_action',
-    title: '人物动作',
-    wordsList: [
-      { id: '8', name: '站立' },
-      { id: '9', name: '坐姿' },
-      { id: '10', name: '行走' },
-      { id: '11', name: '跳跃' },
-      { id: '12', name: '手势' },
-      { id: '13', name: '转身' }
-    ]
-  },
-  {
-    code: 'camera_movement',
-    title: '基础运镜',
-    wordsList: [
-      { id: '14', name: '特写' },
-      { id: '15', name: '近景' },
-      { id: '16', name: '中景' },
-      { id: '17', name: '全景' },
-      { id: '18', name: '推镜' },
-      { id: '19', name: '拉镜' },
-      { id: '20', name: '摇镜' }
-    ]
+const libraryData = ref<any[]>([])
+
+const fetchInspirationWords = async () => {
+  const functionCode = menuCodeByKey[leftMenu.value]
+  if (!functionCode) {
+    libraryData.value = []
+    return
   }
-])
+  try {
+    const res = await appApi.getInspirationWords({
+      functionCode,
+      typeCode: CREATION_PARAM_CODES.INSPIRATION_WORDS,
+    })
+    if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
+      libraryData.value = normalizeInspirationCategories(res.data)
+      return
+    }
+    libraryData.value = []
+  } catch (error) {
+    libraryData.value = []
+    console.error('获取灵感词词典失败', error)
+  }
+}
 
 // ==================== 右侧：我的资产（列表 + 缩略图） ====================
 // 先用本地 mock 数据跑通交互；后续接接口时替换 assets 的赋值即可
@@ -400,7 +535,22 @@ onMounted(() => {
   if (taskResultIdFromQuery) {
     refImageTaskResultId.value = String(taskResultIdFromQuery)
   }
+
+  syncActiveMenuCode()
+  fetchAlgoConfigTempRelation(activeMenuCode.value)
+  fetchSysPlatformMenu()
 })
+
+watch(
+  () => leftMenu.value,
+  () => {
+    syncActiveMenuCode()
+    if (activeMenuCode.value) {
+      fetchAlgoConfigTempRelation(activeMenuCode.value)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped lang="scss">

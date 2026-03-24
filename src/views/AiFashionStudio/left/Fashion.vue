@@ -18,13 +18,13 @@
             {{ x.label }}
             <img class="feature-del-icon" :src="images.tagDel" alt="" srcset="">
           </div>
-          <div class="feature-plus" @click="showFeatureModal = true">
+          <div class="feature-plus" @click="openFeatureModal">
             <img class="feature-plus-icon" :src="images.plus" alt="">
           </div>
         </div>
       </template>
       <template v-else>
-        <div class="select-card" @click="showFeatureModal = true">+ 请选择设计特征</div>
+        <div class="select-card" @click="openFeatureModal">+ 请选择设计特征</div>
       </template>
     </div>
 
@@ -52,13 +52,16 @@
       button-text="立即生成" @show-params="() => emit('show-params')" @generate="() => emit('generate')" />
 
     <!-- 设计特征弹窗 -->
-    <DesignFeatureModal v-model="showFeatureModal" :selection="designFeatureSelection"
+    <DesignFeatureModal v-model="showFeatureModal" :selection="designFeatureSelection" :categories="featureCategories"
       @confirm="handleFeatureConfirm" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { images } from '@/assets'
+import { appApi } from '@/api/app'
+import { APP_MENU_CODES } from '@/constants/appMenuCode'
+import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import DesignFeatureModal, { type DesignFeatureSelection } from '@/components/DesignFeatureModal.vue'
 
@@ -68,6 +71,7 @@ const props = defineProps<{
   taskResultId?: string | number
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
+  coin?: number
 }>()
 
 // 监听inspirationWords变化
@@ -104,9 +108,44 @@ const typeText = computed(() => {
 
 const showFeatureModal = ref(false)
 const designFeatureSelection = ref<DesignFeatureSelection>({})
+const featureCategories = ref<Array<{ key: string; label: string; options: string[] }>>([])
 
 const handleFeatureConfirm = (v: DesignFeatureSelection) => {
   designFeatureSelection.value = v
+}
+
+const normalizeFeatureCategories = (list: any[] = []) => {
+  return list
+    .map((item: any) => ({
+      key: String(item?.code ?? item?.typeCode ?? item?.id ?? ''),
+      label: String(item?.title ?? item?.typeName ?? item?.content ?? ''),
+      options: (item?.wordsList || item?.children || [])
+        .map((w: any) => String(w?.name ?? w?.wordsName ?? w?.content ?? '').trim())
+        .filter(Boolean),
+    }))
+    .filter((item: { key: string; label: string }) => item.key && item.label)
+}
+
+const fetchDesignFeatures = async () => {
+  try {
+    const res = await appApi.getInspirationWords({
+      functionCode: APP_MENU_CODES.AI_FASHION_DESIGN,
+      typeCode: CREATION_PARAM_CODES.DESIGN_FEATURES,
+    })
+    if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
+      featureCategories.value = normalizeFeatureCategories(res.data)
+      return
+    }
+    featureCategories.value = []
+  } catch (error) {
+    featureCategories.value = []
+    console.error('获取设计特征词典失败', error)
+  }
+}
+
+const openFeatureModal = async () => {
+  await fetchDesignFeatures()
+  showFeatureModal.value = true
 }
 
 const updateInspirationWords = (words: any[]) => {
@@ -116,7 +155,7 @@ const updateInspirationWords = (words: any[]) => {
 
 // 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
 const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
-const coin = computed(() => 0)
+const coin = computed(() => Number(props.coin ?? 0))
 const isGenerating = ref(false)
 
 const selectedFeatures = computed(() => {

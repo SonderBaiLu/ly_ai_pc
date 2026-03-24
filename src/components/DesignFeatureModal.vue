@@ -89,10 +89,12 @@ const props = withDefaults(
   defineProps<{
     modelValue: boolean
     selection?: DesignFeatureSelection
+    categories?: FeatureCategory[]
   }>(),
   {
     modelValue: false,
     selection: () => ({}),
+    categories: () => [],
   }
 )
 
@@ -106,8 +108,8 @@ const visible = computed({
   set: (v: boolean) => emit('update:modelValue', v),
 })
 
-// 配置项：后续可从接口/配置中心下发，这里先把截图里的“廓形”补全
-const categories = ref<FeatureCategory[]>([
+// 默认配置：当外部未下发接口数据时兜底展示
+const defaultCategories: FeatureCategory[] = [
   {
     key: 'silhouette',
     label: '廓形',
@@ -142,9 +144,24 @@ const categories = ref<FeatureCategory[]>([
   { key: 'style', label: '穿搭风格', options: [] },
   { key: 'visual', label: '视觉艺术', options: [] },
   { key: 'scene', label: '场景', options: [] },
-])
+]
+
+const categories = computed<FeatureCategory[]>(() => {
+  return Array.isArray(props.categories) && props.categories.length ? props.categories : defaultCategories
+})
 
 const activeCategoryKey = ref(categories.value[0]?.key || 'silhouette')
+
+watch(
+  categories,
+  (list) => {
+    const next = list[0]?.key || 'silhouette'
+    if (!list.some((x) => x.key === activeCategoryKey.value)) {
+      activeCategoryKey.value = next
+    }
+  },
+  { immediate: true, deep: true }
+)
 
 const local = reactive<DesignFeatureSelection>({})
 

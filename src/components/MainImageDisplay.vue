@@ -58,11 +58,29 @@
                   <img :src="asset.collectId ? images.collectActive : images.collectNo" alt="收藏" class="action-icon" />
                   <span>{{ asset.collectId ? '已收藏' : '收藏' }}</span>
                 </el-button>
-                <el-button class="action-btn" :loading="isDownloading(asset, index)"
-                  :disabled="isDownloading(asset, index)" type="primary" @click="handleDownload(index)">
-                  <img :src="images.downloadIcon" alt="下载" class="action-icon" />
-                  <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
-                </el-button>
+                <el-popover placement="bottom" :width="146" trigger="click" popper-class="download-menu-popper"
+                  :visible="downloadMenuVisibleIndex === index"
+                  @update:visible="(visible: boolean) => setDownloadMenuVisible(index, visible)">
+                  <template #reference>
+                    <el-button class="action-btn" :loading="isDownloading(asset, index)"
+                      :disabled="isDownloading(asset, index)" type="primary" @click.stop>
+                      <img :src="images.downloadIcon" alt="下载" class="action-icon" />
+                      <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
+                    </el-button>
+                  </template>
+                  <div class="download-menu">
+                    <div class="download-menu-item" @click.stop="handleDownloadFromMenu(index)">
+                      <img :src="images.downloadIcon" alt="下载" class="download-menu-icon" />
+                      <span>下载</span>
+                    </div>
+                    <div class="download-menu-item switch-row">
+                      <el-switch :model-value="removeWatermarkEnabled" size="small"
+                        @change="(v) => handleRemoveWatermarkToggle(Boolean(v))" />
+                      <span>去除水印</span>
+                      <span class="vip-text">VIP</span>
+                    </div>
+                  </div>
+                </el-popover>
                 <el-button class="action-btn delete-btn" type="primary" @click.stop="handleDelete(index)">
                   <img :src="images.delMini" alt="删除" class="action-icon" />
                   <span>删除</span>
@@ -170,6 +188,7 @@ watch(
 const mainContentRef = ref<HTMLElement>()
 const scrollbarRef = ref<any>(null)
 const activeContentTab = ref('all')
+const downloadMenuVisibleIndex = ref<number | null>(null)
 
 // 回到顶部相关
 const showBackTop = ref(false)
@@ -233,7 +252,7 @@ let intersectionObserver: IntersectionObserver | null = null
 const currentPlayingIndex = ref<number | null>(null)
 
 // 计算属性：获取当前选中的资产（预留扩展，当前未直接使用）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const currentAsset = computed(() => {
   // 只有当用户主动选择了资产（currentIndex >= 0）且索引有效时才返回
   if (props.currentIndex >= 0 && props.currentIndex < props.assets.length) {
@@ -245,7 +264,7 @@ const currentAsset = computed(() => {
 void currentAsset
 
 // 计算属性：根据图片尺寸判断媒体框架的样式类（预留扩展，当前未使用）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const mediaFrameClass = computed(() => '')
 void mediaFrameClass
 
@@ -348,6 +367,30 @@ const handleCollect = (index: number) => {
 // 处理下载
 const handleDownload = (index: number) => {
   emit('download', index, removeWatermarkEnabled.value)
+}
+
+const setDownloadMenuVisible = (index: number, visible: boolean) => {
+  downloadMenuVisibleIndex.value = visible ? index : null
+}
+
+const handleDownloadFromMenu = (index: number) => {
+  handleDownload(index)
+  downloadMenuVisibleIndex.value = null
+}
+
+const handleRemoveWatermarkToggle = (enabled: boolean) => {
+  if (enabled && !props.isVip) {
+    removeWatermarkEnabled.value = false
+    emit('watermark-toggle-change', false)
+    emit('open-membership-modal')
+    return
+  }
+
+  removeWatermarkEnabled.value = enabled
+  emit('watermark-toggle-change', enabled)
+  if (enabled) {
+    emit('open-watermark-disclaimer')
+  }
 }
 // 处理删除
 const handleDelete = (index: number) => {
@@ -689,7 +732,7 @@ const scrollToTop = () => {
 }
 
 // 预留：检测当前可见的资产（目前未用到，后续可扩展智能播放等能力）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const detectVisibleAsset = () => { }
 void detectVisibleAsset
 
@@ -942,6 +985,51 @@ defineExpose({
       object-fit: contain;
     }
   }
+}
+
+.download-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .download-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $color-text-white;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+
+    .download-menu-icon {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+    }
+  }
+
+  .switch-row {
+    cursor: default;
+    gap: 10px;
+
+    .vip-text {
+      color: rgba(150, 221, 255, 1);
+      font-weight: 700;
+      font-style: italic;
+      margin-left: 2px;
+    }
+  }
+}
+
+:deep(.download-menu-popper.el-popper) {
+  background: rgba(34, 34, 34, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+:deep(.download-menu-popper .el-popper__arrow::before) {
+  background: rgba(34, 34, 34, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ========== 固定在底部的状态和回到顶部按钮（统一主题样式） ========== */

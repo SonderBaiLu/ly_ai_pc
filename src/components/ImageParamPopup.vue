@@ -16,19 +16,20 @@
         </h3>
         <div class="scrollbar-bottom">
           <div class="param-options">
-            <div v-for="algorithm in algorithmModels" :key="(algorithm as any).id" :class="[
+            <div v-for="algorithm in algorithmModels" :key="getAlgorithmKey(algorithm)" :class="[
               'version-option',
-              selectedAlgorithm.id === (algorithm as any).id ? 'active' : '',
-              (algorithm as any).isVip && !userInfo?.isVip ? 'vip-locked' : '',
+              getAlgorithmKey(selectedAlgorithm) === getAlgorithmKey(algorithm) ? 'active' : '',
+              (algorithm as any).vipStatus && !userInfo?.isVip ? 'vip-locked' : '',
             ]" @click="selectAlgorithm(algorithm as any)">
               <!-- 背景图片 -->
               <img class="background-image" :src="(algorithm as any).imageUrl" />
 
               <!-- VIP标签 -->
-              <img v-if="(algorithm as any).isVip" class="vip-tag" :src="images.vip" />
+              <img v-if="(algorithm as any).vipStatus" class="vip-tag" :src="images.vip" />
 
               <!-- 选中状态图标 -->
-              <img v-if="selectedAlgorithm.id === (algorithm as any).id" class="active-icon" :src="images.checked" />
+              <img v-if="getAlgorithmKey(selectedAlgorithm) === getAlgorithmKey(algorithm)" class="active-icon"
+                :src="images.checked" />
             </div>
           </div>
         </div>
@@ -54,7 +55,7 @@
                 'camera-option',
                 {
                   active: isParamSelected(paramGroup.type, param),
-                  'vip-locked': param.isVip && !userInfo?.isVip,
+                  'vip-locked': param.vipStatus && !userInfo?.isVip,
                 },
               ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
                 <img :src="param.imageUrl" class="camera-image" />
@@ -76,7 +77,7 @@
                 getParamItemClass(paramGroup.type),
                 {
                   active: isParamSelected(paramGroup.type, param),
-                  'vip-locked': param.isVip && !userInfo?.isVip,
+                  'vip-locked': param.vipStatus && !userInfo?.isVip,
                 },
               ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
               <img :src="param.imageUrl" class="ratio-image" />
@@ -93,7 +94,7 @@
               getParamItemClass(paramGroup.type),
               {
                 active: isParamSelected(paramGroup.type, param),
-                'vip-locked': param.isVip && !userInfo?.isVip,
+                'vip-locked': param.vipStatus && !userInfo?.isVip,
               },
             ]" @click="selectParam(paramGroup.type, param)">
               <!-- 比例参数显示图片+文字 -->
@@ -106,7 +107,7 @@
               <span v-else>{{ param.templateName }}</span>
 
               <!-- VIP标签 -->
-              <img v-if="param.isVip" class="vip-tag" :src="images.vip" />
+              <img v-if="param.vipStatus" class="vip-tag" :src="images.vip" />
             </div>
           </div>
         </div>
@@ -194,6 +195,7 @@ const dialogTitle = computed(() => props.title)
 
 // 滚动位置
 const scrollLeft = ref(0)
+const getAlgorithmKey = (algorithm: any) => String(algorithm?.algorithmId ?? algorithm?.id ?? '')
 
 // 根据算法名称找到默认算法
 const findDefaultAlgorithm = (models: any[]) => {
@@ -201,7 +203,7 @@ const findDefaultAlgorithm = (models: any[]) => {
   const algorithmName = props.defaultParams[0]
 
   if (!algorithmName) {
-    return models.find((model: any) => model.isDefault === 1) || models[0] || {}
+    return models.find((model: any) => model.defaultStatus === 1) || models[0] || {}
   }
 
   // 根据算法名称匹配
@@ -338,7 +340,7 @@ const isParamSelected = (type: number, param: any) => {
 // 选择算法
 const selectAlgorithm = (algorithm: any) => {
   // 如果是VIP算法，判断用户是否是 vip 不是则跳转到会员页面
-  if (algorithm.isVip && !isVip.value) {
+  if (algorithm.vipStatus && !isVip.value) {
     showMembershipModal.value = true
     return
   }
@@ -353,7 +355,7 @@ const selectAlgorithm = (algorithm: any) => {
 // 选择参数
 const selectParam = (type: number, param: any, paramIndex?: number) => {
   // 如果是VIP选项，判断用户是否是 vip 不是则跳转到会员页面
-  if (param.isVip && !isVip.value) {
+  if (param.vipStatus && !isVip.value) {
     showMembershipModal.value = true
     return
   }
@@ -385,10 +387,22 @@ const scrollToParam = (paramIndex: number) => {
 
 // 构建返回结果
 const buildResult = () => {
-  const paramList = Object.values(selectedParams.value)
+  const paramList = Object.values(selectedParams.value).map((param: any) => ({
+    // 参数层主键：模板 ID
+    templateId: param?.templateId || '',
+    templateCode: param?.templateCode || '',
+    templateName: param?.templateName || '',
+    type: param?.type,
+    vipStatus: param?.vipStatus,
+    waveCoin: param?.waveCoin,
+    // 兼容页面当前展示逻辑
+    templateDesc: param?.templateDesc || '',
+    imageUrl: param?.imageUrl || '',
+  }))
 
   return {
-    algorithmId: selectedAlgorithm.value.id || 0,
+    // 模型层主键：算法 ID
+    algorithmId: selectedAlgorithm.value.algorithmId || 0,
     algorithmCode: selectedAlgorithm.value.code || '',
     algorithmName: selectedAlgorithm.value.name || '',
     paramList: paramList, // 保持数组格式，与接口返回一致

@@ -40,12 +40,26 @@
             <!-- ({{ selectedIds.length }}) -->
           </el-button>
 
-          <el-button v-if="batchMode && selectedIds.length > 0" type="success" :loading="isDownloading"
-            :disabled="isDownloading" @click="handleBatchDownload">
-            <img v-if="!isDownloading" :src="images.download" alt="下载" class="action-icon" />
-            {{ t('myCreations.actions.download') }}
-            <!-- ({{ selectedIds.length }}) -->
-          </el-button>
+          <el-popover v-if="batchMode && selectedIds.length > 0" placement="bottom" :width="146" trigger="click"
+            popper-class="download-menu-popper">
+            <template #reference>
+              <el-button type="success" :loading="isDownloading" :disabled="isDownloading" @click.stop>
+                <img v-if="!isDownloading" :src="images.download" alt="下载" class="action-icon" />
+                {{ t('myCreations.actions.download') }}
+              </el-button>
+            </template>
+            <div class="download-menu">
+              <div class="download-menu-item" @click.stop="handleBatchDownload">
+                <img :src="images.download" alt="下载" class="download-menu-icon" />
+                <span>{{ t('myCreations.actions.download') }}</span>
+              </div>
+              <div class="download-menu-item switch-row">
+                <el-switch :model-value="removeWatermarkEnabled" @change="(v) => handleWatermarkToggleChange(v)" />
+                <span>去除水印</span>
+                <span class="vip-text">VIP</span>
+              </div>
+            </div>
+          </el-popover>
 
           <el-button type="primary" @click="handleToggleBatchMode">
             {{ batchMode ? t('myCreations.actions.cancel') : t('myCreations.actions.select') }}
@@ -182,6 +196,7 @@ const hasMore = ref(true)
 const batchMode = ref(false)
 const selectedIds = ref<(string | number)[]>([])
 const isDownloading = ref(false)
+const removeWatermarkEnabled = ref(false)
 const uploading = ref(false)
 const userStore = useUserStore()
 
@@ -337,7 +352,21 @@ const handleBatchCollect = async () => {
   )
 }
 
-const getItemUrl = (item: CreationItem) => item.imageUrl || item.imgUrl || item.lessenImg || ''
+const getItemUrl = (item: CreationItem) => {
+  if (removeWatermarkEnabled.value && item.noWatermarkUrl) return String(item.noWatermarkUrl)
+  return item.imageUrl || item.imgUrl || item.lessenImg || ''
+}
+
+const handleWatermarkToggleChange = (val: string | number | boolean) => {
+  const enabled = val === true || val === 1 || val === '1' || val === 'true'
+  const isVip = Number(userStore.userInfo?.isVip ?? 0) === 1
+  if (enabled && !isVip) {
+    removeWatermarkEnabled.value = false
+    ElMessage.warning('仅会员可去除水印，请开通会员')
+    return
+  }
+  removeWatermarkEnabled.value = enabled
+}
 
 const handleBatchDownload = async () => {
   if (selectedIds.value.length === 0) return
@@ -631,6 +660,39 @@ body {
       }
     }
 
+    .download-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .download-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: $color-text-white;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+
+        .download-menu-icon {
+          width: 14px;
+          height: 14px;
+          object-fit: contain;
+        }
+      }
+
+      .switch-row {
+        cursor: default;
+
+        .vip-text {
+          color: rgba(150, 221, 255, 1);
+          font-weight: 700;
+          font-style: italic;
+          margin-left: 2px;
+        }
+      }
+    }
+
     .header-actions-mobile {
       display: none;
       flex-shrink: 0;
@@ -707,5 +769,18 @@ body {
       }
     }
   }
+}
+</style>
+
+<style lang="scss">
+.download-menu-popper.el-popper {
+  background: rgba(34, 34, 34, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.download-menu-popper .el-popper__arrow::before {
+  background: rgba(34, 34, 34, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 </style>

@@ -13,42 +13,13 @@
     </template>
 
     <div class="modal-body">
-      <div class="section">
-        <div class="section-title">类别选择</div>
-        <div class="btn-row">
-          <button v-for="x in categories" :key="x" class="pill" :class="{ active: local.category === x }" type="button"
-            @click="local.category = x">
-            {{ x }}
-          </button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">服装分类</div>
-        <div class="btn-row">
-          <button v-for="x in clothTypes" :key="x" class="pill" :class="{ active: local.clothType === x }" type="button"
-            @click="local.clothType = x">
-            {{ x }}
-          </button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">品类</div>
-        <div class="btn-row wrap">
-          <button v-for="x in kinds" :key="x" class="tag" :class="{ active: local.kind === x }" type="button"
-            @click="local.kind = x">
-            {{ x }}
-          </button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">详细子类</div>
-        <div class="btn-row wrap">
-          <button v-for="x in subKinds" :key="x" class="tag" :class="{ active: local.subKind === x }" type="button"
-            @click="local.subKind = x">
-            {{ x }}
+      <div v-for="(section, sectionIndex) in sections" :key="`${section.title}-${sectionIndex}`" class="section">
+        <div class="section-title">{{ section.title }}</div>
+        <div class="btn-row" :class="{ wrap: sectionIndex >= 2 }">
+          <button v-for="option in section.options" :key="String(option.id || option.content || '')"
+            :class="[sectionIndex < 2 ? 'pill' : 'tag', { active: selectedPath[sectionIndex] === String(option.content || '') }]"
+            type="button" @click="selectOption(sectionIndex, String(option.content || ''))">
+            {{ option.content }}
           </button>
         </div>
       </div>
@@ -64,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { images } from '@/assets'
 
 export type CreationTypeSelection = {
@@ -72,14 +43,30 @@ export type CreationTypeSelection = {
   clothType: string
   kind: string
   subKind: string
+  pathValues?: string[]
+  pathNodeIds?: string[]
+  displayText?: string
+}
+
+type CreationTreeNode = {
+  id?: string
+  content?: string
+  children?: CreationTreeNode[]
+}
+
+type DynamicSection = {
+  title: string
+  options: CreationTreeNode[]
 }
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
   selection?: Partial<CreationTypeSelection>
+  optionTree?: CreationTreeNode[]
 }>(), {
   modelValue: false,
   selection: () => ({}),
+  optionTree: () => [],
 })
 
 const emit = defineEmits<{
@@ -92,75 +79,101 @@ const visible = computed({
   set: (v: boolean) => emit('update:modelValue', v),
 })
 
-const categories = ['女装', '男装', '男童', '女童']
-const clothTypes = ['上装', '下装', '连身装', '套装']
-const kinds = ['T恤类', '针织类', '衬衫类', '卫衣类', '外套类', '马甲类', '背心类', '家居类', '内衣类', '泳衣类']
-const subKinds = [
-  'T恤',
-  '短袖T恤',
-  '长袖T恤',
-  '七分袖T恤',
-  'V领T恤',
-  '鸡心领T恤',
-  'polo领T恤',
-  '半高领T恤',
-  '方领T恤',
-  'U领T恤',
-  '高领T恤',
-  '亨利领T恤',
-  '一字领T恤',
-  '娃娃领T恤',
-  '小飞袖T恤',
-  'oversizeT恤',
-  '修身T恤',
-  '宽松T恤',
-  '落肩T恤',
-  '正肩T恤',
-  '插肩袖T恤',
-  '泡泡袖T恤',
-  '印花T恤',
-  '刺绣T恤',
-  '扎染T恤',
-  '渐变T恤',
-  '做旧T恤',
-  '磨毛T恤',
-  '破洞T恤',
-  '镂空T恤',
-  '拼接T恤',
-  '撞色T恤',
-  '纯色T恤',
-  '条纹T恤',
-  '格纹T恤',
-  '波点T恤',
-]
+const selectedPath = ref<string[]>([])
 
-const local = reactive<CreationTypeSelection>({
-  category: props.selection?.category ?? '女装',
-  clothType: props.selection?.clothType ?? '上装',
-  kind: props.selection?.kind ?? 'T恤类',
-  subKind: props.selection?.subKind ?? 'T恤',
-})
+const getChildren = (node?: CreationTreeNode | null) => (Array.isArray(node?.children) ? node.children : [])
+const firstNode = (list: CreationTreeNode[]) => list[0]
+const findByContent = (list: CreationTreeNode[], content?: string) =>
+  list.find((item) => String(item.content || '') === String(content || ''))
+
+const buildSectionsByPath = (pathValues: string[]) => {
+  const result: DynamicSection[] = []
+  let currentNodes: CreationTreeNode[] = Array.isArray(props.optionTree) ? props.optionTree : []
+  let depth = 0
+
+  while (currentNodes.length > 0 && depth < 20) {
+    const isTitleNode = currentNodes.length === 1 && getChildren(currentNodes[0]).length > 0
+    const title = isTitleNode ? String(currentNodes[0].content || `第${depth + 1}级`) : `第${depth + 1}级`
+    const options: CreationTreeNode[] = isTitleNode ? getChildren(currentNodes[0]) : currentNodes
+
+    if (!options.length) break
+    result.push({ title, options })
+
+    const selectedContent = pathValues[depth]
+    const selectedNode = findByContent(options, selectedContent) || firstNode(options)
+    currentNodes = getChildren(selectedNode)
+    depth += 1
+  }
+
+  return result
+}
+
+const applyPathDefaults = () => {
+  const next: string[] = []
+  let currentNodes: CreationTreeNode[] = Array.isArray(props.optionTree) ? props.optionTree : []
+  let depth = 0
+
+  while (currentNodes.length > 0 && depth < 20) {
+    const options =
+      currentNodes.length === 1 && getChildren(currentNodes[0]).length > 0
+        ? getChildren(currentNodes[0])
+        : currentNodes
+
+    if (!options.length) break
+
+    const selectedNode = findByContent(options, selectedPath.value[depth]) || firstNode(options)
+    const selectedContent = String(selectedNode?.content || '')
+    if (!selectedContent) break
+
+    next.push(selectedContent)
+    currentNodes = getChildren(selectedNode)
+    depth += 1
+  }
+
+  selectedPath.value = next
+}
+
+const sections = computed(() => buildSectionsByPath(selectedPath.value))
+
+const selectOption = (sectionIndex: number, content: string) => {
+  selectedPath.value = [...selectedPath.value.slice(0, sectionIndex), content]
+  applyPathDefaults()
+}
 
 watch(
   () => props.selection,
   (v) => {
     if (!v) return
-    local.category = v.category ?? local.category
-    local.clothType = v.clothType ?? local.clothType
-    local.kind = v.kind ?? local.kind
-    local.subKind = v.subKind ?? local.subKind
+    const fallbackPath = [v.category, v.clothType, v.kind, v.subKind].filter(Boolean) as string[]
+    selectedPath.value = Array.isArray(v.pathValues) && v.pathValues.length ? [...v.pathValues] : fallbackPath
+    applyPathDefaults()
   },
-  { deep: true },
+  { deep: true, immediate: true },
 )
 
-const currentText = computed(() => `${local.category} > ${local.clothType} > ${local.subKind}`)
+watch(
+  () => props.optionTree,
+  () => {
+    applyPathDefaults()
+  },
+  { deep: true, immediate: true },
+)
+
+const currentText = computed(() => selectedPath.value.slice(1).join(' > '))
 
 const handleClose = () => {
   visible.value = false
 }
 
 const handleConfirm = () => {
-  emit('confirm', { ...local })
+  emit('confirm', {
+    category: selectedPath.value[0] || '',
+    clothType: selectedPath.value[1] || '',
+    kind: selectedPath.value[2] || '',
+    subKind: selectedPath.value[selectedPath.value.length - 1] || '',
+    pathValues: [...selectedPath.value],
+    displayText: selectedPath.value.join('-'),
+  })
   visible.value = false
 }
 </script>

@@ -1599,14 +1599,14 @@ const getPurchaseButtonText = (plan: any) => {
     }
 
     .corner-discount-tag {
-      background: linear-gradient(90deg, rgba(244, 232, 190, 1) 0%, rgba(196, 170, 117, 1) 47%, rgba(244, 232, 190, 1) 100%);
+      background: linear-gradient(90deg, rgba(244, 232, 190, 1) 0%, rgba(196, 170, 117, 1) 47%, rgba(244, 232, 190, 1) 100%) !important;
     }
 
     .purchase-button {
       background: linear-gradient(90deg,
           rgba(244, 232, 190, 1) 0%,
           rgba(196, 170, 117, 1) 50%,
-          rgba(244, 232, 190, 1) 99%);
+          rgba(244, 232, 190, 1) 99%) !important;
     }
 
     .coin-info-card {
