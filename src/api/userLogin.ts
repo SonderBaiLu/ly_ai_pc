@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { ApiResponse } from '@/types'
+import type {ApiResponse} from '@/types'
 
 // 这个是 获取用户信息接口 获取得到的信息
 export interface UserDetailData {
@@ -21,7 +21,7 @@ export interface UserDetailData {
 // 获取验证码
 export const getSmsCodeApi = (mobile: number) => {
     return request.get('/v1/login/send/smsCode', {
-        params: { mobile },
+        params: {mobile},
     }) as unknown as Promise<ApiResponse<string>>
 }
 
@@ -65,4 +65,52 @@ export const getUserDetailsApi = () => {
 export const logout = () => {
     return request.get('/v1/login/logout')
 }
+// 用户扫码登录- 获取微信二维码
+export const getWechatQrCodeApi = () => {
+    return request.get('/v1/login/getUserWechatQrUrl')
+}
+// 用户扫码登录 - 轮询获取当前登录
+export const getUserWechat = (params: { sceneId: string }) => {
+    return request.get('/v1/login/getUserWechat', {params})
+}
+// 用户第一次登录 - 绑定手机号
+export const doUserWechatLogin = (data: {
+    mobile: string;
+    verifyCode: number;
+    openId: string;
+    invitationsCode?: string;
+}) => {
+    return request.post('/v1/login/doUserWechatLogin', data)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

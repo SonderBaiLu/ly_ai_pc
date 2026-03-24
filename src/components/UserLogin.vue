@@ -54,36 +54,33 @@
         </div>
 
         <div class="method-content">
+
           <div v-if="accountType === 'personal' && loginMethod === 'qrcode'" class="qrcode-section">
             <div class="qrcode-container">
               <div v-if="qrStatus === 'loading'" class="qrcode-mask loading-mask">
                 <span>加载中...</span>
               </div>
 
-              <img
-                  v-if="qrCodeImg && qrStatus !== 'loading' && qrStatus !== 'scanned'"
-                  :src="qrCodeImg"
-                  class="qrcode-image"
-                  alt="微信登录二维码"
-              />
+              <img v-if="qrCodeImg && qrStatus !== 'loading' && qrStatus !== 'scanned'" :src="qrCodeImg"
+                class="qrcode-image" alt="微信登录二维码" />
               <div v-if="qrStatus === 'scanned'" class="qrcode-mask scanned-mask">
-<!--                <img class="success-icon"  src=" " alt="二维码过期"/>-->
+                <!--                <img class="success-icon"  src=" " alt="二维码过期"/>-->
                 <div class="scanned-title">扫描成功</div>
                 <div class="scanned-desc">关注「灵衍 AI」即可登录</div>
               </div>
 
               <div v-if="qrStatus === 'expired'" class="qrcode-mask expired-mask" @click="initQrCode" title="点击刷新二维码">
                 <div class="refresh-icon-wrapper">
-                  <img :src="images.recaptureQR" alt=""/>
+                  <img :src="images.recaptureQR" alt="" />
                 </div>
               </div>
             </div>
 
             <div class="qrcode-instruction" v-if="qrStatus !== 'scanned'">
               <div class="wechat-hint">
-      <span class="wechat-icon">
-        <img src="@/assets/images/login_popup/weixin.png" alt=""/>
-      </span>
+                <span class="wechat-icon">
+                  <img src="@/assets/images/login_popup/weixin.png" alt="" />
+                </span>
                 <span>打开微信 扫一扫登录</span>
               </div>
               <p class="sub-hint">扫码关注「灵衍AI」公众号完成登录</p>
@@ -120,11 +117,11 @@
 
               <div class="input-wrapper code-input-wrapper">
                 <input type="tel" maxlength="4" v-model="formData.code"
-                       :placeholder="t('LoginPopUpPage.enterTheVerificationCode')"/>
+                  :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
                   {{
-                    isCounting ? t('LoginPopUpPage.smsCountdown', {seconds: countdown}) :
-                        t('LoginPopUpPage.getVerificationCode')
+                    isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
+                      t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
               </div>
@@ -203,30 +200,36 @@
       </div>
     </div>
     <Transition name="modal">
-      <ResetPassword v-if="dialogs.isVisible" :mode="currentMode" @close="dialogs.isVisible = false" />
+      <ResetPassword
+          v-if="dialogs.isVisible"
+          :open-id="openId"
+          :mode="currentMode"
+          :confirmedInviteCode="confirmedInviteCode"
+          @close="dialogs.isVisible = false" />
     </Transition>
-    <InvitationCode
-        v-if="dialogs.invitation"
-        @update:visible="dialogs.invitation = $event"
-        @confirm="handleInviteConfirm"
-    />
+    <InvitationCode v-if="dialogs.invitation" @update:visible="dialogs.invitation = $event"
+      @confirm="handleInviteConfirm" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, reactive, ref } from 'vue'
+import { ref, reactive, watch, onUnmounted, onBeforeUnmount } from 'vue' // 补全了 onBeforeUnmount
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
 import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
-import { getSmsCodeApi } from '@/api/userLogin'
+import { getSmsCodeApi, getUserWechat, getWechatQrCodeApi } from '@/api/userLogin'
 import { useUserStore } from "@/stores/user"
 import ResetPassword from '@/components/ResetPassword.vue'
 import InvitationCode from '@/components/InvitationCode.vue'
+
+// ==========================================
+// 1. 全局配置与基础状态
+// ==========================================
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
-
+import { images } from '@/assets'
 const accountType = ref<'personal' | 'team'>('personal') // 账号类型：个人 / 团队
 const loginMethod = ref<'qrcode' | 'phone'>('phone')     // 个人登录方式：扫码 / 手机
 const phoneLoginType = ref<'code' | 'password'>('code')  // 手机登录方式：验证码 / 密码
@@ -237,6 +240,7 @@ const dialogs = reactive({
   invitation: false, // 邀请码弹窗
 })
 const currentMode = ref('0') // 忘记密码模式
+const openId = ref('0') // 这个变脸给ResetPassword页面的绑定手机号调用的接口使用，变量名和接口文档字段名称一样
 
 // 统一关闭弹窗的方法
 const handleClose = () => {
@@ -295,18 +299,30 @@ const initQrCode = async () => {
 const startPolling = () => {
   qrCodeTimer = setInterval(async () => {
     try {
-      const res = await getUserWechat({sceneId : sceneId.value})
-      if (String(res as any) === '0000') {
+      const res = await getUserWechat({ sceneId: sceneId.value })
+      if (String((res as any).code) === '0000') {
         const apiStatus = res.data.status;
         console.log(apiStatus);
         if (apiStatus === 0) {
           qrStatus.value = 'waiting';
         } else if (apiStatus === 1) {
+          console.log("当前轮询值：", apiStatus)
           clearInterval(qrCodeTimer!);
           qrCodeTimer = null;
-          userStore.setToken(res.data.accessToken);
-          ElMessage.success('扫码登录成功');
-          emit('close');
+          if (res.data.mobileStatus) {
+            // 弹出绑定手机号弹窗
+            dialogs.isVisible = true;
+            currentMode.value = '3' // 用户第一次登录 显示密码
+            openId.value = res.data.openId
+
+            ElMessage.success('扫码登录成功');
+          } else{
+            userStore.setToken(res.data.accessToken);
+            const aa = await userStore.getUserInfo() // 触发获用户信息接口
+            console.log(aa)
+            emit('close');
+          }
+
         } else if (apiStatus === -1) {
           clearInterval(qrCodeTimer!);
           qrCodeTimer = null;
@@ -314,21 +330,19 @@ const startPolling = () => {
         }
       }
     } catch (e) {
-      console.error('查询状态异常', e)
+      console.error('查询状态异常', e);
     }
-  }, 2000)
-
+  }, 2000);
 }
-  */
-/* watch(loginMethod, (newMethod) => {
+
+// 监听登录方式切换，决定是否请求二维码和清理定时器
+watch(loginMethod, (newMethod) => {
   if (newMethod === 'qrcode') {
-    // 只要切到扫码登陆，就去请求二维码并轮询
     initQrCode()
   } else {
-    // 只要切换走 就杀死
     if (qrCodeTimer) {
       clearInterval(qrCodeTimer)
-      qrCodeTimer = null;
+      qrCodeTimer = null
     }
     // 补充清理倒计时
     if (qrCountdownTimer) {
@@ -337,20 +351,11 @@ const startPolling = () => {
     }
   }
 })
-*/
-// === 基础状态 ===
-const accountType = ref<'personal' | 'team'>('personal')
-const loginMethod = ref<'qrcode' | 'phone'>('phone')
-const phoneLoginType = ref<'code' | 'password'>('code')
 
 // 组件销毁前必须清理二维码定时器
 onBeforeUnmount(() => {
   if (qrCodeTimer) clearInterval(qrCodeTimer)
 })
-const currentMode = ref('0')
-// 密码显示切换状态
-const showPersonalPwd = ref(false)
-const showTeamPwd = ref(false)
 
 // ==========================================
 // 3. 手机号/验证码/密码 登录表单模块
@@ -381,7 +386,7 @@ const handlePhoneInput = () => {
   formData.phone = formData.phone.replace(/\D/g, '').slice(0, 11)
 }
 
-// === 短信验证码逻辑 ===
+// 发送短信验证码
 const isCounting = ref(false)
 const countdown = ref(120)
 let smsTimer: ReturnType<typeof setInterval> | null = null
@@ -392,7 +397,6 @@ const GetSmSCode = async () => {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
     return
   }
-
   try {
     const res = await getSmsCodeApi(mobile)
     if (String((res as any).code) === '0000') {
@@ -407,7 +411,7 @@ const GetSmSCode = async () => {
           if (smsTimer) clearInterval(smsTimer)
           smsTimer = null
           isCounting.value = false
-        } return
+        }
       }, 1000)
     } else {
       ElMessage.error((res as any).msg || '发送失败')
@@ -417,83 +421,76 @@ const GetSmSCode = async () => {
   }
 }
 
-const handleClose = () => {
-  emit('close')
-}
-
-// === 个人登录提交 ===
+// 个人登录提交 (区分验证码和密码)
 const handleSubmit = async () => {
-  if (!formData.phone) {
-    ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
-    return
-  }
+  if (!formData.phone) return ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
+
   try {
     if (phoneLoginType.value === 'code') {
-      if (!formData.code) {
-        ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
-        return
-      }
-      await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode?.value)
+      if (!formData.code) return ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
+      await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode.value)
       ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
-
       emit('close')
-
     } else {
-      if (!formData.password) {
-        ElMessage.error(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
-        return
-      }
+      if (!formData.password) return ElMessage.error(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
       await userStore.loginWithPassword(formData.phone, formData.password)
       emit('close')
     }
   } catch (e: any) {
     const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
     if (phoneLoginType.value === 'password') {
-      pwdErrorMsg.value = errorMsg // 渲染到输入框下方
+      pwdErrorMsg.value = errorMsg
     } else if (phoneLoginType.value === 'code') {
       codeErrorMsg.value = errorMsg
     }
   }
 }
 
-// 处理子组件传回来的邀请码, 填写邀请码页面的弹窗
-const handleInviteConfirm = (code: string) => {
-  confirmedInviteCode.value = code // 存下邀请码
-  dialogs.invitation = false       // 关闭邀请码弹窗
-}
+// 清理短信定时器
+onUnmounted(() => {
+  if (smsTimer) clearInterval(smsTimer)
+})
 
-// 校验填写的邀请码
-const openInviteLink = () => {
-  dialogs.invitation = true
-  console.log(confirm)
-}
-const forgotPassword= () => {
-  dialogs.isVisible = true;
-  currentMode.value = '0' // 0的状态是 用户不知道密码 使用验证码更改密码
-}
+// ==========================================
+// 4. 团队登录模块
+// ==========================================
+const showTeamPwd = ref(false)
+const teamErrorMsg = ref('')
+
+const clearTeamError = () => teamErrorMsg.value = ''
+
 const handleTeamSubmit = async () => {
-  teamErrorMsg.value = '' // 提交前重置报错
-
-  if (!formData.teamAccount) {
-    ElMessage.warning(t('LoginPopUpPage.teamAccountPlaceholder'))
-    return
-  }
-  if (!formData.teamPassword) {
-    ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
-    return
-  }
+  teamErrorMsg.value = ''
+  if (!formData.teamAccount) return ElMessage.warning(t('LoginPopUpPage.teamAccountPlaceholder'))
+  if (!formData.teamPassword) return ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
 
   try {
     await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
     ElMessage.success(t('LoginPopUpPage.loginSuccess'))
     emit('close')
   } catch (e: any) {
-    teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试' // 渲染到输入框下方
+    teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
   }
 }
-onUnmounted(() => {
-  if (smsTimer) clearInterval(smsTimer)
-})
+
+// ==========================================
+// 5. 邀请码与其他辅助模块
+// ==========================================
+const confirmedInviteCode = ref('') // 保存用户填写的邀请码
+
+const openInviteLink = () => {
+  dialogs.invitation = true
+}
+
+const handleInviteConfirm = (code: string) => {
+  confirmedInviteCode.value = code
+  dialogs.invitation = false
+}
+
+const forgotPassword = () => {
+  dialogs.isVisible = true;
+  currentMode.value = '0'
+}
 </script>
 
 <style scoped lang="scss">
@@ -762,6 +759,80 @@ onUnmounted(() => {
     justify-content: center;
     margin-bottom: 20px;
     background: #fff;
+    position: relative;
+    overflow: hidden;
+
+    .qrcode-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 状态遮罩层（加载中 / 已过期） */
+    .qrcode-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #666;
+      z-index: 10;
+    }
+
+    .expired-mask {
+      background: rgba(0, 0, 0, 0.6) !important;
+      cursor: pointer;
+      transition: background 0.3s;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.7) !important;
+
+        .refresh-icon-wrapper {
+          transform: rotate(90deg);
+        }
+      }
+
+      .refresh-icon-wrapper {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .refresh-btn {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+
+        svg {
+          width: 50px;
+          height: 50px;
+        }
+      }
+
+      .refresh-btn {
+        margin-top: 12px;
+        padding: 6px 16px;
+        background: #3bb1ff;
+        border: none;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+
+        &:hover {
+          background: #2a9df4;
+        }
+      }
+    }
   }
 
   .qrcode-instruction {
@@ -817,7 +888,7 @@ onUnmounted(() => {
       margin-bottom: 8px;
 
       .block-label {
-        margin-bottom: 0px;
+        margin-bottom: 0;
       }
 
       .mode-switch-btn {
@@ -905,11 +976,13 @@ onUnmounted(() => {
           height: 24px;
           display: block;
         }
+
         &:hover {
           color: #666;
         }
       }
     }
+
     /* 报错红字样式 */
     .error-text {
       color: #ff4d4f;
@@ -917,6 +990,7 @@ onUnmounted(() => {
       margin-top: 6px;
 
     }
+
     .error-top {
       margin-top: -9px;
       padding-bottom: 19px;
@@ -927,6 +1001,7 @@ onUnmounted(() => {
   /* 特定输入框覆盖 */
   .phone-input-wrapper {
     margin-bottom: 9px;
+
     .country-code {
       color: #adb3bd;
       font-weight: 500;
