@@ -122,8 +122,10 @@
                 <input type="tel" maxlength="4" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
                 <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
-                  {{ isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
-                    t('LoginPopUpPage.getVerificationCode') }}
+                  {{
+                    isCounting ? t('LoginPopUpPage.smsCountdown', {seconds: countdown}) :
+                        t('LoginPopUpPage.getVerificationCode')
+                  }}
                 </button>
               </div>
             </div>
