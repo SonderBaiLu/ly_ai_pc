@@ -144,8 +144,8 @@
                   <a @click="forgotPassword()" class="action-link">{{ t('LoginPopUpPage.forgotPassword') }}</a>
                 </div>
               </div>
-<!--              :class="{ 'has-error': pwdErrorMsg }" -->
-              <div class="input-wrapper" >
+              <!--              :class="{ 'has-error': pwdErrorMsg }" -->
+              <div class="input-wrapper">
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
                   :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
