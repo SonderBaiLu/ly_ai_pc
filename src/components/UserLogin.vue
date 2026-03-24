@@ -141,7 +141,7 @@
                     {{ t('LoginPopUpPage.codeLogin') }}
                   </a>
                   <span class="link-divider"></span>
-                  <a @click="forgotPassword()"  class="action-link">{{ t('LoginPopUpPage.forgotPassword') }}</a>
+                  <a @click="forgotPassword()" class="action-link">{{ t('LoginPopUpPage.forgotPassword') }}</a>
                 </div>
               </div>
 <!--              :class="{ 'has-error': pwdErrorMsg }" -->
