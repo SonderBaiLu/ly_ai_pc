@@ -101,10 +101,12 @@
         </div>
         <div class="pagination-right">
           <div class="custom-pagination">
-            <button class="page-btn text-btn" :disabled="queryParams.pageNum === 1" @click="changePage(queryParams.pageNum - 1)">
+            <button class="page-btn text-btn" :disabled="queryParams.pageNum === 1"
+              @click="changePage(queryParams.pageNum - 1)">
               上一页
             </button>
-            <button v-for="page in totalPages" :key="page" :class="['page-btn', { 'is-active': queryParams.pageNum === page }]" @click="changePage(page)">
+            <button v-for="page in totalPages" :key="page"
+              :class="['page-btn', { 'is-active': queryParams.pageNum === page }]" @click="changePage(page)">
               {{ page }}
             </button>
             <button class="page-btn text-btn" :disabled="queryParams.pageNum === totalPages" @click="changePage(queryParams.pageNum + 1)">
