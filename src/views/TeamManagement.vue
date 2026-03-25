@@ -1,6 +1,6 @@
 <template>
   <div class="page-layout">
-    <Header/>
+    <Header />
 
     <main class="team-management-container pt-header">
       <div class="page-header">
@@ -33,14 +33,14 @@
             </tr>
           </thead>
           <tbody>
-          <tr v-if="teamList.length === 0">
-            <td colspan="5">
-              <div class="empty-state">
-                <img src="../assets/vue.svg" alt="暂无数据" class="empty-img"/>
-                <p>{{ loading ? '加载中...' : '暂无团队成员' }}</p>
-              </div>
-            </td>
-          </tr>
+            <tr v-if="teamList.length === 0">
+              <td colspan="5">
+                <div class="empty-state">
+                  <img src="../assets/vue.svg" alt="暂无数据" class="empty-img" />
+                  <p>{{ loading ? '加载中...' : '暂无团队成员' }}</p>
+                </div>
+              </td>
+            </tr>
 
             <tr v-for="row in teamList" :key="row.accountId">
               <td>
@@ -55,11 +55,11 @@
                 <span :class="['role-tag', row.role === '1' ? 'admin' : 'member']">
                   {{ row.role === '1' ? '管理员' : '成员' }}
                 </span>
-            </td>
-            <td>
+              </td>
+              <td>
                 <span :class="['status', row.status === '1' ? 'normal' : 'ban']">
-                  <img v-if="row.status === '1'" src="@/assets/images/team/normal.png" class="role-dot" alt="正常"/>
-                  <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁"/>
+                  <img v-if="row.status === '1'" src="@/assets/images/team/normal.png" class="role-dot" alt="正常" />
+                  <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁" />
                   {{ row.status === '1' ? '正常' : '封禁' }}
                 </span>
               </td>
@@ -121,7 +121,7 @@
     <div v-if="addDialogVisible" class="custom-modal-overlay">
       <div class="custom-modal">
         <button class="close-btn" @click="closeAddDialog">
-          <img :src="images.closeDialog" alt="关闭" style="width: 14px; height: 14px;"/>
+          <img :src="images.closeDialog" alt="关闭" style="width: 14px; height: 14px;" />
         </button>
         <h2 class="modal-title">添加成员</h2>
 
@@ -129,7 +129,7 @@
           <div class="form-group">
             <label class="form-label">账号名</label>
             <div class="input-wrapper">
-              <input type="text" v-model="addForm.nickName" class="form-input" placeholder="请输入账号名"/>
+              <input type="text" v-model="addForm.nickName" class="form-input" placeholder="请输入账号名" />
             </div>
           </div>
 
@@ -137,9 +137,9 @@
             <label class="form-label">密码 <span class="label-hint">6-20个数字、字母组成</span></label>
             <div class="input-wrapper">
               <input :type="showPwd ? 'text' : 'password'" v-model="addForm.password" class="form-input"
-                     placeholder="请输入密码"/>
+                placeholder="请输入密码" />
               <span class="icon-eye" @click="showPwd = !showPwd">
-                <img :src="showPwd ? images.eye : images.eyeClose" alt=""/>
+                <img :src="showPwd ? images.eye : images.eyeClose" alt="" />
               </span>
             </div>
           </div>
@@ -148,9 +148,9 @@
             <label class="form-label">确认密码</label>
             <div class="input-wrapper">
               <input :type="showConfirmPwd ? 'text' : 'password'" v-model="addForm.confirmPassword" class="form-input"
-                     placeholder="请再次输入密码确认"/>
+                placeholder="请再次输入密码确认" />
               <span class="icon-eye" @click="showConfirmPwd = !showConfirmPwd">
-                <img :src="showConfirmPwd ? images.eye : images.eyeClose" alt=""/>
+                <img :src="showConfirmPwd ? images.eye : images.eyeClose" alt="" />
               </span>
             </div>
           </div>
@@ -176,11 +176,11 @@
 </template>
 
 <script setup lang="ts">
-import {ref, reactive, computed, onMounted} from 'vue'
-import {ElMessage} from 'element-plus' // 仅保留轻提示，用于成功/失败提示
+import { ref, reactive, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus' // 仅保留轻提示，用于成功/失败提示
 import Header from '@/components/Header.vue'
-import {images} from '@/assets'
-import {useUserStore} from '@/stores/user'
+import { images } from '@/assets'
+import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 const currentUserId = userStore.userInfo?.userId || ''
@@ -210,7 +210,7 @@ const addDialogVisible = ref(false)
 const isSubmitting = ref(false)
 const showPwd = ref(false)
 const showConfirmPwd = ref(false)
-const addForm = reactive({nickName: '', password: '', confirmPassword: ''})
+const addForm = reactive({ nickName: '', password: '', confirmPassword: '' })
 
 // 确认弹窗状态
 const confirmDialog = reactive({
@@ -323,7 +323,7 @@ const openConfirm = (type: 'disable' | 'resetPwd' | 'delete', row: any) => {
 const executeConfirm = async () => {
   confirmDialog.visible = false
   if (confirmDialog.type === 'disable') {
-// TODO: 调用停用接口
+    // TODO: 调用停用接口
     ElMessage.success('已停用该成员')
   } else if (confirmDialog.type === 'resetPwd') {
     // TODO: 调用重置密码接口
@@ -414,10 +414,13 @@ onMounted(() => {
           background-color: #0F172A;
           border: 1px solid #334155;
           padding: 0 16px;
-          color: #ffffff;
+          color: rgba(156, 163, 175, 1);
           font-size: 14px;
           outline: none;
           transition: border-color 0.2s;
+          text-align: justify;
+          font-family: Inter-black, serif;
+          font-weight: 900;
 
           &::placeholder {
             color: rgba(255, 255, 255, 0.3);
@@ -456,7 +459,6 @@ onMounted(() => {
     width: 100%;
     border-radius: 10px;
     border: 1px solid rgba(51, 65, 85, 0.5);
-    padding: 24px;
     margin-right: 15px;
     box-sizing: border-box;
     background-color: rgba(10, 15, 29, 1);
@@ -471,28 +473,27 @@ onMounted(() => {
       th {
         padding: 14px 16px;
         color: rgba(148, 163, 184, 1);
-        line-height: 16px;
         font-weight: 800;
         font-size: 16px;
-        text-align: left;
+        text-align: center;
+        vertical-align: middle;
         font-family: Inter-semiBold, serif;
         border-bottom: 2px solid rgba(51, 65, 85, 1);
-        vertical-align: middle;
       }
 
-      /* 修改：增加悬停过渡动画 */
       tbody tr {
         transition: background-color 0.2s;
       }
 
-      /* 修改：表格行悬停样式 - 浅蓝背景和底边框 */
       tbody tr:hover {
-        background-color: rgba(56, 189, 248, 0.08); /* 浅蓝透明背景 */
+        background-color: rgba(56, 189, 248, 0.08);
+        /* 浅蓝透明背景 */
         position: relative;
       }
 
       tbody tr:hover td {
-        border-bottom-color: rgba(56, 189, 248, 0.5); /* 悬停时底边框变蓝 */
+        border-bottom-color: rgba(56, 189, 248, 0.5);
+        /* 悬停时底边框变蓝 */
       }
 
       td {
@@ -502,6 +503,11 @@ onMounted(() => {
         font-size: 14px;
         border-bottom: 1px solid rgba(51, 65, 85, 0.5);
         vertical-align: middle;
+        text-align: center;
+      }
+
+      .create-time {
+        color: $color-text-time;
       }
     }
 
@@ -534,8 +540,10 @@ onMounted(() => {
       .main-account-badge {
         margin-left: 22%;
         padding: 4px 12px;
+        width: 88px;
+        height: 24px;
         background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
-        color: rgba(16, 16, 16, 1);
+        color: rgba(255, 255, 255, 1);
         font-size: 12px;
         font-weight: 600;
         border-radius: 4px 4px 4px 4px;
@@ -574,6 +582,11 @@ onMounted(() => {
     }
 
     .status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+
       img {
         width: 9px;
         height: 9px;
@@ -595,7 +608,9 @@ onMounted(() => {
     .action-buttons {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 14px;
+      width: 100%;
 
       &.justify-end {
         justify-content: flex-end;
@@ -623,10 +638,17 @@ onMounted(() => {
         align-items: center;
         gap: 6px;
 
-        &.text-blue { color: #38BDF8; }
-        &.text-red { color: #F87171; }
+        &.text-blue {
+          color: #38BDF8;
+        }
 
-        &:hover { opacity: 0.8; }
+        &.text-red {
+          color: #F87171;
+        }
+
+        &:hover {
+          opacity: 0.8;
+        }
 
         .action-text {
           color: #94A3B8;
@@ -659,7 +681,8 @@ onMounted(() => {
   width: 100%;
   height: 56px;
   background-color: #0A0F1D;
-  border-top: 1px solid #38BDF8; /* 蓝色的上边框 */
+  border-top: 1px solid #38BDF8;
+  /* 蓝色的上边框 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -670,8 +693,10 @@ onMounted(() => {
 
 .pagination-content {
   width: 100%;
-  max-width: 1919px; /* 与表格区域宽度一致 */
-  padding: 0 140px; /* 保持与上面 .team-management-container 相同的 padding */
+  max-width: 1919px;
+  /* 与表格区域宽度一致 */
+  padding: 0 140px;
+  /* 保持与上面 .team-management-container 相同的 padding */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -690,9 +715,9 @@ onMounted(() => {
     min-width: 32px;
     height: 32px;
     padding: 0 8px;
-    border-radius: 4px;
-    background-color: #1E293B;
+    background-color: rgba(30, 41, 59, 1);
     border: 1px solid transparent;
+    border-radius: 4px 4px 4px 4px;
     color: #94A3B8;
     font-size: 14px;
     cursor: pointer;
@@ -720,7 +745,9 @@ onMounted(() => {
     }
 
     &.text-btn {
-      background-color: transparent; /* 文本按钮背景透明 */
+      background-color: rgba(30, 41, 59, 1);
+      border-radius: 4px 4px 4px 4px;
+
     }
   }
 }
