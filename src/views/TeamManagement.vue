@@ -62,33 +62,33 @@
                   <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁"/>
                   {{ row.status === '1' ? '正常' : '封禁' }}
                 </span>
-            </td>
-            <td style="text-align: right;">
-              <div class="action-buttons justify-end" v-if="row.accountId !== currentUserId">
-                <template v-if="row.role !== '1'">
-                  <button class="action-btn" @click="openConfirm('disable', row)" title="停用">
-                    <img :class="['status', row.status === '1' ? 'Disable' : 'NoDisable']"
-                         :src="row.status === '1' ? images.ban: images.banRedColor" class="action-icon" alt="停用"/>
-                    <span class="action-text">
-                      {{ row.status === '1' ? '停用' : '取消停用' }}
-                    </span>
+              </td>
+              <td style="text-align: right;">
+                <div class="action-buttons justify-end" v-if="row.accountId !== currentUserId">
+                  <template v-if="row.role !== '1'">
+                    <button class="action-btn" @click="openConfirm('disable', row)" title="停用">
+                      <img :class="['status', row.status === '1' ? 'Disable' : 'NoDisable']"
+                        :src="row.status === '1' ? images.ban : images.banRedColor" class="action-icon" alt="停用" />
+                      <span class="action-text">
+                        {{ row.status === '1' ? '停用' : '取消停用' }}
+                      </span>
+                    </button>
+                  </template>
+                  <button class="action-btn" @click="openEdit(row)" title="编辑">
+                    <img :src="images.editors" class="action-icon" alt="编辑" />
+                    <span class="action-text">编辑</span>
                   </button>
-                </template>
-                <button class="action-btn" @click="openEdit(row)" title="编辑">
-                  <img :src="images.editors" class="action-icon" alt="编辑"/>
-                  <span class="action-text">编辑</span>
-                </button>
-                <button class="action-btn" @click="openConfirm('resetPwd', row)" title="重置密码">
-                  <img :src="images.reset" class="action-icon" alt="重置密码"/>
-                  <span class="action-text">重置密码</span>
-                </button>
-                <button class="action-btn" @click="openConfirm('delete', row)" title="删除">
-                  <img :src="images.deleteT" class="action-icon" alt="删除"/>
-                  <span class="action-text">删除</span>
-                </button>
-              </div>
-            </td>
-          </tr>
+                  <button class="action-btn" @click="openConfirm('resetPwd', row)" title="重置密码">
+                    <img :src="images.reset" class="action-icon" alt="重置密码" />
+                    <span class="action-text">重置密码</span>
+                  </button>
+                  <button class="action-btn" @click="openConfirm('delete', row)" title="删除">
+                    <img :src="images.deleteT" class="action-icon" alt="删除" />
+                    <span class="action-text">删除</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
