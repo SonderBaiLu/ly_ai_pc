@@ -24,13 +24,13 @@
       <div class="table-wrapper">
         <table class="native-team-table">
           <thead>
-          <tr>
-            <th style="width: 25%;">成员信息</th>
-            <th style="width: 20%;">注册时间</th>
-            <th style="width: 20%;">角色</th>
-            <th style="width: 15%;">账号状态</th>
-            <th class="endth" style="width: 20%; text-align: right;">操作栏项</th>
-          </tr>
+            <tr>
+              <th style="width: 25%; text-align: left;">成员信息</th>
+              <th style="width: 20%;">注册时间</th>
+              <th style="width: 20%;">角色</th>
+              <th style="width: 15%;">账号状态</th>
+              <th class="endth" style="width: 20%; text-align: right;">操作栏项</th>
+            </tr>
           </thead>
           <tbody>
           <tr v-if="teamList.length === 0">
