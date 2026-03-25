@@ -11,13 +11,8 @@
 
         <div class="header-right">
           <div class="search-wrapper">
-            <input
-                class="searchUser"
-                type="text"
-                placeholder="搜索账号名或昵称..."
-                v-model="queryParams.keyword"
-                @keyup.enter="handleSearch"
-            />
+            <input class="searchUser" type="text" placeholder="搜索账号名或昵称..." v-model="queryParams.keyword"
+              @keyup.enter="handleSearch" />
           </div>
 
           <button class="add-btn" @click="openAddDialog">
