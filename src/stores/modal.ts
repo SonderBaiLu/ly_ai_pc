@@ -9,6 +9,10 @@ export const useModalStore = defineStore('modal', {
     showWriteOffModal: false,
     showContactUsModal: false,
     showWatermarkDisclaimerModal: false,
+    watermarkDisclaimerVariant: 'more' as 'more' | 'page',
+    // 责任声明弹窗确认/取消的全局 token（用于不同页面在 App.vue 中渲染弹窗时联动逻辑）
+    watermarkDisclaimerConfirmToken: 0,
+    watermarkDisclaimerCancelToken: 0,
   }),
   actions: {
     openLoginModal() {
@@ -42,10 +46,21 @@ export const useModalStore = defineStore('modal', {
       this.showContactUsModal = false
     },
     openWatermarkDisclaimerModal() {
+      this.watermarkDisclaimerVariant = 'more'
+      this.showWatermarkDisclaimerModal = true
+    },
+    openWatermarkDisclaimerModalPage() {
+      this.watermarkDisclaimerVariant = 'page'
       this.showWatermarkDisclaimerModal = true
     },
     closeWatermarkDisclaimerModal() {
       this.showWatermarkDisclaimerModal = false
+    },
+    notifyWatermarkDisclaimerConfirmed() {
+      this.watermarkDisclaimerConfirmToken += 1
+    },
+    notifyWatermarkDisclaimerCancelled() {
+      this.watermarkDisclaimerCancelToken += 1
     },
   },
 })

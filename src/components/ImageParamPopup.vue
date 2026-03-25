@@ -19,7 +19,7 @@
             <div v-for="algorithm in algorithmModels" :key="getAlgorithmKey(algorithm)" :class="[
               'version-option',
               getAlgorithmKey(selectedAlgorithm) === getAlgorithmKey(algorithm) ? 'active' : '',
-              (algorithm as any).vipStatus && !userInfo?.isVip ? 'vip-locked' : '',
+              (algorithm as any).vipStatus && !isVip ? 'vip-locked' : '',
             ]" @click="selectAlgorithm(algorithm as any)">
               <!-- 背景图片 -->
               <img class="background-image" :src="(algorithm as any).imageUrl" />
@@ -55,7 +55,7 @@
                 'camera-option',
                 {
                   active: isParamSelected(paramGroup.type, param),
-                  'vip-locked': param.vipStatus && !userInfo?.isVip,
+                  'vip-locked': param.vipStatus && !isVip,
                 },
               ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
                 <img :src="param.imageUrl" class="camera-image" />
@@ -77,7 +77,7 @@
                 getParamItemClass(paramGroup.type),
                 {
                   active: isParamSelected(paramGroup.type, param),
-                  'vip-locked': param.vipStatus && !userInfo?.isVip,
+                  'vip-locked': param.vipStatus && !isVip,
                 },
               ]" @click="selectParam(paramGroup.type, param, Number(paramIndex))">
               <img :src="param.imageUrl" class="ratio-image" />
@@ -92,9 +92,9 @@
             <div v-for="(param, paramIndex) in paramGroup.params" :key="paramIndex" :class="[
               'param-item',
               getParamItemClass(paramGroup.type),
-              {
+                {
                 active: isParamSelected(paramGroup.type, param),
-                'vip-locked': param.vipStatus && !userInfo?.isVip,
+                  'vip-locked': param.vipStatus && !isVip,
               },
             ]" @click="selectParam(paramGroup.type, param)">
               <!-- 比例参数显示图片+文字 -->
@@ -187,7 +187,7 @@ const selectedParams = ref<Record<number, any>>({}) // 存储各类型参数的�
 const hasUserInteraction = ref(false) // 标记用户是否有过选择操作
 
 // 会员相关
-const isVip = computed(() => userInfo.value?.isVip === 1)
+const isVip = computed(() => Number(userInfo.value?.vipLevel ?? 0) > 0)
 const showMembershipModal = ref(false)
 
 // 弹窗标题

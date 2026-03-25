@@ -49,6 +49,8 @@ export const images = {
   checked: new URL('./images/checked.png', import.meta.url).href,
   checkedActive: new URL('./images/checked_active.png', import.meta.url).href,
   checkedNo: new URL('./images/checked_no.png', import.meta.url).href,
+  checkNo: new URL('./images/check_no.png', import.meta.url).href,
+  checkActive: new URL('./images/check_active.png', import.meta.url).href,
   clear: new URL('./images/clear.png', import.meta.url).href,
   certification: new URL('./images/certification.png', import.meta.url).href,
   check: new URL('./images/check.png', import.meta.url).href,
@@ -61,6 +63,10 @@ export const images = {
   collectActive: new URL('./images/collect_active.png', import.meta.url).href,
 
   customer: new URL('./images/customer.png', import.meta.url).href,
+  customerCode1: new URL('./images/customer_code1.png', import.meta.url).href,
+  customerCode2: new URL('./images/customer_code2.png', import.meta.url).href,
+  customerCode3: new URL('./images/customer_code3.png', import.meta.url).href,
+
   crown: new URL('./images/crown.png', import.meta.url).href,
 
   // D
@@ -103,6 +109,8 @@ export const images = {
   designActive9: new URL('./images/design_active9.png', import.meta.url).href,
 
   deleteT: new URL('./images/team/delete.png', import.meta.url).href,
+  dot: new URL('./images/dot.png', import.meta.url).href,
+
   // E
   edit: new URL('./images/edit.png', import.meta.url).href,
   editText: new URL('./images/edit_text.png', import.meta.url).href,
@@ -118,6 +126,11 @@ export const images = {
   favorite: new URL('./images/favorite.png', import.meta.url).href,
   fail: new URL('./images/fail.png', import.meta.url).href,
   fail1: new URL('./images/fail1.png', import.meta.url).href,
+
+  follow1: new URL('./images/follow1.png', import.meta.url).href,
+  follow2: new URL('./images/follow2.png', import.meta.url).href,
+  follow3: new URL('./images/follow3.png', import.meta.url).href,
+  follow4: new URL('./images/follow4.png', import.meta.url).href,
 
   // H
   homeBg: new URL('./images/home_bg.png', import.meta.url).href,
@@ -190,6 +203,7 @@ export const images = {
 
   // V
   vip: new URL('./images/vip.png', import.meta.url).href,
+  vipText: new URL('./images/vip_text.png', import.meta.url).href,
   visionBg: new URL('./images/vision_bg.png', import.meta.url).href,
 
   // W

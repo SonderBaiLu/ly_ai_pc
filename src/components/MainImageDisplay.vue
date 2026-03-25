@@ -74,10 +74,10 @@
                       <span>下载</span>
                     </div>
                     <div class="download-menu-item switch-row">
-                      <el-switch :model-value="removeWatermarkEnabled" size="small"
-                        @change="(v) => handleRemoveWatermarkToggle(Boolean(v))" />
+                      <el-switch v-model="removeWatermarkEnabled" :disabled="!props.isVip" active-color="#17A0E1"
+                        inactive-color="#201B26" @change="(v) => handleRemoveWatermarkToggle(Boolean(v))" />
                       <span>去除水印</span>
-                      <span class="vip-text">VIP</span>
+                      <img :src="images.vipText" alt="VIP" class="vip-text-icon" />
                     </div>
                   </div>
                 </el-popover>
@@ -129,6 +129,8 @@ import { ElMessage } from 'element-plus'
 import { ArrowUp } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import GradientProgress from './GradientProgress.vue'
+import { useModalStore } from '@/stores/modal'
+import { useUserStore } from '@/stores/user'
 
 // 定义组件属性
 interface Props {
@@ -172,6 +174,9 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+const modalStore = useModalStore()
+const userStore = useUserStore()
 
 // 去除水印开关状态（本地状态，从 props 同步）
 const removeWatermarkEnabled = ref(props.removeWatermarkEnabled)
@@ -378,7 +383,7 @@ const handleDownloadFromMenu = (index: number) => {
   downloadMenuVisibleIndex.value = null
 }
 
-const handleRemoveWatermarkToggle = (enabled: boolean) => {
+const handleRemoveWatermarkToggle = async (enabled: boolean) => {
   if (enabled && !props.isVip) {
     removeWatermarkEnabled.value = false
     emit('watermark-toggle-change', false)
@@ -386,10 +391,29 @@ const handleRemoveWatermarkToggle = (enabled: boolean) => {
     return
   }
 
+  // VIP 且用户未选择“不再弹窗提醒”：需要先确认责任声明
+  if (enabled) {
+    const noRemind = localStorage.getItem('watermark_disclaimer_no_remind') === 'true'
+    if (!noRemind) {
+      // 与详情页一致：弹窗前先保持开关关闭
+      removeWatermarkEnabled.value = false
+      emit('watermark-toggle-change', false)
+      modalStore.openWatermarkDisclaimerModalPage()
+      return
+    }
+  }
+
   removeWatermarkEnabled.value = enabled
   emit('watermark-toggle-change', enabled)
-  if (enabled) {
-    emit('open-watermark-disclaimer')
+
+  try {
+    // watermarkStatus 1 表示“去除水印开启”（无水印）
+    await userStore.updateUserInfo({ watermarkStatus: enabled ? 1 : 0 })
+  } catch (e) {
+    console.error('[MainImageDisplay] 更新水印状态失败:', e)
+    // 接口失败则回显为 store 当前值（避免 UI 与后端不一致）
+    removeWatermarkEnabled.value = userStore.userInfo?.watermarkStatus === 1
+    emit('watermark-toggle-change', removeWatermarkEnabled.value)
   }
 }
 // 处理删除
@@ -985,51 +1009,6 @@ defineExpose({
       object-fit: contain;
     }
   }
-}
-
-.download-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  .download-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: $color-text-white;
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
-
-    .download-menu-icon {
-      width: 14px;
-      height: 14px;
-      object-fit: contain;
-    }
-  }
-
-  .switch-row {
-    cursor: default;
-    gap: 10px;
-
-    .vip-text {
-      color: rgba(150, 221, 255, 1);
-      font-weight: 700;
-      font-style: italic;
-      margin-left: 2px;
-    }
-  }
-}
-
-:deep(.download-menu-popper.el-popper) {
-  background: rgba(34, 34, 34, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-}
-
-:deep(.download-menu-popper .el-popper__arrow::before) {
-  background: rgba(34, 34, 34, 0.96);
-  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ========== 固定在底部的状态和回到顶部按钮（统一主题样式） ========== */

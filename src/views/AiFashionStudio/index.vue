@@ -56,7 +56,8 @@
           <!-- 结果列表（主图 + 缩略图） -->
           <section class="result-panel">
             <MainImageDisplay ref="mainImageRef" :assets="assets" :current-index="currentIndex"
-              :has-more-data="hasMoreData" :loading="loading" :loading-more="loadingMore"
+              :has-more-data="hasMoreData" :loading="loading" :loading-more="loadingMore" :is-vip="isUserVip"
+              :remove-watermark-enabled="removeWatermarkEnabled"
               @asset-click="(idx: number) => (currentIndex = idx as any)" @scroll-change="handleScrollChange"
               @load-more="showComingSoon" @view-detail="handleViewDetail" @collect="showComingSoon"
               @download="showComingSoon" @delete="showComingSoon" @refresh="showComingSoon" />
@@ -87,6 +88,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
+import { useUserStore } from '@/stores/user'
 import { appApi, type SysPlatformMenuItem, type InspirationWordsCategory } from '@/api/app'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
@@ -104,6 +106,14 @@ type RailItem = { key: LeftMenuKey; label: string; menuCode: string }
 const route = useRoute()
 const router = useRouter()
 const templateStore = useTemplateStore()
+const userStore = useUserStore()
+
+const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
+
+const removeWatermarkEnabled = computed(() => {
+  return userStore.userInfo?.watermarkStatus === 1 ? true : false
+})
+
 const leftMenu = ref<LeftMenuKey>('aiFashion')
 const isFabricEntry = route.query.mode === 'fabricCreative'
 const showComingSoon = () => ElMessage.warning('暂未开放')

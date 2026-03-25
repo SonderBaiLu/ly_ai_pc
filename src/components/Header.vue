@@ -6,11 +6,52 @@
         <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" @click="router.push('/')">
       </div>
 
+      <!-- 联系我们、关注我们 -->
       <nav class="nav-menu">
-        <a v-for="item in menuItems" :key="item.key" href="#" class="nav-item"
-          :class="{ active: item.path && item.path === route.path }" @click.prevent="handleMenuClick(item)">
-          {{ t(`header.${item.key}`) }}
-        </a>
+        <template v-for="item in menuItems" :key="item.key">
+          <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in pcCustomerService" :key="index" class="qrcode-popover-item">
+                <h3 class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <el-popover v-else-if="item.key === 'followUs' && followUsList.length > 0" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in followUsList" :key="index" class="qrcode-popover-item">
+                <h3 v-if="x.title" class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <a v-else href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+            @click.prevent="handleMenuClick(item)">
+            {{ t(`header.${item.key}`) }}
+          </a>
+        </template>
       </nav>
 
       <div class="nav-right">
@@ -49,10 +90,7 @@
                 <div class="user-card-name">
                   {{ userStore.userInfo?.nickname || userStore.userInfo?.userName || '未命名用户' }}
                 </div>
-                <div class="user-card-desc" v-if="userStore.userInfo?.userName">
-                  手机号：{{ userStore.userInfo?.userName || '暂无简介' }}
-                </div>
-                <div class="user-card-desc" v-else>
+                <div class="user-card-desc">
                   {{ userStore.userInfo?.desc || '暂无简介' }}
                 </div>
               </div>
@@ -148,11 +186,52 @@
         </el-select>
       </div>
 
+      <!-- 联系我们、关注我们 -->
       <nav class="nav-menu">
-        <a v-for="item in menuData" :key="item.key" href="#" class="nav-item"
-          :class="{ active: item.path && item.path === route.path }" @click.prevent="handleMenuClick(item)">
-          {{ t(`header.${item.key}`) }}
-        </a>
+        <template v-for="item in menuData" :key="item.key">
+          <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in pcCustomerService" :key="index" class="qrcode-popover-item">
+                <h3 class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <el-popover v-else-if="item.key === 'followUs' && followUsList.length > 0" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in followUsList" :key="index" class="qrcode-popover-item">
+                <h3 v-if="x.title" class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <a v-else href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+            @click.prevent="handleMenuClick(item)">
+            {{ t(`header.${item.key}`) }}
+          </a>
+        </template>
       </nav>
 
       <div class="nav-right nav-right--ai">
@@ -198,7 +277,10 @@
               </div>
             </div>
           </div>
-          <img src="@/assets/images/msg.png" alt="消息" class="msg-icon" />
+          <div class="msg-wrapper">
+            <img src="@/assets/images/msg.png" alt="消息" class="msg-icon" />
+            <img :src="images.dot" class="dot-icon" v-if="userStore.userInfo?.msgCount > 0" />
+          </div>
           <div class="user-menu" @mouseleave="scheduleCloseUserCard">
             <div class="user-avatar" @mouseenter="openPersonalCenterOnHover">
               <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
@@ -241,7 +323,8 @@
                   <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
 
-                <div class="user-card-menu-item" @click="handleTeamManagementClick">
+                <div class="user-card-menu-item" @click="handleTeamManagementClick"
+                  v-if="userStore.userInfo?.mainAccount || userStore.userInfo?.mainAdmin">
                   <div class="user-card-menu-left">
                     <img :src="images.team" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">团队管理</span>
@@ -279,10 +362,7 @@
                   <div class="user-card-name">
                     {{ userStore.userInfo?.nickname || userStore.userInfo?.userName || '未命名用户' }}
                   </div>
-                  <div class="user-card-desc" v-if="userStore.userInfo?.userName">
-                    手机号：{{ userStore.userInfo?.userName || '暂无简介' }}
-                  </div>
-                  <div class="user-card-desc" v-else>
+                  <div class="user-card-desc">
                     {{ userStore.userInfo?.desc || '暂无简介' }}
                   </div>
                 </div>
@@ -602,11 +682,39 @@ const menuData = [
   { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
+const customerCodeCards = [
+  { src: images.customerCode1, name: '商务咨询-小潮' },
+  { src: images.customerCode2, name: '商务咨询-雾楠' },
+  { src: images.customerCode3, name: '商务咨询-云纱' },
+]
+
+const pcCustomerService = computed(() =>
+  customerCodeCards.map((c) => ({
+    title: '扫码添加商务',
+    desc: c.name,
+    url: c.src,
+  })),
+)
+
+const followUsList = computed(() => [
+  { title: '扫码关注公众号', desc: '微信公众号', url: images.follow1 },
+  { title: '扫码关注视频号', desc: '微信视频号', url: images.follow2 },
+  { title: '扫码关注小红书', desc: '小红书官方号', url: images.follow3 },
+  { title: '打开抖音扫码关注', desc: '抖音官方号', url: images.follow4 },
+])
+
 // 规则：仅 AI 工作台相关页面使用“AI 专用导航”
 // 其它业务页面（如会员/邀请有礼）使用首页同款“第一个导航样式”
 const isAiDesignPage = computed(() => {
   const name = String(route.name ?? '')
-  return name === 'AiDesign' || name === 'AiFashionStudio' || name === 'MyCreations' || name === 'TeamManagement'
+  // 详情页也沿用 AI 专用导航样式，避免切换到详情后回退到首页导航
+  return (
+    name === 'AiDesign' ||
+    name === 'AiFashionStudio' ||
+    name === 'MyCreations' ||
+    name === 'TeamManagement' ||
+    name === 'CreativeDetail'
+  )
 })
 
 const handleMenuClick = (item: { key: string; path?: string; query?: Record<string, any> }) => {
@@ -753,12 +861,59 @@ const handleLogout = async () => {
   flex: 1;
   gap: $spacing-xl;
 
+  .nav-item-wrap {
+    position: relative;
+    padding-bottom: 12px;
+  }
+
   .nav-item {
     color: $color-text-gray;
     text-decoration: none;
     font-size: $font-size-md;
     font-weight: $font-weight-medium;
     transition: color $transition-base;
+  }
+}
+
+/* ================= QR Code Hover Popover（联系我们 / 关注我们） ================= */
+
+// 二维码卡片内部布局
+.qrcode-popover {
+  &-content {
+    display: flex;
+    align-items: center;
+    gap: 45px;
+    padding: 12px 34px 11px 33px;
+  }
+
+  &-title {
+    margin-bottom: 15px;
+    color: $color-primary;
+    font-family: AlibabaPuHui-bold;
+    font-weight: 600;
+    font-size: $font-size-sm;
+  }
+
+  &-item {
+    text-align: center;
+  }
+
+  &-box {
+    width: 100px;
+    height: 100px;
+    border-radius: 5px;
+  }
+
+  &-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &-label {
+    margin-top: 11px;
+    font-size: $font-size-xs;
+    color: rgba(255, 255, 255, 0.7);
   }
 }
 
@@ -797,6 +952,22 @@ const handleLogout = async () => {
   .ai-link {
     cursor: pointer;
     font-size: $font-size-md;
+  }
+
+  .msg-wrapper {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+
+    .dot-icon {
+      position: absolute;
+      top: -2px;
+      right: -1px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+    }
   }
 
   .ai-coin-pill {
@@ -1084,6 +1255,16 @@ const handleLogout = async () => {
       .user-card-desc {
         color: $color-text-placeholder;
         font-size: 12px;
+        /* 1. 强制文字在一行显示，不换行 */
+        white-space: nowrap;
+        /* 2. 超出容器宽度的内容隐藏 */
+        overflow: hidden;
+        /* 3. 超出部分显示省略号 */
+        text-overflow: ellipsis;
+        /* 必须给容器设置宽度，否则无法生效！ */
+        width: 120px;
+        /* 行内元素需要加这个，比如 span/a 标签 */
+        display: inline-block;
       }
     }
 

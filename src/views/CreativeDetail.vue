@@ -52,10 +52,11 @@
                 <span>下载</span>
               </div>
               <div class="download-menu-item switch-row">
-                <el-switch :model-value="removeWatermarkEnabled"
+                <el-switch v-model="removeWatermarkEnabled" :disabled="!isUserVip" active-color="#17A0E1"
+                  inactive-color="#201B26"
                   @change="(v) => handleWatermarkToggleChange(v as string | number | boolean)" />
                 <span>去除水印</span>
-                <span class="vip-text">VIP</span>
+                <img :src="images.vipText" alt="VIP" class="vip-text-icon" />
               </div>
             </div>
           </el-popover>
@@ -256,10 +257,6 @@
     <MembershipModal :show="showCoinInsufficient" :error-type="coinErrorType" :is-vip="isUserVip"
       @close="handleCoinInsufficientClose" @success="handleMembershipPurchaseSuccess" />
 
-    <!-- 责任声明弹窗 -->
-    <WatermarkDisclaimerModal v-model="showWatermarkDisclaimer" @confirm="handleWatermarkDisclaimerConfirm"
-      @cancel="handleWatermarkDisclaimerCancel" @no-remind-change="handleWatermarkDisclaimerNoRemindChange" />
-
     <!-- 图片预览 - 使用 Element Plus ImageViewer -->
     <el-image-viewer v-if="showImagePreview" :url-list="previewImageList" :initial-index="previewInitialIndex"
       :hide-on-click-modal="true" @close="handlePreviewClose" />
@@ -278,7 +275,7 @@ import { assetApi } from '@/api/asset'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useTemplateStore } from '@/stores/template'
-import { useWatermarkStore } from '@/stores/watermark'
+import { useModalStore } from '@/stores/modal'
 import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import type { CreativeTemplate } from '@/types'
 import { copyToClipboard } from '@/utils/clipboard'
@@ -321,7 +318,7 @@ const router = useRouter()
 // 用户store
 const userStore = useUserStore()
 const templateStore = useTemplateStore()
-const watermarkStore = useWatermarkStore()
+const modalStore = useModalStore()
 
 // 响应式数据
 const templateDetail = ref<CreativeTemplate | null>(null)
@@ -338,13 +335,30 @@ const previewImageList = ref<string[]>([]) // 预览图片列表
 const previewInitialIndex = ref(0) // 预览初始索引
 const showFeedbackModal = ref(false) // 反馈弹窗显示状态
 
-// 去除水印相关状态
-const removeWatermarkEnabled = computed(() => watermarkStore.removeWatermarkEnabled)
 const showCoinInsufficient = ref(false) // 会员购买弹窗
 const coinErrorType = ref('up_vip') // 错误类型
-const showWatermarkDisclaimer = ref(false) // 责任声明弹窗
 const isDownloading = ref(false) // 下载状态
-const isUserVip = computed(() => userStore.userInfo?.isVip === 1)
+const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
+
+const removeWatermarkEnabled = computed(() => {
+  // 仅会员才展示“去除水印”开启状态；避免会员到期仍回显旧的 watermarkStatus=1
+  return isUserVip.value && userStore.userInfo?.watermarkStatus === 1 ? true : false
+})
+
+const setLocalWatermarkStatus = (enabled: boolean) => {
+  const prev = userStore.userInfo
+  if (!prev) return
+  userStore.setUserInfo({
+    ...prev,
+    // watermarkStatus 1 表示“去除水印开启”（无水印）
+    watermarkStatus: enabled ? 1 : 0,
+  })
+}
+
+const persistWatermarkStatus = async (enabled: boolean) => {
+  const payload = { watermarkStatus: enabled ? 1 : 0 }
+  await userStore.updateUserInfo(payload).catch(() => { })
+}
 
 // 购买会员成功后的待处理操作
 type PendingAction = { type: 'download' } | { type: 'toggle' } | { type: 'brandWatermark' }
@@ -1201,14 +1215,16 @@ const handleDownloadCommand = (command: string) => {
 }
 
 // 处理去除水印开关变化
-const handleWatermarkToggleChange = (val: string | number | boolean) => {
+const handleWatermarkToggleChange = async (val: string | number | boolean) => {
   const enabled = val === true || val === 1 || val === '1' || val === 'true'
-  // 如果不是会员，打开会员购买弹窗
-  if (!isUserVip.value) {
+  // 只有尝试“开启去水印”时才需要校验会员是否还有效
+  if (enabled) await refreshUserInfoIfPossible()
+  // 只有“开启去水印”才需要会员；关闭去水印允许所有用户操作
+  if (!isUserVip.value && enabled) {
     pendingAfterVipAction.value = { type: 'toggle' }
     showCoinInsufficient.value = true
     coinErrorType.value = 'up_vip'
-    watermarkStore.setRemoveWatermarkEnabled(false)
+    setLocalWatermarkStatus(false)
     return
   }
 
@@ -1217,13 +1233,13 @@ const handleWatermarkToggleChange = (val: string | number | boolean) => {
   if (!noRemind && enabled) {
     // 显示责任声明弹窗
     pendingAfterVipAction.value = { type: 'toggle' }
-    showWatermarkDisclaimer.value = true
-    watermarkStore.setRemoveWatermarkEnabled(false)
+    setLocalWatermarkStatus(false)
+    modalStore.openWatermarkDisclaimerModalPage()
     return
   }
 
-  // 更新状态
-  watermarkStore.setRemoveWatermarkEnabled(enabled)
+  // 更新状态并持久化（不需要弹窗的情况下）
+  await persistWatermarkStatus(enabled)
 }
 
 // 处理会员购买弹窗关闭
@@ -1247,9 +1263,10 @@ const handleMembershipPurchaseSuccess = async () => {
       // 检查是否需要显示责任声明
       const noRemind = localStorage.getItem('watermark_disclaimer_no_remind') === 'true'
       if (!noRemind) {
-        showWatermarkDisclaimer.value = true
+        setLocalWatermarkStatus(false)
+        modalStore.openWatermarkDisclaimerModalPage()
       } else {
-        watermarkStore.setRemoveWatermarkEnabled(true)
+        await persistWatermarkStatus(true)
       }
     } else if (pendingAfterVipAction.value.type === 'brandWatermark') {
       // 品牌水印入口购买成功后，自动打开品牌水印弹窗
@@ -1259,30 +1276,28 @@ const handleMembershipPurchaseSuccess = async () => {
   }
 }
 
-// 处理责任声明确认
-const handleWatermarkDisclaimerConfirm = () => {
-  showWatermarkDisclaimer.value = false
-  watermarkStore.setRemoveWatermarkEnabled(true)
-  // 如果之前有待处理的下载操作，继续执行
-  if (pendingAfterVipAction.value?.type === 'download') {
-    pendingAfterVipAction.value = null
-    handleDownload()
-  } else if (pendingAfterVipAction.value?.type === 'toggle') {
-    pendingAfterVipAction.value = null
-  }
-}
+// 责任声明弹窗确认/取消：清理 pending，并在需要时继续执行
+watch(
+  () => modalStore.watermarkDisclaimerConfirmToken,
+  () => {
+    const pending = pendingAfterVipAction.value
+    if (!pending) return
 
-// 处理责任声明取消
-const handleWatermarkDisclaimerCancel = () => {
-  showWatermarkDisclaimer.value = false
-  watermarkStore.setRemoveWatermarkEnabled(false)
-  pendingAfterVipAction.value = null
-}
+    if (pending.type === 'download') {
+      pendingAfterVipAction.value = null
+      handleDownload()
+    } else if (pending.type === 'toggle') {
+      pendingAfterVipAction.value = null
+    }
+  },
+)
 
-// 处理不再弹窗提醒变化
-const handleWatermarkDisclaimerNoRemindChange = (noRemind: boolean) => {
-  localStorage.setItem('watermark_disclaimer_no_remind', noRemind ? 'true' : 'false')
-}
+watch(
+  () => modalStore.watermarkDisclaimerCancelToken,
+  () => {
+    pendingAfterVipAction.value = null
+  },
+)
 
 // 下载/保存资产（参考资产列表的下载逻辑）
 const handleDownload = async () => {
@@ -2257,36 +2272,6 @@ onUnmounted(() => {
         }
       }
 
-      .download-menu {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-
-        .download-menu-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: $color-text-white;
-          font-size: 14px;
-          line-height: 1;
-
-          .download-menu-icon {
-            width: 14px;
-            height: 14px;
-            object-fit: contain;
-          }
-        }
-
-        .switch-row {
-          .vip-text {
-            color: rgba(150, 221, 255, 1);
-            font-weight: 700;
-            font-style: italic;
-            margin-left: 2px;
-          }
-        }
-      }
-
       // 标题
       .section-title,
       .param-input,
@@ -2408,18 +2393,5 @@ onUnmounted(() => {
       }
     }
   }
-}
-</style>
-
-<style lang="scss">
-.download-menu-popper.el-popper {
-  background: rgba(34, 34, 34, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-}
-
-.download-menu-popper .el-popper__arrow::before {
-  background: rgba(34, 34, 34, 0.96);
-  border-color: rgba(255, 255, 255, 0.08);
 }
 </style>

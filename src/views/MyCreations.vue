@@ -54,9 +54,10 @@
                 <span>{{ t('myCreations.actions.download') }}</span>
               </div>
               <div class="download-menu-item switch-row">
-                <el-switch :model-value="removeWatermarkEnabled" @change="(v) => handleWatermarkToggleChange(v)" />
+                <el-switch v-model="removeWatermarkEnabled" :disabled="!isUserVip" active-color="#17A0E1"
+                  inactive-color="#201B26" @change="(v) => handleWatermarkToggleChange(v)" />
                 <span>去除水印</span>
-                <span class="vip-text">VIP</span>
+                <img :src="images.vipText" alt="VIP" class="vip-text-icon" />
               </div>
             </div>
           </el-popover>
@@ -150,6 +151,7 @@
       <InfiniteScrollLoader :loading="loading" :has-more="hasMore" :data-length="list.length"
         :empty-text="t('myCreations.empty.noWorks')" />
     </div>
+
   </div>
 </template>
 
@@ -160,6 +162,7 @@ import { images } from '@/assets'
 import { uploadApi } from '@/api/upload'
 import { creativeApi } from '@/api/creative'
 import { useUserStore } from '@/stores/user'
+import { useModalStore } from '@/stores/modal'
 import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import { useI18n } from 'vue-i18n'
 
@@ -196,9 +199,19 @@ const hasMore = ref(true)
 const batchMode = ref(false)
 const selectedIds = ref<(string | number)[]>([])
 const isDownloading = ref(false)
-const removeWatermarkEnabled = ref(false)
 const uploading = ref(false)
 const userStore = useUserStore()
+const modalStore = useModalStore()
+
+const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
+
+const removeWatermarkEnabled = computed(() => {
+  // 仅会员才展示“去除水印”开启状态；避免会员到期仍回显 watermarkStatus=1
+  return isUserVip.value && userStore.userInfo?.watermarkStatus === 1 ? true : false
+})
+
+// 只处理“打开开关”这类动作：未确认前先强制保持关闭
+const pendingWatermarkToggleTo = ref<boolean | null>(null)
 
 const pageSize = 12
 const page = ref(1)
@@ -295,6 +308,16 @@ const handleZoom = () => {
   ElMessage.info(t('myCreations.message.previewTodo'))
 }
 
+// 刷新用户信息：用于校验会员状态是否已变更（例如会员到期）
+const refreshUserInfoIfPossible = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    await userStore.getUserInfo()
+  } catch (e) {
+    console.warn('[MyCreations] 刷新用户信息失败（忽略）：', e)
+  }
+}
+
 const handleItemClick = (item: CreationItem) => {
   if (batchMode.value) {
     // 选择模式下，点击卡片等同于切换选中状态
@@ -357,22 +380,75 @@ const getItemUrl = (item: CreationItem) => {
   return item.imageUrl || item.imgUrl || item.lessenImg || ''
 }
 
-const handleWatermarkToggleChange = (val: string | number | boolean) => {
+const setLocalWatermarkStatus = (enabled: boolean) => {
+  const prev = userStore.userInfo
+  if (!prev) return
+  userStore.setUserInfo({
+    ...prev,
+    // watermarkStatus 1 表示“去除水印开启”（无水印）
+    watermarkStatus: enabled ? 1 : 0,
+  })
+}
+
+const persistWatermarkStatus = async (enabled: boolean) => {
+  const payload = { watermarkStatus: enabled ? 1 : 0 }
+  await userStore.updateUserInfo(payload).catch(() => { })
+}
+
+const handleWatermarkToggleChange = async (val: string | number | boolean) => {
   const enabled = val === true || val === 1 || val === '1' || val === 'true'
-  const isVip = Number(userStore.userInfo?.isVip ?? 0) === 1
+  // 只有尝试“开启去水印”时才需要校验是否仍为会员
+  if (enabled) await refreshUserInfoIfPossible()
+  const isVip = isUserVip.value
   if (enabled && !isVip) {
-    removeWatermarkEnabled.value = false
     ElMessage.warning('仅会员可去除水印，请开通会员')
     return
   }
-  removeWatermarkEnabled.value = enabled
+
+  // enabled=true 且为会员：先检查是否需要责任声明
+  if (enabled && isVip) {
+    const noRemind = localStorage.getItem('watermark_disclaimer_no_remind') === 'true'
+    if (!noRemind) {
+      pendingWatermarkToggleTo.value = true
+      setLocalWatermarkStatus(false)
+      modalStore.openWatermarkDisclaimerModalPage()
+      return
+    }
+  }
+
+  pendingWatermarkToggleTo.value = null
+  await persistWatermarkStatus(enabled)
 }
+
+// 责任声明弹窗确认/取消：清理页面内 pending 状态
+watch(
+  () => modalStore.watermarkDisclaimerConfirmToken,
+  () => {
+    if (pendingWatermarkToggleTo.value !== null) pendingWatermarkToggleTo.value = null
+  },
+)
+watch(
+  () => modalStore.watermarkDisclaimerCancelToken,
+  () => {
+    if (pendingWatermarkToggleTo.value !== null) pendingWatermarkToggleTo.value = null
+  },
+)
 
 const handleBatchDownload = async () => {
   if (selectedIds.value.length === 0) return
   if (isDownloading.value) return
   isDownloading.value = true
   try {
+    // 如果用户当前选择了“去除水印”下载，需要再次校验会员状态（例如会员到期）
+    const wantRemoveWatermark = removeWatermarkEnabled.value
+    if (wantRemoveWatermark) {
+      await refreshUserInfoIfPossible()
+      if (!isUserVip.value) {
+        ElMessage.warning('仅会员可去除水印，请开通会员')
+        return
+      }
+    }
+
     const set = new Set(selectedIds.value)
     const items = filteredAll.value.filter((x) => set.has(x.id))
     for (const item of items) {
@@ -660,39 +736,6 @@ body {
       }
     }
 
-    .download-menu {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-
-      .download-menu-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: $color-text-white;
-        font-size: 14px;
-        line-height: 1;
-        cursor: pointer;
-
-        .download-menu-icon {
-          width: 14px;
-          height: 14px;
-          object-fit: contain;
-        }
-      }
-
-      .switch-row {
-        cursor: default;
-
-        .vip-text {
-          color: rgba(150, 221, 255, 1);
-          font-weight: 700;
-          font-style: italic;
-          margin-left: 2px;
-        }
-      }
-    }
-
     .header-actions-mobile {
       display: none;
       flex-shrink: 0;
@@ -769,18 +812,5 @@ body {
       }
     }
   }
-}
-</style>
-
-<style lang="scss">
-.download-menu-popper.el-popper {
-  background: rgba(34, 34, 34, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-}
-
-.download-menu-popper .el-popper__arrow::before {
-  background: rgba(34, 34, 34, 0.96);
-  border-color: rgba(255, 255, 255, 0.08);
 }
 </style>
