@@ -42,16 +42,16 @@
             </td>
           </tr>
 
-          <tr v-for="row in teamList" :key="row.accountId">
-            <td>
-              <div class="member-info-col">
-                <span class="member-userNameTwo">{{ row.userNameTwo }}</span>
-                <span class="member-name">{{ row.nickName }}</span>
-                <span v-if="row.mainStatus === '1'" class="main-account-badge">主账号</span>
-              </div>
-            </td>
-            <td>{{ formatDate(row.createTime) }}</td>
-            <td>
+            <tr v-for="row in teamList" :key="row.accountId">
+              <td>
+                <div class="member-info-col">
+                  <span class="member-userNameTwo">{{ row.userNameTwo }}</span>
+                  <span class="member-name">{{ row.nickName }}</span>
+                  <span v-if="row.mainStatus === '1'" class="main-account-badge">主账号</span>
+                </div>
+              </td>
+              <td class="create-time">{{ formatDate(row.createTime) }}</td>
+              <td>
                 <span :class="['role-tag', row.role === '1' ? 'admin' : 'member']">
                   {{ row.role === '1' ? '管理员' : '成员' }}
                 </span>
