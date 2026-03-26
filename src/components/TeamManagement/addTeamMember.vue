@@ -58,7 +58,7 @@
         <button
             v-if="!isSuccess"
             class="action-btn submit-btn"
-            :class="{ 'is-loading': loading }"
+            :class="{ 'is-loading': loading  }"
             :disabled="loading"
             @click="handleSubmit"
         >
@@ -81,7 +81,7 @@
 import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import teamApi from "@/api/teamManage.ts";
-
+// TODO: VITE_API_PROXY_TARGET 获取 URL
 // --- Props & Emits ---
 const props = defineProps({
   visible: {
@@ -181,7 +181,7 @@ const handleSubmit = async () => {
       isTeamAndUrl.value = true; // TODO: 是否显示名称 与 URL
 
     }
-  } catch (e){
+  } catch (e:any){
     const errorMsg =  e.message || '添加失败'
     ElMessage.error(errorMsg)
   } finally {
@@ -204,8 +204,8 @@ const handleCopy = async () => {
     ElMessage.success('复制成功')
     closeDialog()
     emit('success')
-  } catch (err) {
-    ElMessage.error(err.success)
+  } catch (e:any) {
+    ElMessage.error(e.success)
   }
 }
 </script>
@@ -384,11 +384,11 @@ const handleCopy = async () => {
     width: 89px;
     height: 34px;
     border-radius: 4px;
-    background-color: rgba(16,16,16,0.3);
     font-size: 14px;
     cursor: pointer;
     border: none;
-    color: $color-text-add-gray;
+    color: $color-text-white;
+
     font-weight: 800;
     transition: opacity 0.3s;
 
@@ -400,6 +400,12 @@ const handleCopy = async () => {
       cursor: not-allowed;
       opacity: 0.7;
     }
+     /* TODO:: 禁用按钮样式  */
+
+    //&.disabled{
+    //  cursor: not-allowed;
+    //  background-color: rgba(16,16,16,0.3);
+    //}
   }
 
   .submit-btn {

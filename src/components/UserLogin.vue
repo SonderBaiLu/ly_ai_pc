@@ -118,12 +118,14 @@
               <div class="input-wrapper code-input-wrapper">
                 <input type="tel" maxlength="4" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
-                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting">
+                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting || isGettingCode">
                   {{
-                    isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
-                      t('LoginPopUpPage.getVerificationCode')
+                    isGettingCode ? '发送中...' :
+                        isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
+                            t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
+
               </div>
             </div>
 
@@ -155,7 +157,7 @@
                 {{ confirmedInviteCode ? `邀请码: ${confirmedInviteCode}` : t('LoginPopUpPage.inviteFill') }}
               </a>
             </div>
-            <button class="submit-btn" @click="handleSubmit">
+            <button class="submit-btn" @click="handleSubmit" :disabled="isSubmitting">
               {{ t('LoginPopUpPage.loginOrRegister') }}
             </button>
           </div>
@@ -183,7 +185,7 @@
               </div>
             </div>
 
-            <button class="submit-btn team-submit-btn" @click="handleTeamSubmit">
+            <button class="submit-btn team-submit-btn" @click="handleTeamSubmit" :disabled="isTeamSubmitting">
               {{ t('LoginPopUpPage.teamLoginButton') }}
             </button>
           </div>
@@ -263,18 +265,18 @@ let qrCountdownTimer: ReturnType<typeof setInterval> | null = null // 倒计时�
 
 // 开启倒计时的方法
 const startQrCountdown = (expireSeconds: number) => {
-  if (qrCountdownTimer) clearInterval(qrCountdownTimer)
+  if (qrCountdownTimer) clearTimeout(qrCountdownTimer)
   qrCountdown.value = expireSeconds
 
   qrCountdownTimer = setInterval(() => {
     qrCountdown.value--
     if (qrCountdown.value <= 0) {
       // 倒计时归零：清理倒计时、清理轮询、将状态置为过期
-      clearInterval(qrCountdownTimer!)
+      clearTimeout(qrCountdownTimer!)
       qrCountdownTimer = null
 
       if (qrCodeTimer) {
-        clearInterval(qrCodeTimer)
+        clearTimeout(qrCodeTimer)
         qrCodeTimer = null
       }
       qrStatus.value = 'expired'
@@ -283,16 +285,16 @@ const startQrCountdown = (expireSeconds: number) => {
 }
 
 const initQrCode = async () => {
-  qrStatus.value = 'loading'
-  if (qrCodeTimer) clearInterval(qrCodeTimer)
-  if (qrCountdownTimer) clearInterval(qrCountdownTimer)
+  qrStatus.value = 'loading' // 刚进函数应该是 装载 状态
+  if (qrCodeTimer) clearTimeout(qrCodeTimer)
+  if (qrCountdownTimer) clearTimeout(qrCountdownTimer)
   try {
     const res = await getWechatQrCodeApi()
     qrCodeImg.value = res.data.qrUrl
     sceneId.value = res.data.sceneId
-    const expireTime = res.data.expire || 1
+    const expireTime = res.data.expire || 180
     startQrCountdown(expireTime)
-    qrStatus.value = 'waiting'
+    qrStatus.value = 'waiting'; // 等待扫码
     startPolling() // 获取成功后开始轮询
   } catch {
     ElMessage.error('获取二维码失败，请重试')
@@ -300,56 +302,125 @@ const initQrCode = async () => {
   }
 }
 
+// const startPolling = () => {
+//   qrCodeTimer = setInterval(async () => {
+//     try {
+//       const res = await getUserWechat({ sceneId: sceneId.value })
+//       if (String((res as any).code) === '0000') {
+//         const apiStatus = res.data.status;
+//         console.log(apiStatus);
+//         if (apiStatus === 0) {
+//           qrStatus.value = 'waiting';
+//         } else if (apiStatus === 1) {
+//           // 扫码成功，清除定时器
+//           clearTimeout(qrCodeTimer!);
+//           qrCodeTimer = null;
+//           if (res.data.mobileStatus) {
+//             // 需要绑定手机号 弹出绑定手机号弹窗
+//             dialogs.isVisible = true;
+//             currentMode.value = '3' // 用户第一次登录 显示密码
+//             openId.value = res.data.openId
+//             ElMessage.success('扫码成功，请绑定手机号');
+//           } else{
+//             // 已关注/已绑定，直接登录成功
+//             const accessToken = res.data.accessToken
+//             if(accessToken){
+//               userStore.setToken(accessToken);
+//             }
+//             try{
+//               await userStore.getUserInfo(); // 触发获用户信息接口
+//               ElMessage.success('登录成功');
+//               emit('close');
+//               await router.push('/').catch(() => {});
+//             }catch (e:any){
+//               ElMessage.error(e.message);
+//             }
+//           }
+//
+//         } else if (apiStatus === -1) {
+//           clearTimeout(qrCodeTimer!);
+//           qrCodeTimer = null;
+//           qrStatus.value = 'expired';
+//         }
+//       }
+//     } catch (e) {
+//       console.error('查询状态异常', e);
+//     }
+//   }, 2000);
+// }
+
+
 const startPolling = () => {
-  qrCodeTimer = setInterval(async () => {
+  // 定义一个内部的异步轮询函数
+  const poll = async () => {
     try {
       const res = await getUserWechat({ sceneId: sceneId.value })
       if (String((res as any).code) === '0000') {
         const apiStatus = res.data.status;
-        console.log(apiStatus);
         if (apiStatus === 0) {
           qrStatus.value = 'waiting';
+          // 只要还是 waiting 状态，就在 2 秒后安排下一次 poll
+          qrCodeTimer = setTimeout(poll, 2000);
         } else if (apiStatus === 1) {
-          // 扫码成功，清除定时器
-          clearInterval(qrCodeTimer!);
-          qrCodeTimer = null;
+          // 扫码成功，此时不需要再设定下一个 setTimeout 了
           if (res.data.mobileStatus) {
-            // 需要绑定手机号
-            // 弹出绑定手机号弹窗
             dialogs.isVisible = true;
-            currentMode.value = '3' // 用户第一次登录 显示密码
-            openId.value = res.data.openId
-            ElMessage.success('扫码登录成功');
-          } else{
-            // 已关注/已绑定，直接登录成功
-            const accessToken = res.data.accessToken
+            currentMode.value = '3';
+            openId.value = res.data.openId;
+            ElMessage.success('扫码成功，请绑定手机号');
+          } else {
+            const accessToken = res.data.accessToken;
             if(accessToken){
               userStore.setToken(accessToken);
             }
-            await userStore.getUserInfo() // 触发获用户信息接口
-            ElMessage.success('登录成功');
-            emit('close');
-            await router.push('/');
+            try {
+              await userStore.getUserInfo();
+              ElMessage.success('登录成功');
+              emit('close');
+              await router.push('/').catch(() => {});
+            } catch (e:any) {
+              ElMessage.error(e.message);
+            }
           }
 
         } else if (apiStatus === -1) {
-          clearInterval(qrCodeTimer!);
-          qrCodeTimer = null;
           qrStatus.value = 'expired';
+          // 二维码失效，不用再设定 setTimeout
         }
       }
     } catch (e) {
       console.error('查询状态异常', e);
+      // 就算报错了（比如网络波动断了一下），也要在 2 秒后继续尝试
+      qrCodeTimer = setTimeout(poll, 2000);
     }
-  }, 2000);
+  };
+
+  // 启动第一次请求
+  poll();
 }
-// 处理 ResetPassword 组件绑定成功后的回调
-const handleBindSuccess = async () => {
-  dialogs.isVisible = false;   // 关掉绑定手机号的弹窗
-  await userStore.getUserInfo(); // 刷新用户信息，确保拿到了最新状态
-  ElMessage.success('登录成功');
-  emit('close');       // 关闭整个登录大弹窗
-  await router.push('/');    // 跳转到首页
+
+
+
+// 处理 ResetPassword 组件绑定成功后的回调 接收子组件传来的 mode 参数
+const handleBindSuccess = async (mode: string) => {
+  try {
+    dialogs.isVisible = false; // 关掉弹窗
+
+    // 只有模式 3(扫码后绑定手机号) 才会有新 token 并需要拉取用户信息
+    if (mode === '3') {
+      await userStore.getUserInfo();
+      ElMessage.success('登录成功');
+      emit('close'); // 关闭整个登录大弹窗
+      await router.push('/').catch(() => {});
+    } else {
+      // 模式 0, 1, 2 (重置/修改密码) 成功后，不需要拉取用户信息！
+      // 只需要引导用户回到密码登录界面即可
+      loginMethod.value = 'phone';
+      phoneLoginType.value = 'password';
+    }
+  } catch (e:any) {
+    ElMessage.error(e.message);
+  }
 }
 
 // 监听登录方式切换，决定是否请求二维码和清理定时器
@@ -358,12 +429,12 @@ watch(loginMethod, (newMethod) => {
     initQrCode()
   } else {
     if (qrCodeTimer) {
-      clearInterval(qrCodeTimer)
+      clearTimeout(qrCodeTimer)
       qrCodeTimer = null
     }
     // 补充清理倒计时
     if (qrCountdownTimer) {
-      clearInterval(qrCountdownTimer)
+      clearTimeout(qrCountdownTimer)
       qrCountdownTimer = null
     }
   }
@@ -371,7 +442,7 @@ watch(loginMethod, (newMethod) => {
 
 // 组件销毁前必须清理二维码定时器
 onBeforeUnmount(() => {
-  if (qrCodeTimer) clearInterval(qrCodeTimer)
+  if (qrCodeTimer) clearTimeout(qrCodeTimer)
 })
 
 // ==========================================
@@ -384,6 +455,10 @@ const formData = reactive({
   teamAccount: '',
   teamPassword: '',
 })
+// ---  Loading 状态 ---  登录按钮  获取验证码按钮
+const isGettingCode = ref(false)    // 获取验证码的 loading
+const isSubmitting = ref(false)     // 个人登录的 loading
+const isTeamSubmitting = ref(false) // 团队登录的 loading
 
 // UI 交互状态
 const showPersonalPwd = ref(false)
@@ -414,6 +489,7 @@ const GetSmSCode = async () => {
     ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
     return
   }
+  isGettingCode.value = true // 开启 loading 防抖
   try {
     const res = await getSmsCodeApi(mobile)
     if (String((res as any).code) === '0000') {
@@ -435,13 +511,15 @@ const GetSmSCode = async () => {
     }
   } catch (e) {
     console.error('getSmsCode error', e)
+  } finally {
+    isGettingCode.value = false // 无论成功失败，解除 loading
   }
 }
 
 // 个人登录提交 (区分验证码和密码)
 const handleSubmit = async () => {
   if (!formData.phone) return ElMessage.warning(t('LoginPopUpPage.enterPhoneNumber'))
-
+  isSubmitting.value = true
   try {
     if (phoneLoginType.value === 'code') {
       if (!formData.code) return ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
@@ -460,6 +538,8 @@ const handleSubmit = async () => {
     } else if (phoneLoginType.value === 'code') {
       codeErrorMsg.value = errorMsg
     }
+  }finally {
+    isSubmitting.value = false // 解除 loading
   }
 }
 
@@ -480,13 +560,15 @@ const handleTeamSubmit = async () => {
   teamErrorMsg.value = ''
   if (!formData.teamAccount) return ElMessage.warning(t('LoginPopUpPage.teamAccountPlaceholder'))
   if (!formData.teamPassword) return ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
-
+  isTeamSubmitting.value = true //  开启 loading
   try {
     await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
     ElMessage.success(t('LoginPopUpPage.loginSuccess'))
     emit('close')
   } catch (e: any) {
     teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
+  }finally {
+    isTeamSubmitting.value = false //  解除 loading
   }
 }
 
@@ -770,6 +852,7 @@ const forgotPassword = () => {
   padding-top: 10px;
 
   .qrcode-container {
+    position: relative;
     width: 200px;
     height: 200px;
     display: flex;

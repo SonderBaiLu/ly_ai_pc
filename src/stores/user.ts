@@ -83,7 +83,6 @@ export const useUserStore = defineStore('user', {
         return detailInfo
       } catch (error) {
         console.error('获取用户详细信息失败', error)
-        throw error
       }
     },
 

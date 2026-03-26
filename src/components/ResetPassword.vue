@@ -3,7 +3,8 @@
     <div :class="['reset-password-modal', `mode-${modeType}`]">
       <button class="close-btn" @click="closeModal">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M1 1L13 13M1 13L13 1" stroke="#999999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M1 1L13 13M1 13L13 1" stroke="#999999" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round"/>
         </svg>
       </button>
 
@@ -16,7 +17,7 @@
         <div class="form-group" v-if="modeType === '2'">
           <label class="form-label">账号名</label>
           <div class="input-wrapper disabled-wrapper">
-            <input type="text" v-model="formData.accountName" class="form-input" disabled />
+            <input type="text" v-model="formData.accountName" class="form-input" disabled/>
           </div>
         </div>
 
@@ -40,16 +41,16 @@
         <div class="form-group" v-if="['1', '2'].includes(modeType)">
           <label class="form-label">旧密码</label>
           <div class="input-wrapper">
-            <input type="password" v-model="formData.oldPassword" class="form-input" placeholder="请输入旧密码" />
+            <input type="password" v-model="formData.oldPassword" class="form-input" placeholder="请输入旧密码"/>
           </div>
         </div>
 
         <div class="form-group" v-if="['0', '3'].includes(modeType)">
           <label class="form-label">验证码</label>
           <div class="input-wrapper code-wrapper">
-            <input maxlength="4" v-model="formData.code" type="tel" class="form-input" placeholder="请输入验证码" />
+            <input maxlength="4" v-model="formData.code" type="tel" class="form-input" placeholder="请输入验证码"/>
             <button @click='fetchSmsCode' :disabled="!formData.phone || isCounting" class="get-code-btn">
-              {{ isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) : '获取验证码' }}
+              {{ isCounting ? t('LoginPopUpPage.smsCountdown', {seconds: countdown}) : '获取验证码' }}
             </button>
           </div>
         </div>
@@ -60,9 +61,10 @@
               新密码 <span class="label-hint">6-20个数字、字母组成</span>
             </label>
             <div class="input-wrapper">
-              <input  maxlength="20" :type="showPwdOne ? 'text' : 'password'" v-model="formData.newPassword" class="form-input" placeholder="请输入密码" />
+              <input maxlength="20" :type="showPwdOne ? 'text' : 'password'" v-model="formData.newPassword"
+                     class="form-input" placeholder="请输入密码"/>
               <span class="icon-eye" @click="showPwdOne = !showPwdOne">
-                <img :src="showPwdOne ? images.eye : images.eyeClose" alt="" />
+                <img :src="showPwdOne ? images.eye : images.eyeClose" alt=""/>
               </span>
             </div>
           </div>
@@ -70,9 +72,10 @@
           <div class="form-group">
             <label class="form-label">确认密码</label>
             <div class="input-wrapper">
-              <input maxlength="20"  :type="showPwdTwo ? 'text' : 'password'" v-model="formData.confirmPassword" class="form-input" placeholder="请再次输入密码确认" />
+              <input maxlength="20" :type="showPwdTwo ? 'text' : 'password'" v-model="formData.confirmPassword"
+                     class="form-input" placeholder="请再次输入密码确认"/>
               <span class="icon-eye" @click="showPwdTwo = !showPwdTwo">
-                <img :src="showPwdTwo ? images.eye : images.eyeClose" alt="" />
+                <img :src="showPwdTwo ? images.eye : images.eyeClose" alt=""/>
               </span>
             </div>
           </div>
@@ -85,17 +88,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onUnmounted } from 'vue'
-import { images } from '@/assets'
-import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import {ref, reactive, computed, watch, onUnmounted} from 'vue'
+import {images} from '@/assets'
+import {useI18n} from 'vue-i18n'
+import {ElMessage} from 'element-plus'
 import {changePwdBySms, doUserWechatLogin, getSmsCodeApi} from "@/api/userLogin"
 import userApi from '@/api/user'
-import { useUserStore } from '@/stores/user'
+import {useUserStore} from '@/stores/user'
 
 const userStore = useUserStore()
-const { t } = useI18n()
-import { baseRules } from '@/utils/validationSchemas.ts'
+const {t} = useI18n()
+import {baseRules} from '@/utils/validationSchemas.ts'
 
 // Props & Emits
 const props = defineProps({
@@ -103,7 +106,7 @@ const props = defineProps({
     type: String,
     default: '0', // 0:重置密码, 1:个人改密, 2:团队改密, 3:绑定手机
   },
-  openId:{  // 绑定手机号登录接口需要用到的 openId 在扫码登陆那边传过来的
+  openId: {  // 绑定手机号登录接口需要用到的 openId 在扫码登陆那边传过来的
     type: String,
     default: '',
   },
@@ -111,18 +114,18 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  confirmedInviteCode:{  // 邀请码
+  confirmedInviteCode: {  // 邀请码
     type: String,
     default: '',
   }
 })
 
-const emit = defineEmits(['close','success'])
+const emit = defineEmits(['close', 'success'])
 const modeType = computed(() => props.mode as '0' | '1' | '2' | '3')
 
 // ====== UI 状态与文案计算 ======
 const modalTitle = computed(() => {
-  const titles = { '0': '重置密码', '1': '修改密码', '2': '修改密码', '3': '绑定手机' }
+  const titles = {'0': '重置密码', '1': '修改密码', '2': '修改密码', '3': '绑定手机'}
   return titles[modeType.value] || '修改密码'
 })
 
@@ -151,7 +154,7 @@ watch(
         formData.phone = userStore.userInfo.userName || userStore.userInfo.mobile || ''
       }
     },
-    { immediate: true }
+    {immediate: true}
 )
 
 // 限制手机号输入只能为数字
@@ -246,31 +249,34 @@ const handleSubmit = async () => {
         break
 
       case '3': // 绑定手机号
-        if (!formData.phone) return ElMessage.error("请输入手机号")
-        if (!formData.code) return ElMessage.error("请输入验证码")
-        await doUserWechatLogin({
+      {
+        if (!formData.phone) return ElMessage.error("请输入手机号");
+        if (!formData.code) return ElMessage.error("请输入验证码");
+
+        const res = await doUserWechatLogin({
           mobile: formData.phone, // 手机号
           verifyCode: Number(formData.code), // 邀请码
           openId: props.openId, // 绑定手机号登录接口需要用到的 openId 在扫码登陆那边传过来的 d
           invitationsCode: props.confirmedInviteCode,  // 邀请验证码
         })
+        if (res.data && res.data.accessToken) {
+          userStore.setToken(res.data.accessToken)
+        }
         ElMessage.success('手机号绑定成功')
         break
+      }
     }
 
     // 成功后统一关闭弹窗 or 报错
-    closeModal()
-
+    emit('success', modeType.value)
+    emit('close')
   } catch (e: any) {
-    console.error('提交失败', e)
-    ElMessage.error(e.msg || e.message || '操作失败，请重试')
+    ElMessage.error(e.message)
   }
 }
 
 const closeModal = () => {
-  emit('success')
   emit('close')
-
 }
 
 onUnmounted(() => {
@@ -314,7 +320,10 @@ onUnmounted(() => {
 
     &:hover {
       transform: scale(1.1);
-      svg path { stroke: #333; }
+
+      svg path {
+        stroke: #333;
+      }
     }
   }
 
@@ -381,11 +390,24 @@ onUnmounted(() => {
 
     &.disabled-wrapper {
       background: #F5F7FA;
-      input { color: #99A3B3; cursor: not-allowed; }
+
+      input {
+        color: #99A3B3;
+        cursor: not-allowed;
+      }
     }
 
-    .prefix { font-size: 14px; color: #8D95A1; }
-    .divider { width: 1px; height: 14px; background-color: #D1D8E1; margin: 0 12px; }
+    .prefix {
+      font-size: 14px;
+      color: #8D95A1;
+    }
+
+    .divider {
+      width: 1px;
+      height: 14px;
+      background-color: #D1D8E1;
+      margin: 0 12px;
+    }
 
     .form-input {
       flex: 1;
@@ -396,15 +418,26 @@ onUnmounted(() => {
       color: #1A2233;
       background: transparent;
 
-      &::placeholder { color: #B0B8C6; }
+      &::placeholder {
+        color: #B0B8C6;
+      }
     }
 
     .icon-eye {
       cursor: pointer;
       display: flex;
       padding: 4px;
-      img { width: 18px; height: 18px; opacity: 0.6; transition: 0.2s; }
-      &:hover img { opacity: 1; }
+
+      img {
+        width: 18px;
+        height: 18px;
+        opacity: 0.6;
+        transition: 0.2s;
+      }
+
+      &:hover img {
+        opacity: 1;
+      }
     }
   }
 
@@ -422,8 +455,14 @@ onUnmounted(() => {
     white-space: nowrap;
     transition: all 0.2s;
 
-    &:hover:not(:disabled) { background: #A6D4E7; }
-    &:disabled { cursor: not-allowed; opacity: 0.6; }
+    &:hover:not(:disabled) {
+      background: #A6D4E7;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
   }
 }
 
@@ -441,7 +480,9 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover { background: #0E425B; }
+  &:hover {
+    background: #0E425B;
+  }
 }
 
 /* ================== 模式 3 (绑定手机) 专属覆盖样式 ================== */
@@ -458,7 +499,9 @@ onUnmounted(() => {
     color: #FFFFFF;
     border-radius: 6px;
 
-    &:hover:not(:disabled) { background: #1A1A1A; }
+    &:hover:not(:disabled) {
+      background: #1A1A1A;
+    }
   }
 
   /* 覆盖：底部提交按钮变成黑色 */
@@ -467,7 +510,9 @@ onUnmounted(() => {
     margin-top: 24px; /* 增加验证码和按钮之间的间距 */
     border-radius: 8px;
 
-    &:hover { background: #222222; }
+    &:hover {
+      background: #222222;
+    }
   }
 }
 </style>

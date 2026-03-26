@@ -13,12 +13,12 @@
           <div class="search-wrapper">
             <input class="searchUser" type="text" placeholder="搜索昵称..." v-model="queryParams.keyword"
                    @keyup.enter="handleSearch"/>
-            <img class="search-icon" :src="images.teamSearch" alt="teamSearch" @click="handleSearch" />
+            <img class="search-icon" :src="images.teamSearch" alt="teamSearch" @click="handleSearch"/>
           </div>
 
           <button class="add-btn" @click="openAddDialog">
             <span class="icon">
-              <img :src="images.teamAdd"  alt=""/>
+              <img :src="images.teamAdd" alt=""/>
             </span> 添加成员
           </button>
         </div>
@@ -50,7 +50,7 @@
               <div class="member-info-col">
                 <span class="member-userNameTwo">{{ row.userNameTwo }}</span>
                 <span class="member-name">{{ row.nickName }}</span>
-                <span v-if="row.mainStatus === 1" class="main-account-badge">主账号</span>
+                <span v-if="row.mainStatus === 0" class="main-account-badge">主账号</span>
               </div>
             </td>
             <td class="create-time">{{ formatDate(row.createTime) }}</td>
@@ -104,23 +104,24 @@
         </div>
         <div class="pagination-right">
           <div class="custom-pagination">
-            <button class="page-btn text-btn" :disabled="queryParams.pageNum === 1"
-                    @click="changePage(queryParams.pageNum - 1)">
+            <button class="page-btn text-btn" :disabled="queryParams.currentPage === 1"
+                    @click="changePage(queryParams.currentPage - 1)">
               上一页
             </button>
             <button v-for="page in totalPages" :key="page"
-                    :class="['page-btn', { 'is-active': queryParams.pageNum === page }]" @click="changePage(page)">
+                    :class="['page-btn', { 'is-active': queryParams.currentPage === page }]"
+                    @click="changePage(page)">
               {{ page }}
             </button>
-            <button class="page-btn text-btn" :disabled="queryParams.pageNum === totalPages"
-                    @click="changePage(queryParams.pageNum + 1)">
+            <button class="page-btn text-btn" :disabled="queryParams.currentPage === totalPages"
+                    @click="changePage(queryParams.currentPage + 1)">
               下一页
             </button>
           </div>
         </div>
       </div>
     </footer>
-<!--    删除账号弹窗-->
+    <!--    删除账号弹窗-->
     <div class="custom-modal-overlay" v-if="confirmDialog.visible">
       <div class="custom-delete-modal">
         <h3 class="modal-title">{{ confirmDialog.title }}</h3>
@@ -138,7 +139,7 @@
         :member-data="currentEditRow"
         @success="handleEditSuccess"
     />
-    <addTeamMember @success="handleEditSuccess" v-model:visible="isDialogVisible" />
+    <addTeamMember @success="handleEditSuccess" v-model:visible="isDialogVisible"/>
   </div>
 </template>
 
@@ -157,30 +158,18 @@ const teamList = ref<any[]>([])
 const total = ref(0)
 // 搜索/分页参数
 const queryParams = reactive({
-  pageNum: 1,
-  pageSize: 8,
+  currentPage: 1,
+  offset: 8,      // 对应接口的每页数量
   keyword: ''
 })
 
-// 接口返回的完整数据（用于分页切片）
-const allMockData = ref<Array<{
-  id: string;
-  userNameTwo: string;
-  nickName: string;
-  mainStatus: number;
-  role: number;
-  status: number;
-  createTime: string;
-}>>([]);
-
 // 计算总页数
-const totalPages = computed(() => Math.ceil(total.value / queryParams.pageSize))
-
+const totalPages = computed(() => Math.ceil(total.value / queryParams.offset))
 // 计算分页显示文本
 const paginationText = computed(() => {
   if (total.value === 0) return '暂无数据';
-  const start = (queryParams.pageNum - 1) * queryParams.pageSize + 1;
-  const end = Math.min(queryParams.pageNum * queryParams.pageSize, total.value);
+  const start = (queryParams.currentPage - 1) * queryParams.offset + 1;
+  const end = Math.min(queryParams.currentPage * queryParams.offset, total.value);
   return `当前显示 ${start}-${end} 条，共 ${total.value}条记录`;
 });
 
@@ -196,47 +185,38 @@ const searchUsers = async () => {
   loading.value = true
   try {
     const res = await teamApi.getSonUserPage({
-      nickName: queryParams.keyword
+      nickName: queryParams.keyword,
+      currentPage: queryParams.currentPage,
+      offset: queryParams.offset,
     })
+    console.log(res)
     if (String((res as any).code) === '0000') {
-      allMockData.value = res.data.list || []
-      total.value = allMockData.value.length // 赋值总数
-      fetchTeamList()
+      teamList.value = res.data.list || []
+      total.value = res.data.total || res.data.list.length // 后端没返回总条数，总数显示会受限
     } else {
-      allMockData.value = []
-      total.value = 0
       teamList.value = []
+      total.value = 0
     }
   } catch (err) {
     console.error('请求失败：', err)
-    allMockData.value = []
-    total.value = 0
     teamList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
 }
-
-const fetchTeamList = () => {
-  const startIdx = (queryParams.pageNum - 1) * queryParams.pageSize;
-  const endIdx = startIdx + queryParams.pageSize;
-  teamList.value = allMockData.value.slice(startIdx, endIdx);
-}
-
-// 3. 分页切换
+// 分页切换（直接调用接口，不再使用前端切片）
 const changePage = (page: number) => {
   if (page < 1 || page > totalPages.value) return
-  queryParams.pageNum = page
-  fetchTeamList()
+  queryParams.currentPage = page
+  searchUsers()
 }
 
 // 4. 搜索（重置页码 + 重新请求）
 const handleSearch = () => {
-  queryParams.pageNum = 1
+  queryParams.currentPage = 1
   searchUsers()
 }
-
-
 
 
 // ---------------- 弹窗/操作逻辑 ----------------
@@ -254,7 +234,6 @@ const openAddDialog = () => {
   isDialogVisible.value = true
 }
 
-// const closeAddDialog = () => isDialogVisible.value = false
 
 
 // 确认弹窗
@@ -271,41 +250,56 @@ const openConfirm = (type: 'disable' | 'resetPwd' | 'delete', row: any) => {
   confirmDialog.targetRow = row
 
   if (type === 'disable') {
-    confirmDialog.title = '停用成员'
-    confirmDialog.message = `确定要停用成员【${row.nickName}】的账号吗？`
+    // 动态判断是 停用 还是 启用
+    const isEnableAction = row.status === 0; // 默认是0
+    confirmDialog.title = isEnableAction ? '启用账号确认' : '停用账号确认'
+    confirmDialog.message = isEnableAction
+        ? `确定需要启用该账号吗？启用后该成员将恢复正常登录及使用权限。`
+        : `确定需要停用该账号吗？停用后将无法登录，请谨慎操作。`
+    confirmDialog.visible = true
   } else if (type === 'resetPwd') {
-    confirmDialog.title = '重置密码'
-    confirmDialog.message = `确定要重置成员【${row.nickName}】的密码吗？`
+    confirmDialog.title = '重置密码确认'
+    confirmDialog.message = `确定需要重置该账号的密码吗？`
+    confirmDialog.visible = true
+
   } else if (type === 'delete') {
     confirmDialog.title = '删除账号确认'
     confirmDialog.message = `确定需要删除该账号吗？删除后将无法登录，请谨慎操作。`
     confirmDialog.visible = true
   }
-  }
+}
 // 确认弹窗的提交操作
 const handleConfirm = async () => {
   if (!confirmDialog.targetRow) return
   try {
     // 这里可以根据 confirmDialog.type 来判断调用哪个接口
     if (confirmDialog.type === 'delete') {
-      const res =  await teamApi.deleteUser({ itemUserId: confirmDialog.targetRow.id })
-      if(String((res as any).code) === '0000') {
+      const res = await teamApi.deleteUser({itemUserId: confirmDialog.targetRow.id})
+      if (String((res as any).code) === '0000') {
         ElMessage.success('删除成功')
       }
     } else if (confirmDialog.type === 'disable') {
-      // await teamApi.disableUser(...)
-      ElMessage.success('操作成功')
+      const targetStatus = confirmDialog.targetRow.status === 1 ? 0 : 1;
+      await teamApi.changeStatusBySonUser({
+        itemUserId: confirmDialog.targetRow.id,
+        status: targetStatus,
+      })
+      ElMessage.success(targetStatus === 1 ? '账号已启用' : '账号已停用')
     } else if (confirmDialog.type === 'resetPwd') {
-      // await teamApi.resetPwd(...)
-      ElMessage.success('密码重置成功')
+      // TODO: 重置密码 调用接口 返回数据 弹出窗口展示数据  复制信息 关闭窗口 刷新页面
+      const res = await teamApi.changeSonUser({itemUserId: confirmDialog.targetRow.id})
+      if (String((res as any).code) === '0000') {
+        ElMessage.success('密码重置成功')
+
+      }
+
     }
     confirmDialog.visible = false
     await searchUsers() // 刷新列表
-  } catch (err) {
-    ElMessage.error(err.message)
+  } catch (e: any) {
+    ElMessage.error(e.message)
   }
 }
-
 
 
 // 编辑弹窗
@@ -333,7 +327,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #050505;
+  background-color: #101010;
   padding-bottom: 56px;
 }
 
@@ -355,7 +349,7 @@ onMounted(() => {
     align-items: center;
     margin-bottom: 24px;
     padding-bottom: 24px;
-    border-bottom: 2px solid rgba(30, 41, 59, 1);
+    border-bottom: 1px solid rgba(51,65,85,1);
 
     .header-left {
       display: flex;
@@ -393,6 +387,7 @@ onMounted(() => {
         position: relative;
         display: flex;
         align-items: center;
+
         .searchUser {
           width: 256px;
           height: 38px;
@@ -407,6 +402,7 @@ onMounted(() => {
           text-align: justify;
           font-family: Inter-black, serif;
           font-weight: 900;
+
           &::placeholder {
             color: rgba(255, 255, 255, 0.3);
           }
@@ -415,6 +411,7 @@ onMounted(() => {
             border-color: #38BDF8;
           }
         }
+
         // 搜索框的 搜索图标
         .search-icon {
           position: absolute;
@@ -446,9 +443,10 @@ onMounted(() => {
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
-        img{
-          width: 14px;
-          height: 14px;
+
+        img {
+          width: 15px;
+          height: 15px;
         }
 
         &:hover {
@@ -462,7 +460,7 @@ onMounted(() => {
   .table-wrapper {
     width: 100%;
     border-radius: 10px;
-    border: 1px solid rgba(51, 65, 85, 0.5);
+    border: 1px solid rgba(51,65,85,0.2);
     margin-right: 15px;
     box-sizing: border-box;
     background-color: rgba(10, 15, 29, 1);
@@ -473,6 +471,7 @@ onMounted(() => {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
+      background-color: #1E293B;
 
       th {
         padding: 14px 16px;
@@ -482,7 +481,7 @@ onMounted(() => {
         text-align: center;
         vertical-align: middle;
         font-family: Inter-semiBold, serif;
-        border-bottom: 2px solid rgba(51, 65, 85, 1);
+        border-bottom: 1px solid rgba(51,65,85,1);
       }
 
       tbody tr {
@@ -496,6 +495,7 @@ onMounted(() => {
 
       tbody tr:hover td {
         border-bottom-color: rgba(56, 189, 248, 0.5);
+
       }
 
       td {
@@ -503,7 +503,7 @@ onMounted(() => {
         height: 72px;
         color: #F8FAFC;
         font-size: 14px;
-        border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+        border-bottom: 1px solid rgba(30,41,59,0.2);
         vertical-align: middle;
         text-align: center;
       }
@@ -682,8 +682,8 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 56px;
-  background-color: #0A0F1D;
-  border-top: 1px solid #38BDF8;
+  background-color: rgba(15,23,42,1);
+  border-top: 1px solid rgba(30,41,59,1);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -740,7 +740,6 @@ onMounted(() => {
     &:disabled {
       color: #475569;
       cursor: not-allowed;
-      opacity: 0.5;
     }
 
     &.text-btn {
@@ -930,6 +929,7 @@ onMounted(() => {
     }
   }
 }
+
 /* --- 确认弹窗定制样式 --- */
 .custom-delete-modal {
   width: 482px;
@@ -950,7 +950,7 @@ onMounted(() => {
     color: $color-bg-white;
     font-size: 20px;
     text-align: center;
-    font-family: NotoSans-bold,serif;
+    font-family: NotoSans-bold, serif;
     font-weight: 800;
   }
 
@@ -990,7 +990,7 @@ onMounted(() => {
     }
 
     .btn-confirm {
-      background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23,160,225,1) 0%,rgba(112,197,237,1) 100%);
+      background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
       border: none;
       color: #ffffff;
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" v-if="visible" @click.self="closeModal">
+  <div class="modal-overlay" v-if="visible">
     <div class="modal-card">
       <button class="close-btn" @click="closeModal">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
