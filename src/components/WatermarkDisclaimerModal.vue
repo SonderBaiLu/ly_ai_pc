@@ -75,6 +75,7 @@ import { images } from '@/assets'
 import { toRefs } from 'vue'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
+import { userLanguageToI18nLocale } from '@/i18n'
 
 interface Props {
   modelValue: boolean
@@ -96,11 +97,20 @@ const emit = defineEmits<{
   'no-remind-change': [value: boolean]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: 'local' })
 
 const modalStore = useModalStore()
 const userStore = useUserStore()
 const router = useRouter()
+
+// 个人中心弹窗：只跟随用户偏好语言，避免被全局 i18n locale 覆盖
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 const isVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
 

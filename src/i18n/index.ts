@@ -1,10 +1,11 @@
 import { createI18n } from 'vue-i18n'
 
-type Locale = 'zh' | 'en'
+type Locale = 'zh-chs' | 'en'
+export type UserLanguage = 'zh-chs' | 'en'
 
 const STORAGE_KEY = 'locale'
 
-const zh = {
+export const zhMessages = {
   components: {
     infiniteScrollLoader: {
       loading: '加载中...',
@@ -278,7 +279,7 @@ const zh = {
   },
 }
 
-const en = {
+export const enMessages = {
   components: {
     infiniteScrollLoader: {
       loading: 'Loading...',
@@ -562,23 +563,34 @@ const en = {
 }
 
 const detectInitialLocale = (): Locale => {
-  if (typeof window === 'undefined') return 'zh'
-  const stored = window.localStorage.getItem(STORAGE_KEY) as Locale | null
-  if (stored === 'zh' || stored === 'en') return stored
-  return 'zh'
+  if (typeof window === 'undefined') return 'zh-chs'
+  const stored = window.localStorage.getItem(STORAGE_KEY)
+  if (stored === 'en') return 'en'
+  if (stored === 'zh-chs') return 'zh-chs'
+  return 'zh-chs'
+}
+
+// 把后端用户语言偏好（zh-chs/en）映射到 vue-i18n 的语言 key（zh/en）
+export const userLanguageToI18nLocale = (language?: string | null): Locale => {
+  return language === 'en' ? 'en' : 'zh-chs'
+}
+
+// 把 vue-i18n 的语言 key（zh/en）映射到后端需要的用户语言偏好（zh-chs/en）
+export const i18nLocaleToUserLanguage = (language?: string | null): UserLanguage => {
+  return language === 'en' ? 'en' : 'zh-chs'
 }
 
 export const i18n = createI18n({
   legacy: false,
   globalInjection: true,
   locale: detectInitialLocale(),
-  fallbackLocale: 'zh',
-  messages: { zh, en },
+  fallbackLocale: 'zh-chs',
+  messages: { 'zh-chs': zhMessages, en: enMessages },
 })
 
 export const persistLocale = (locale: string) => {
   if (typeof window === 'undefined') return
-  if (locale === 'zh' || locale === 'en') {
+  if (locale === 'zh-chs' || locale === 'en') {
     window.localStorage.setItem(STORAGE_KEY, locale)
   }
 }

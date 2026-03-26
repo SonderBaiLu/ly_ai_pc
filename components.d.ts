@@ -62,6 +62,7 @@ declare module 'vue' {
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
     PaymentModal: typeof import('./src/components/PaymentModal.vue')['default']
     PersonalSettingsModal: typeof import('./src/components/PersonalSettingsModal.vue')['default']
+    ProductTutorialModal: typeof import('./src/components/ProductTutorialModal.vue')['default']
     ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

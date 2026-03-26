@@ -92,9 +92,19 @@ import { ElMessage } from 'element-plus'
 import {changePwdBySms, doUserWechatLogin, getSmsCodeApi} from "@/api/userLogin"
 import userApi from '@/api/user'
 import { useUserStore } from '@/stores/user'
+import { userLanguageToI18nLocale } from '@/i18n'
 
 const userStore = useUserStore()
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: 'local' })
+
+// 个人中心弹窗：只跟随用户偏好语言，避免被全局 i18n locale 覆盖
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 // Props & Emits
 const props = defineProps({

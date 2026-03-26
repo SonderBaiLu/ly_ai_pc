@@ -109,6 +109,10 @@ body {
   color: $color-text-white !important;
   border: none !important;
   box-shadow: none !important;
+
+  &:hover {
+    background: $color-primary-dark !important;
+  }
 }
 
 /* 全局：primary 按钮禁用态黑色透明遮罩（统一“不可点击”视觉） */

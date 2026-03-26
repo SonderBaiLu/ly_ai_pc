@@ -37,7 +37,7 @@
 
     <!-- 创意描述 -->
     <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
-      @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。
+      :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。
 参考示例：无领 驼色 长款 双面呢 宽松版型 羊毛材质 毛呢大衣" />
 
     <!-- 底部参数以及生成按钮 -->
@@ -56,6 +56,7 @@ const props = defineProps<{
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
   coin?: number
+  menuId?: string | number
 }>()
 
 // 监听inspirationWords变化

@@ -59,7 +59,7 @@
     </div>
 
     <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
-      @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
+      :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
 参考示例：该面料是一块米色毛呢面料，将面料生成一件无领米色长款宽松版型毛呢大衣，20岁欧洲短发女模特穿着，搭配毛衣和阔腿裤。" />
 
     <!-- 底部参数以及生成按钮 -->
@@ -82,6 +82,7 @@ const props = defineProps<{
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
   coin?: number
+  menuId?: string | number
 }>()
 
 // 监听inspirationWords变化

@@ -21,7 +21,7 @@
           <section class="param-panel">
             <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.aiFashion"
-              :inspiration-words="inspirationWords" :coin="imageCoin"
+              :inspiration-words="inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
               @open-type-modal="() => openTypeModal('aiFashion')"
               @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
@@ -30,7 +30,7 @@
             <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
-              :inspiration-words="inspirationWords" :coin="imageCoin"
+              :inspiration-words="inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
               @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
@@ -38,7 +38,7 @@
               @update:inspiration-words="(words) => inspirationWords = words" />
             <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="refImageUrl"
               :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
-              :inspiration-words="inspirationWords" :coin="imageCoin"
+              :inspiration-words="inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
               @open-type-modal="() => openTypeModal('sketchToReal')"
               @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
@@ -46,7 +46,7 @@
               @update:inspiration-words="(words) => inspirationWords = words" />
             <RealToSketch v-else v-model:image-url="refImageUrl" :task-result-id="refImageTaskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.realToSketch" :inspiration-words="inspirationWords"
-              :coin="imageCoin" @open-type-modal="() => openTypeModal('realToSketch')"
+              :coin="imageCoin" :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @inspiration-library="handleInspirationLibrary"
@@ -59,8 +59,8 @@
               :has-more-data="hasMoreData" :loading="loading" :loading-more="loadingMore" :is-vip="isUserVip"
               :remove-watermark-enabled="removeWatermarkEnabled"
               @asset-click="(idx: number) => (currentIndex = idx as any)" @scroll-change="handleScrollChange"
-              @load-more="showComingSoon" @view-detail="handleViewDetail" @collect="showComingSoon"
-              @download="showComingSoon" @delete="showComingSoon" @refresh="showComingSoon" />
+              @load-more="showComingSoon" @view-detail="handleViewDetail" @collect="handleCollect"
+              @download="showComingSoon" @delete="handleAlgoDelete" @refresh="showComingSoon" />
 
             <ThumbnailGallery ref="thumbnailRef" :assets="assets" :current-index="currentIndex"
               :has-more-data="hasMoreData" :loading="(loading || loadingMore) as any"
@@ -86,13 +86,14 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { images } from '@/assets'
 import { useUserStore } from '@/stores/user'
-import { appApi, type SysPlatformMenuItem, type InspirationWordsCategory } from '@/api/app'
+import { appApi } from '@/api/app'
+import { algoApi } from '@/api/algo'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
-import type { Asset } from '@/composables/useTaskPolling'
+import type { CreationResult } from '@/composables/useTaskPolling'
 import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import { useTemplateStore } from '@/stores/template'
 import Fashion from './left/Fashion.vue'
@@ -144,12 +145,12 @@ const defaultRailLabelByKey: Record<LeftMenuKey, string> = {
   fabricCreative: '面料创拍',
 }
 
-const allPlatformMenus = ref<SysPlatformMenuItem[]>([])
+const allPlatformMenus = ref<any[]>([])
 const activeMenuCode = ref<string>('')
 const lastFetchedMenuCode = ref<string>('')
 
 const leftRailItems = computed<RailItem[]>(() => {
-  const sourceItems: SysPlatformMenuItem[] = []
+  const sourceItems: any[] = []
   for (const item of allPlatformMenus.value || []) {
     sourceItems.push(item)
     if (Array.isArray(item.children) && item.children.length) {
@@ -157,7 +158,7 @@ const leftRailItems = computed<RailItem[]>(() => {
     }
   }
 
-  const menuByCode = new Map<string, SysPlatformMenuItem>()
+  const menuByCode = new Map<string, any>()
   sourceItems.forEach((item) => {
     const code = String(item.menuCode || '')
     if (code && menuKeyByCode[code]) {
@@ -203,7 +204,6 @@ const fetchSysPlatformMenu = async () => {
   }
 }
 
-// FabricCreative 生成：先预留接口（子组件会产出“平铺+缩放后的纹理图文件”）
 const handleFabricGenerate = (payload: any) => {
   // TODO: 接口联调时，将 payload.file 上传/随请求提交给算法
   console.log('[fabricCreative] generate payload:', payload)
@@ -355,7 +355,7 @@ const openImageParams = () => {
 
 const resolveMenuCodeByLeftMenu = (menu: LeftMenuKey) => {
   const targetCode = menuCodeByKey[menu]
-  const sourceItems: SysPlatformMenuItem[] = []
+  const sourceItems: any[] = []
   for (const item of allPlatformMenus.value || []) {
     sourceItems.push(item)
     if (Array.isArray(item.children) && item.children.length) {
@@ -369,6 +369,23 @@ const resolveMenuCodeByLeftMenu = (menu: LeftMenuKey) => {
 const syncActiveMenuCode = () => {
   activeMenuCode.value = resolveMenuCodeByLeftMenu(leftMenu.value)
 }
+
+// 当前左侧功能模块的 menuId（用于“试一试”创意描述推荐）
+const currentMenuId = computed(() => {
+  const menuCode = resolveMenuCodeByLeftMenu(leftMenu.value)
+  if (!menuCode) return ''
+
+  const sourceItems: any[] = []
+  for (const item of allPlatformMenus.value || []) {
+    sourceItems.push(item)
+    if (Array.isArray(item.children) && item.children.length) {
+      sourceItems.push(...item.children)
+    }
+  }
+
+  const matched = sourceItems.find((x) => String(x?.menuCode || '') === menuCode)
+  return String(matched?.id ?? '')
+})
 
 const handleImageParamsConfirm = (result: any) => {
   // ImageParamPopup 的 result: { algorithmName, paramList: [{templateName,...}, ...] }
@@ -411,7 +428,7 @@ const normalizeWordsList = (list: any[] = []) => {
     .filter((item) => item.id && item.name)
 }
 
-const normalizeInspirationCategories = (list: InspirationWordsCategory[] = []) => {
+const normalizeInspirationCategories = (list: any[] = []) => {
   return list
     .map((item: any) => ({
       code: String(item?.code ?? item?.typeCode ?? item?.id ?? ''),
@@ -446,38 +463,50 @@ const fetchInspirationWords = async () => {
   }
 }
 
-// ==================== 右侧：我的资产（列表 + 缩略图） ====================
-// 先用本地 mock 数据跑通交互；后续接接口时替换 assets 的赋值即可
-const assets = ref<Asset[]>([
+// ==================== 右侧：我的创作（列表 + 缩略图） ====================
+// 先用本地 mock 数据跑通交互；后续接接口时替换 creations 的赋值即可
+const assets = ref<CreationResult[]>([
   {
     id: 'mock-1',
-    taskId: 'mock-1',
-    taskUuid: 'mock-1',
-    imageUrl: images.aiDesign1,
+    algoOrderId: 'mock-1',
+    algoUuId: null,
+    menuCode: APP_MENU_CODES.AI_FASHION_DESIGN,
+    thumbUrl: images.aiDesign1,
+    url: images.aiDesign1,
     fileType: 1,
+    originalUrl: null,
     prompt: 'AI服装设计-示例1',
     createTime: new Date().toISOString(),
     status: 3,
+    collectStatus: 0,
   },
   {
     id: 'mock-2',
-    taskId: 'mock-2',
-    taskUuid: 'mock-2',
-    imageUrl: images.aiDesign2,
+    algoOrderId: 'mock-2',
+    algoUuId: null,
+    menuCode: APP_MENU_CODES.AI_FASHION_DESIGN,
+    thumbUrl: images.aiDesign2,
+    url: images.aiDesign2,
     fileType: 1,
+    originalUrl: null,
     prompt: 'AI服装设计-示例2',
     createTime: new Date().toISOString(),
     status: 2,
+    collectStatus: 0,
   },
   {
     id: 'mock-3',
-    taskId: 'mock-3',
-    taskUuid: 'mock-3',
-    imageUrl: images.aiDesign3,
+    algoOrderId: 'mock-3',
+    algoUuId: null,
+    menuCode: APP_MENU_CODES.AI_FASHION_DESIGN,
+    thumbUrl: images.aiDesign3,
+    url: images.aiDesign3,
     fileType: 1,
+    originalUrl: null,
     prompt: 'AI服装设计-示例3',
     createTime: new Date().toISOString(),
     status: 4,
+    collectStatus: 0,
   },
 ])
 
@@ -500,6 +529,89 @@ const handleScrollChange = (scrollPercentage: number) => {
 
 const handleScrollSync = (scrollPercentage: number) => {
   mainImageRef.value?.syncScroll?.(scrollPercentage)
+}
+
+// 收藏/取消收藏（AI 工作台生成的算法结果）
+const handleCollect = async (idx: number) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  const asset = assets.value[idx]
+  if (!asset?.id) {
+    ElMessage.error('结果ID丢失，无法收藏')
+    return
+  }
+
+  const wasCollected = Number(asset.collectStatus ?? 0) === 1
+  try {
+    const response = await algoApi.collect({
+      algoOrderResultId: String(asset.id),
+    })
+
+    if (response.code === '0000') {
+      // 如果后端直接返回 collectStatus，同步一下，便于 UI 兜底展示
+      const nextCollectStatus = (response.data as any)?.collectStatus
+      if (nextCollectStatus !== undefined) {
+        asset.collectStatus = Number(nextCollectStatus)
+      } else {
+        asset.collectStatus = wasCollected ? 0 : 1
+      }
+      ElMessage.success(wasCollected ? '取消收藏' : '收藏成功')
+    } else {
+      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
+    }
+  } catch (e) {
+    console.error('[AiFashionStudio] collect failed:', e)
+    ElMessage.error('网络开小差了~，请稍后再试')
+  }
+}
+
+// 删除算法生成结果（AI 工作台列表）
+const handleAlgoDelete = async (idx: number) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  const asset = assets.value[idx]
+  if (!asset?.id) {
+    ElMessage.error('结果ID丢失，无法删除')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm('确定要删除这个生成结果吗？删除后无法恢复。', '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
+    const response = await algoApi.del({
+      algoOrderResultId: String(asset.id),
+    })
+
+    if (response.code === '0000') {
+      assets.value.splice(idx, 1)
+      ElMessage.success('删除成功')
+
+      // 保证当前选中索引有效
+      if (assets.value.length === 0) {
+        currentIndex.value = 0
+      } else if (currentIndex.value >= assets.value.length) {
+        currentIndex.value = assets.value.length - 1
+      } else if (currentIndex.value > idx) {
+        currentIndex.value = currentIndex.value - 1
+      }
+    } else {
+      ElMessage.error(response.msg || '删除失败')
+    }
+  } catch (e: any) {
+    if (e === 'cancel') return
+    console.error('[AiFashionStudio] del failed:', e)
+    ElMessage.error('网络开小差了~，请稍后再试')
+  }
 }
 
 // ==================== 左侧：上传参考图（支持从右侧拖拽） ====================

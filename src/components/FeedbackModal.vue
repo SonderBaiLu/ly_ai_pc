@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { images } from '@/assets'
-import { creativeApi } from '@/api/creative'
+import { algoApi } from '@/api/algo'
 
 interface Props {
   modelValue: boolean
@@ -126,7 +126,7 @@ const handleSubmit = async () => {
     return
   }
 
-  // 检查必要参数
+  // 检查必要参数（新接口字段：algoOrderId / algoOrderResultId）
   if (!props.userId || !props.taskId || !props.taskResultId) {
     ElMessage.error('反馈参数不完整，无法提交')
     return
@@ -150,10 +150,10 @@ const handleSubmit = async () => {
   }
 
   try {
-    const res = await creativeApi.addFeedbackRecord({
-      userId: props.userId,
-      taskId: props.taskId,
-      taskResultId: props.taskResultId,
+    const res = await algoApi.submitAlgorithmResult({
+      // 前端入参沿用 taskId/taskResultId 命名，但后端接口要求 algoOrderId/algoOrderResultId
+      algoOrderId: String(props.taskId),
+      algoOrderResultId: String(props.taskResultId),
       content: selectedReasonContents.join(','),
     })
 
@@ -185,13 +185,18 @@ const loadFeedbackConfig = async () => {
   isLoadingConfig = true
 
   try {
-    const res = await creativeApi.findFeedbackConfig()
+    const res = await algoApi.findAlgorithmResultFeedback()
     if (res.code === '0000' && Array.isArray(res.data)) {
-      // 过滤出 configType === 'class' 的项（分类项）
-      reasonList.value = res.data.filter(
-        (item: any) => item.configType === 'class' && Array.isArray(item.children)
-      ) as FeedbackConfigItem[]
-      // 标记为已加载
+      const raw = res.data as any[]
+
+      // 以 UI 需要的结构（{ id, content, children }）兜底组织
+      const withChildren = raw.filter((item) => item && Array.isArray(item.children))
+      const hasConfigType = withChildren.some((i) => i?.configType !== undefined)
+
+      reasonList.value = (hasConfigType
+        ? withChildren.filter((item) => item.configType === 'class')
+        : withChildren) as FeedbackConfigItem[]
+
       feedbackConfigLoaded = true
     }
   } catch (error) {

@@ -72,14 +72,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import { images } from '@/assets'
-const { t } = useI18n()
+import { userLanguageToI18nLocale } from '@/i18n'
+
+const { t, locale } = useI18n({ useScope: 'local' })
 
 interface Props {
   modelValue: boolean
@@ -92,6 +94,15 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const userStore = useUserStore()
+
+// 个人中心弹窗：只跟随用户偏好语言，避免被全局 i18n locale 覆盖
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 const dialogVisible = computed({
   get: () => props.modelValue,

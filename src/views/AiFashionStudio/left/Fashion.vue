@@ -44,7 +44,7 @@
 
     <!-- 创意描述 -->
     <CreativeDescription v-model:prompt="prompt" :optional="true" placeholder="请输入创作描述，提升设计精准度"
-      :inspiration-words="inspirationWords" @inspiration-library="emit('inspiration-library')"
+      :inspiration-words="inspirationWords" :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')"
       @update:inspiration-words="updateInspirationWords" />
 
     <!-- 底部参数以及生成按钮 -->
@@ -72,6 +72,7 @@ const props = defineProps<{
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
   coin?: number
+  menuId?: string | number
 }>()
 
 // 监听inspirationWords变化

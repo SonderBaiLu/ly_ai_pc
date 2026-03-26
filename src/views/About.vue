@@ -42,7 +42,7 @@ const router = useRouter()
 const { t, locale } = useI18n()
 
 const visionItems = computed(() => {
-  const isZh = locale.value === 'zh'
+  const isZh = locale.value === 'zh-chs'
   return [
     { icon: images.favorite, alt: isZh ? '愿景 1' : 'Vision 1', text: t('about.vision.1') },
     { icon: images.handshake, alt: isZh ? '愿景 2' : 'Vision 2', text: t('about.vision.2') },

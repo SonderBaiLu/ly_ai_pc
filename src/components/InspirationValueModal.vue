@@ -8,9 +8,9 @@
     </template>
 
     <div class="header-title-section">
-      <span class="modal-title">灵衍值值明细</span>
+      <span class="modal-title">灵衍值明细</span>
       图片与视频的生成由于生成数量、模式、时长等参数不同,费用会存在差异。
-      <span class="rules-link" @click="showRules">灵衍值值规则</span>
+      <span class="rules-link" @click="showRules">灵衍值规则</span>
     </div>
     <!-- 灵衍值汇总 -->
     <div class="inspiration-summary">
@@ -86,7 +86,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { membershipApi } from '@/api/membership'
@@ -111,7 +110,7 @@ const router = useRouter()
 
 // 用户信息
 const userStore = useUserStore()
-const userInfo = userStore.userInfo
+const userInfo = computed(() => userStore.userInfo)
 
 // 响应式数据
 const visible = computed({
@@ -143,15 +142,15 @@ const tabsList = ref([
   },
   {
     name: '消耗',
-    type: 'consume',
+    type: 'CONSUME',
   },
   {
     name: '购买',
-    type: 'purchase',
+    type: 'PURCHASE',
   },
   {
     name: '获得',
-    type: 'earn',
+    type: 'EARN',
   },
 ])
 
@@ -171,9 +170,9 @@ const getCoinRecordTitle = (item: any) => {
 
   // 最后兜底：按当前 tab 显示标题
   const tabMap: Record<string, string> = {
-    consume: '灵衍值消费',
-    purchase: '灵衍值购买',
-    earn: '灵衍值获得',
+    CONSUME: '灵衍值消费',
+    PURCHASE: '灵衍值购买',
+    EARN: '灵衍值获得',
   }
   return tabMap[currentTabType.value] || ''
 }
@@ -207,15 +206,17 @@ const pagination = ref({
 
 // 加载灵衍值记录
 const loadCoinRecords = async () => {
-  if (!userInfo?.userId) return
+  if (!userStore.isLoggedIn) return
 
   try {
     loading.value = true
     // 构建请求参数
     const params: any = {
-      userId: userInfo?.userId || '',
-      size: pagination.value.size,
-      current: pagination.value.current,
+      // 后端分页字段：
+      // - currentPage: 当前页码
+      // - offset: 每页数量
+      currentPage: pagination.value.current,
+      offset: pagination.value.size,
     }
 
     // 根据选中的tab添加类型过滤
@@ -254,13 +255,13 @@ const navigateToAgreement = (agreementType: string) => {
 }
 
 const showRules = () => {
-  // 跳转到灵衍值值规则说明
+  // 跳转到灵衍值规则说明
   navigateToAgreement('COIN_RULES_DESCRIPTION')
 }
 
 // 监听弹窗打开状态，加载数据
 watch(visible, (newValue) => {
-  if (newValue && userInfo?.userId) {
+  if (newValue) {
     // 初始化当前标签类型
     currentTabType.value = tabsList.value[tabIdx.value]?.type || 'all'
     // 重置分页
@@ -295,7 +296,7 @@ watch(visible, (newValue) => {
   }
 }
 
-// 灵衍值值明细
+// 灵衍值明细
 .header-title-section {
   padding: 23px 11px 14px;
   border-radius: 0px 0px 12px 12px;

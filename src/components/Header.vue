@@ -57,7 +57,7 @@
       <div class="nav-right">
         <div class="lang-select-wrapper">
           <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
-          <el-select v-model="locale" @change="handleLanguageChange" class="lang-select">
+          <el-select v-model="locale" @change="handleLanguageChangeSelect" class="lang-select">
             <template #suffix>
               <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
             </template>
@@ -66,14 +66,14 @@
           </el-select>
         </div>
         <!-- 登录状态：显示头像 + 个人信息卡片（hover 展开，带延迟）；未登录：显示登录/注册按钮 -->
-        <div v-if="isAuthed" class="user-menu user-menu--home" @mouseenter="openUserCard"
-          @mouseleave="scheduleCloseUserCard">
-          <div class="user-avatar">
+        <div v-if="isAuthed" class="user-menu user-menu--home">
+          <div class="user-avatar" @mouseenter="openPersonalCenterOnHover" @mouseleave="scheduleCloseUserCard">
             <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
             }}</span>
-          <div v-show="isUserCardOpen" class="user-card">
+          <div v-show="isUserCardOpen" class="user-card" @mouseenter="openPersonalCenterOnHover"
+            @mouseleave="scheduleCloseUserCard">
             <el-button class="invitation-btn" type="primary"
               @click="enterModule(() => router.push('/invitation-gift'))">
               邀请有礼
@@ -135,7 +135,7 @@
                 @mouseleave.stop="scheduleCloseLanguagePopover">
                 <el-button class="language-option" :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
                   :link="getCurrentLanguageLabel() != '简体中文'"
-                  @click.stop="handleLanguageChange('zh'); closeLanguagePopover()">简体中文</el-button>
+                  @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文</el-button>
                 <el-button class="language-option"
                   :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
                   :link="getCurrentLanguageLabel() != 'English'"
@@ -146,7 +146,7 @@
               <img :src="images.customer" alt="Customer" class="user-icon" />
               <span class="row-label">客服</span>
             </div>
-            <div class="user-item flex items-center" @click="router.push('/membership')">
+            <div class="user-item flex items-center" @click="handleProductTutorialClick">
               <img :src="images.product" alt="Product" class="user-icon" />
               <span class="row-label">产品教程</span>
             </div>
@@ -177,7 +177,7 @@
 
       <div class="lang-select-wrapper">
         <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
-        <el-select v-model="locale" @change="handleLanguageChange" class="lang-select">
+        <el-select v-model="locale" @change="handleLanguageChangeSelect" class="lang-select">
           <template #suffix>
             <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
           </template>
@@ -405,7 +405,7 @@
                   @mouseleave.stop="scheduleCloseLanguagePopover">
                   <el-button class="language-option" :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
                     :link="getCurrentLanguageLabel() != '简体中文'"
-                    @click.stop="handleLanguageChange('zh'); closeLanguagePopover()">简体中文</el-button>
+                    @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文</el-button>
                   <el-button class="language-option"
                     :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
                     :link="getCurrentLanguageLabel() != 'English'"
@@ -417,7 +417,7 @@
                 <img :src="images.customer" alt="Customer" class="user-icon" />
                 <span class="row-label">客服</span>
               </div>
-              <div class="user-item flex items-center" @click="router.push('/membership')">
+              <div class="user-item flex items-center" @click="handleProductTutorialClick">
                 <img :src="images.product" alt="Product" class="user-icon" />
                 <span class="row-label">产品教程</span>
               </div>
@@ -449,6 +449,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
+import { userLanguageToI18nLocale } from '@/i18n'
+import { appApi } from '@/api/app'
 import { images } from '@/assets'
 import { useAuthGate } from '@/composables/useAuthGate'
 
@@ -457,12 +459,30 @@ const router = useRouter()
 const route = useRoute()
 
 const languageOptions = [
-  { label: '简体中文', value: 'zh' },
+  { label: '简体中文', value: 'zh-chs' },
   { label: 'English', value: 'en' },
 ]
 
-const handleLanguageChange = (value: string) => {
-  locale.value = value as 'zh' | 'en'
+const language = ref(useUserStore().userInfo?.language || 'zh-chs')  // 个人语言设置
+const handleLanguageChangeSelect = (value: 'zh-chs' | 'en') => {
+  // 顶部语言下拉：同步更新 vue-i18n + 后端偏好
+  void handleLanguageChange(value)
+}
+
+const handleLanguageChange = async (value: 'zh-chs' | 'en') => {
+  // 1) 切换前端语言
+  language.value = value as 'zh-chs' | 'en'
+  locale.value = userLanguageToI18nLocale(language.value)
+
+  // 2) 同步后端语言偏好（仅登录态需要）
+  try {
+    if (userStore.isLoggedIn) {
+      await userStore.updateUserInfo({ language: language.value }, '语言切换成功')
+    }
+  } catch (e) {
+    // 后端同步失败不影响当前前端翻译
+    console.warn('[Header] 更新语言失败：', e)
+  }
 }
 
 const { isAuthed, enterModule } = useAuthGate()
@@ -510,16 +530,6 @@ const scheduleCloseWavePointsPanel = () => {
   wavePointsPanelHideTimer = window.setTimeout(() => {
     isWavePointsPanelOpen.value = false
   }, 150)
-}
-
-const openUserCard = () => {
-  if (userCardHideTimer) {
-    window.clearTimeout(userCardHideTimer)
-    userCardHideTimer = null
-  }
-  isWavePointsPanelOpen.value = false
-  isUserCardOpen.value = true
-  isUserMenuOpen.value = false // 默认先展示个人中心
 }
 
 // 悬停头像区域：展示个人中心卡片
@@ -666,7 +676,7 @@ onBeforeUnmount(() => {
   clearMonthlyTipTimers()
 })
 
-const getCurrentLanguageLabel = () => (locale.value === 'zh' ? '简体中文' : 'English')
+const getCurrentLanguageLabel = () => (userStore.userInfo?.language === 'zh-chs' ? '简体中文' : 'English')
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
@@ -738,7 +748,7 @@ const handleMenuClick = (item: { key: string; path?: string; query?: Record<stri
 
 const showComingSoon = () => {
   ElMessage.info(
-    locale.value === 'zh'
+    userStore.userInfo?.language === 'zh-chs'
       ? '功能暂未开放，敬请期待'
       : 'This feature is not available yet. Stay tuned.'
   )
@@ -766,7 +776,22 @@ const handlePlatformAgreementClick = () => {
 
 const handleProductTutorialClick = () => {
   closeUserMenu()
-  showComingSoon()
+  void (async () => {
+    try {
+      // 文档分类（后端字段必填：categoriesCode）
+      const res = (await appApi.getTutorialList({ categoriesCode: 'ALL' })) as any
+      if (String(res?.code) !== '0000' && res?.success !== true) {
+        ElMessage.error(res?.msg || (locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials'))
+        return
+      }
+
+      window.open(res?.data?.[0]?.url, '_blank')
+
+    } catch (e) {
+      console.error('[Header] getTutorialList error:', e)
+      ElMessage.error(locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials')
+    }
+  })()
 }
 
 const handleAiWatermarkSettingsClick = () => {

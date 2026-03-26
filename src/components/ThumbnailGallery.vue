@@ -2,15 +2,15 @@
   <div class="thumbnail-gallery">
     <!-- 缩略图列表 -->
     <div ref="thumbnailListRef" class="thumbnail-list">
-      <div v-for="(asset, index) in assets" :key="asset.id || asset.taskId || asset.taskUuid || `thumbnail-${index}`"
+      <div v-for="(asset, index) in assets" :key="asset.id || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`"
         class="thumbnail-item" :class="[
           { active: index === currentIndex },
-          { generating: asset.status === 2 },
+          { generating: asset.status === 0 || asset.status === 1 || asset.status === 2 },
           { failed: asset.status === 4 },
-        ]" :draggable="asset.fileType !== 2" @click="selectThumbnail(index)"
+        ]" :draggable="!isVideo(asset)" @click="selectThumbnail(index)"
         @dragstart="handleDragStart(asset, $event)">
         <!-- 生成中状态 -->
-        <div v-if="asset.status === 2" class="thumbnail-generating">
+        <div v-if="asset.status === 0 || asset.status === 1 || asset.status === 2" class="thumbnail-generating">
           <!-- 使用动态图占位（缩略图尺寸） -->
         </div>
 
@@ -21,7 +21,7 @@
 
         <!-- 正常状态 -->
         <template v-else>
-          <LazyImage :src="asset.imageUrl" :alt="asset.prompt" width="100%" height="100%" object-fit="cover"
+          <LazyImage :src="getImagePoster(asset)" :alt="asset.prompt" width="100%" height="100%" object-fit="cover"
             :border-radius="0" />
           <!-- <div class="thumbnail-overlay">
             <span class="asset-type">{{ asset.fileType === 2 ? '视频' : '图片' }}</span>
@@ -34,12 +34,12 @@
 
 <script setup lang="ts">
 // 自动导入：Vue API, Element Plus 图标
-import { type Asset } from '@/composables/useTaskPolling'
+import { type CreationResult } from '@/composables/useTaskPolling'
 import { images } from '@/assets'
 
 // 定义组件属性
 interface Props {
-  assets: Asset[]
+  assets: CreationResult[]
   currentIndex: number
   hasMoreData?: boolean // 是否还有更多数据
   loading?: boolean // 是否正在加载
@@ -62,6 +62,16 @@ const emit = defineEmits<Emits>()
 // 响应式数据
 const thumbnailListRef = ref()
 
+// 后端 status（0初始化 1待请求 2处理中 3完成 4失败） -> 前端 ui status（1/2/3/4）
+const isVideo = (asset: CreationResult) => {
+  const ft = Number((asset as any).fileType ?? asset.fileType)
+  return ft === 2 || ft === 4
+}
+
+const getImagePoster = (asset: CreationResult) => {
+  return (asset as any).thumbUrl || ''
+}
+
 // 标志位：防止循环滚动
 let isSyncing = false
 let syncTimer: ReturnType<typeof setTimeout> | null = null
@@ -73,23 +83,23 @@ const selectThumbnail = (index: number) => {
 }
 
 // 处理拖拽开始：把资产信息写入 dataTransfer
-const handleDragStart = (asset: Asset, event: DragEvent) => {
+const handleDragStart = (asset: CreationResult, event: DragEvent) => {
   try {
     const data = {
       type: 'asset',
-      imageUrl: asset.imageUrl,
-      fileUrl: asset.fileUrl,
+      imageUrl: getImagePoster(asset),
+      fileUrl: (asset as any).url || '',
       id: asset.id,
       fileType: asset.fileType, // 添加文件类型，用于在拖拽目标处判断是否是视频
     }
     event.dataTransfer?.setData('application/json', JSON.stringify(data))
     // 兼容简单实现：也塞一份纯文本 URL（优先图片地址，但视频不设置）
-    if (asset.imageUrl && asset.fileType !== 2) {
-      event.dataTransfer?.setData('text/plain', asset.imageUrl)
+    if (getImagePoster(asset) && !isVideo(asset)) {
+      event.dataTransfer?.setData('text/plain', getImagePoster(asset))
     }
 
     // 使用自定义拖拽预览：只显示图片，不显示覆盖层
-    if (asset.imageUrl && asset.fileType !== 2) {
+    if (getImagePoster(asset) && !isVideo(asset)) {
       // 使用 currentTarget 获取拖拽的容器元素（thumbnail-item）
       const container = event.currentTarget as HTMLElement
       // 查找 LazyImage 内部的 img 元素（el-image 会渲染为 .el-image__inner）

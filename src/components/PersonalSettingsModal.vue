@@ -82,13 +82,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useModalStore } from '@/stores/modal'
 import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 import { images } from '@/assets'
 import ResetPassword from '@/components/ResetPassword.vue'
 
@@ -96,13 +96,29 @@ interface Props {
   modelValue: boolean
 }
 const props = defineProps<Props>()
-const { t } = useI18n()
+const { t, locale } = useI18n({
+  useScope: 'local',
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   saved: []
 }>()
 
 const userStore = useUserStore()
+
+// 个人中心只受“用户偏好语言”影响，避免被全局 i18n locale 反向覆盖
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
+
 
 const dialogVisible = computed({
   get: () => props.modelValue,

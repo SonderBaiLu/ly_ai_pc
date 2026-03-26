@@ -122,6 +122,15 @@ export const appApi = {
   getAlgoConfigTempRelation(params: { menuCode: string }) {
     return request.get('/v1/app/getAlgoConfigTempRelation', { params }) as unknown as Promise<ApiResponse<AlgoConfigTempRelationItem[]>>
   },
+
+  /**
+   * 查询平台教程列表
+   * - GET /api/v1/app/getTutorialList
+   * 文档分类 ALL: 全部使用说明 ai_fashion_design AI服装设计line_draw_to_phys_obj 线稿转实物phys_obj_to_line_draw  实物转线稿fabric_design_concept  面料创款
+   */
+  getTutorialList(params: { categoriesCode: 'ALL' | 'ai_fashion_design' | 'line_draw_to_phys_obj' | 'phys_obj_to_line_draw' | 'fabric_design_concept' }) {
+    return request.get('/v1/app/getTutorialList', { params }) as unknown as Promise<ApiResponse<Array<Record<string, any>>>>
+  },
 }
 
 export default appApi

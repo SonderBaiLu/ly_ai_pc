@@ -11,19 +11,19 @@
             <div class="qrcode-card">
               <img src="@/assets/images/wechat_code1.png" alt="微信二维码-小澍" class="qrcode-image" />
               <div class="qrcode-label">
-                {{ locale === 'zh' ? '商务咨询-小澍' : 'Business inquiry - Xiaoshu' }}
+                {{ locale === 'zh-chs' ? '商务咨询-小澍' : 'Business inquiry - Xiaoshu' }}
               </div>
             </div>
             <div class="qrcode-card">
               <img src="@/assets/images/wechat_code2.png" alt="微信二维码-雾楠" class="qrcode-image" />
               <div class="qrcode-label">
-                {{ locale === 'zh' ? '商务咨询-雾楠' : 'Business inquiry - Wunan' }}
+                {{ locale === 'zh-chs' ? '商务咨询-雾楠' : 'Business inquiry - Wunan' }}
               </div>
             </div>
             <div class="qrcode-card">
               <img src="@/assets/images/wechat_code3.png" alt="微信二维码-云纱" class="qrcode-image" />
               <div class="qrcode-label">
-                {{ locale === 'zh' ? '商务咨询-云纱' : 'Business inquiry - Yunsha' }}
+                {{ locale === 'zh-chs' ? '商务咨询-云纱' : 'Business inquiry - Yunsha' }}
               </div>
             </div>
           </div>
@@ -92,7 +92,7 @@ const goAgreement = (type: AgreementType) => {
 
 const showComingSoon = () => {
   ElMessage.info(
-    locale.value === 'zh'
+    locale.value === 'zh-chs'
       ? '功能暂未开放，敬请期待'
       : 'This feature is not available yet. Stay tuned.'
   )

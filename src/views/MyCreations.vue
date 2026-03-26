@@ -160,24 +160,31 @@ import { ElMessage } from 'element-plus'
 import { MoreFilled } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import { uploadApi } from '@/api/upload'
-import { creativeApi } from '@/api/creative'
+import { algoApi } from '@/api/algo'
 import { useUserStore } from '@/stores/user'
 import { useModalStore } from '@/stores/modal'
 import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import { useI18n } from 'vue-i18n'
+import { APP_MENU_CODES } from '@/constants/appMenuCode'
 
 type TabKey = 'all' | 'image' | 'video' | 'fashion' | 'fabric' | 'collect' | 'upload'
 
 type CreationItem = {
   id: string | number
-  imageUrl?: string
-  imgUrl?: string
-  lessenImg?: string
-  fileType?: number // 1-图片 2-视频
-  status?: number // 1未开始 2进行中 3完成 4失败
-  isCollect?: number
-  title?: string
-  name?: string
+  algoOrderId: string
+  algoOrderNo?: string
+  userId?: string
+  userSonId?: string | null
+  menuCode?: string
+  thumbUrl?: string | null
+  url?: string | null
+  originalUrl?: string | null
+  fileSize?: number
+  duration?: number
+  fileType: number // 1图片 2视频 3音频 4音视频
+  status: number // 0初始化 1待请求 2处理中 3完成 4失败
+  collectStatus: number // 0未收藏 1已收藏
+  prompt?: string
   [key: string]: any
 }
 
@@ -216,42 +223,13 @@ const pendingWatermarkToggleTo = ref<boolean | null>(null)
 const pageSize = 12
 const page = ref(1)
 const list = ref<CreationItem[]>([])
+const totalCount = ref(0)
 
-// 先用本地 mock 数据跑通 UI；后续可替换为真实接口
-const allData = ref<CreationItem[]>([
-  { id: 'c-1', imageUrl: images.design1, fileType: 1, status: 3, isCollect: 0, title: '外套-1', biz: 'fashion' },
-  { id: 'c-2', imageUrl: images.design2, fileType: 1, status: 3, isCollect: 1, title: 'T恤-1', biz: 'fashion' },
-  { id: 'c-3', imageUrl: images.design3, fileType: 1, status: 3, isCollect: 0, title: '裙子-1', biz: 'fashion' },
-  { id: 'c-4', imageUrl: images.design4, fileType: 1, status: 3, isCollect: 0, title: '裤子-1', biz: 'fashion' },
-  { id: 'c-5', imageUrl: images.design2, fileType: 1, status: 3, isCollect: 0, title: '面料-1', biz: 'fabric' },
-  { id: 'c-6', imageUrl: images.design3, fileType: 1, status: 3, isCollect: 1, title: '面料-2', biz: 'fabric' },
-  { id: 'c-7', imageUrl: images.design1, fileType: 1, status: 2, isCollect: 0, title: '生成中', biz: 'fashion' },
-  { id: 'c-8', imageUrl: images.design4, fileType: 1, status: 4, isCollect: 0, title: '失败', biz: 'fashion' },
-  // 补足数量，让分页/加载更多可见
-  ...Array.from({ length: 60 }).map((_, idx) => ({
-    id: `c-mock-${idx + 1}`,
-    imageUrl: [images.design1, images.design2, images.design3, images.design4][idx % 4],
-    fileType: idx % 11 === 0 ? 2 : 1,
-    status: 3,
-    isCollect: idx % 7 === 0 ? 1 : 0,
-    title: `作品-${idx + 1}`,
-    biz: idx % 5 === 0 ? 'fabric' : 'fashion',
-    source: idx % 9 === 0 ? 'upload' : 'generate',
-  })),
-])
+const allData = ref<CreationItem[]>([])
 
 const filteredAll = computed(() => {
-  const tab = activeTab.value
-  const src = allData.value
-  if (tab === 'all') return src
-  if (tab === 'image') return src.filter((x) => (x.fileType ?? 1) === 1)
-  if (tab === 'video') return src.filter((x) => x.fileType === 2)
-  if (tab === 'fashion') return src.filter((x) => x.biz === 'fashion')
-  if (tab === 'fabric') return src.filter((x) => x.biz === 'fabric')
-  if (tab === 'collect') return src.filter((x) => x.isCollect === 1)
-  // 我的上传：先置空，方便验证空状态（后续接真实上传列表接口后再替换）
-  if (tab === 'upload') return []
-  return src
+  // 当前 tab 的数据已在接口层面完成过滤（或通过 fallback 合并），这里直接复用
+  return allData.value
 })
 
 const selectedCollectStatus = computed(() => {
@@ -259,7 +237,7 @@ const selectedCollectStatus = computed(() => {
   const set = new Set(selectedIds.value)
   const items = filteredAll.value.filter((x) => set.has(x.id))
   if (items.length === 0) return { allCollected: false }
-  const collected = items.filter((x) => x.isCollect === 1)
+  const collected = items.filter((x) => Number(x.collectStatus ?? 0) === 1)
   return { allCollected: collected.length === items.length }
 })
 
@@ -267,17 +245,138 @@ const fetchPage = async (reset = false) => {
   if (loading.value) return
   loading.value = true
   try {
-    // mock：用 setTimeout 模拟接口耗时
-    await new Promise((r) => setTimeout(r, 350))
+    if (activeTab.value === 'upload') {
+      if (reset) {
+        allData.value = []
+        list.value = []
+        totalCount.value = 0
+      }
+      hasMore.value = false
+      return
+    }
 
-    const all = filteredAll.value
-    const start = (page.value - 1) * pageSize
-    const end = start + pageSize
-    const chunk = all.slice(start, end)
+    if (reset) {
+      allData.value = []
+      list.value = []
+      totalCount.value = 0
+    }
 
-    if (reset) list.value = []
-    list.value = reset ? chunk : [...list.value, ...chunk]
-    hasMore.value = end < all.length
+    const menuCode =
+      activeTab.value === 'fashion'
+        ? APP_MENU_CODES.AI_FASHION_DESIGN
+        : activeTab.value === 'fabric'
+          ? APP_MENU_CODES.FABRIC_DESIGN_CONCEPT
+          : 'ALL'
+
+    const collectStatus = activeTab.value === 'collect' ? '1' : '0'
+
+    const shouldTryFileTypeAll = !['image', 'video'].includes(activeTab.value)
+
+    const fileTypeTargets = (() => {
+      if (activeTab.value === 'image') return ['1']
+      if (activeTab.value === 'video') return ['2']
+      // 先请求“全部类型”（如果后端不支持 0，会进入 fallback）
+      return shouldTryFileTypeAll ? ['0'] : ['1']
+    })()
+
+    const fetchOne = async (fileType: string) => {
+      const res = await algoApi.queryAlgoResultPage({
+        menuCode,
+        fileType,
+        collectStatus,
+        currentPage: page.value,
+        offset: pageSize,
+      })
+
+      const code = String((res as any)?.code ?? '')
+      if (code !== '0000') {
+        throw new Error(String((res as any)?.msg ?? 'queryAlgoResultPage failed'))
+      }
+
+      const data = (res as any)?.data ?? {}
+      const recordsRaw =
+        (Array.isArray(data?.records) && data.records) ||
+        (Array.isArray(data?.list) && data.list) ||
+        (Array.isArray(data) ? data : [])
+
+      const total = Number(data?.total ?? data?.totalCount ?? recordsRaw.length ?? 0)
+      return { records: recordsRaw, total }
+    }
+
+    const mapToCreationItem = (r: any): CreationItem | null => {
+      const id = String(r?.id ?? '')
+      if (!id) return null
+      const backendFileType = Number(r?.fileType ?? 1)
+      const backendStatus = Number(r?.status ?? 3)
+      const collect = Number(r?.collectStatus ?? 0)
+      const menu = String(r?.menuCode ?? '')
+      return {
+        id,
+        algoOrderId: String(r?.algoOrderId ?? ''),
+        algoOrderNo: r?.algoOrderNo != null ? String(r.algoOrderNo) : undefined,
+        userId: r?.userId != null ? String(r.userId) : undefined,
+        userSonId: r?.userSonId != null ? String(r.userSonId) : null,
+        menuCode: menu,
+        thumbUrl: (r?.thumbUrl ?? null) as any,
+        url: (r?.url ?? null) as any,
+        originalUrl: (r?.originalUrl ?? null) as any,
+        fileSize: r?.fileSize !== undefined && r?.fileSize !== null ? Number(r.fileSize) : undefined,
+        duration: r?.duration !== undefined && r?.duration !== null ? Number(r.duration) : undefined,
+        fileType: backendFileType,
+        status: backendStatus,
+        collectStatus: collect,
+        prompt: String(r?.prompt ?? r?.functionPrompt ?? r?.creativeDescription ?? ''),
+      }
+    }
+
+    const mergeRecords = (recordsList: any[][], totals: number[]) => {
+      const map = new Map<string, any>()
+      for (let i = 0; i < recordsList.length; i++) {
+        for (const r of recordsList[i] || []) {
+          const id = String(r?.id ?? r?.algoOrderResultId ?? '')
+          if (!id) continue
+          map.set(id, r)
+        }
+      }
+      return { records: Array.from(map.values()), total: totals.reduce((s, x) => s + Number(x ?? 0), 0) }
+    }
+
+    // 先按 fileTypeTargets 尝试获取
+    const results: any[][] = []
+    const totals: number[] = []
+
+    let usedFallback = false
+    try {
+      for (const ft of fileTypeTargets) {
+        const { records, total } = await fetchOne(ft)
+        results.push(records)
+        totals.push(total)
+      }
+    } catch (e) {
+      if (!shouldTryFileTypeAll || usedFallback) throw e
+
+      // fallback：后端可能不接受 fileType=0，则分别拉图片/视频再合并
+      usedFallback = true
+      const [imgRes, videoRes] = await Promise.all([fetchOne('1'), fetchOne('2')])
+      results.push(imgRes.records, videoRes.records)
+      totals.push(imgRes.total, videoRes.total)
+    }
+
+    const merged = mergeRecords(results, totals)
+    const mapped = merged.records.map(mapToCreationItem).filter(Boolean) as CreationItem[]
+
+    if (mapped.length === 0) {
+      list.value = []
+      allData.value = []
+      totalCount.value = merged.total
+      hasMore.value = false
+      return
+    }
+
+    allData.value = reset ? mapped : [...allData.value, ...mapped]
+    list.value = allData.value
+    totalCount.value = merged.total
+    hasMore.value = allData.value.length < totalCount.value
   } finally {
     loading.value = false
   }
@@ -351,33 +450,50 @@ const handleRefresh = async () => {
 
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) return
-  const set = new Set(selectedIds.value)
-  allData.value = allData.value.filter((x) => !set.has(x.id))
-  selectedIds.value = []
-  batchMode.value = false
-  await resetAndFetch()
-  ElMessage.success(t('myCreations.message.deleteSuccess'))
+  try {
+    const ids = selectedIds.value.map((x) => String(x))
+    for (const id of ids) {
+      const res = await algoApi.del({ algoOrderResultId: id })
+      if (res.code !== '0000') throw new Error(res.msg || '删除失败')
+    }
+    const set = new Set(selectedIds.value)
+    allData.value = allData.value.filter((x) => !set.has(x.id))
+    list.value = allData.value
+    selectedIds.value = []
+    batchMode.value = false
+    ElMessage.success(t('myCreations.message.deleteSuccess'))
+  } catch (e: any) {
+    ElMessage.error(e?.message || '删除失败')
+  }
 }
 
 const handleBatchCollect = async () => {
   if (selectedIds.value.length === 0) return
-  const set = new Set(selectedIds.value)
-  const shouldCancel = selectedCollectStatus.value.allCollected || activeTab.value === 'collect'
-  allData.value = allData.value.map((x) => {
-    if (!set.has(x.id)) return x
-    return { ...x, isCollect: shouldCancel ? 0 : 1 }
-  })
-  selectedIds.value = []
-  batchMode.value = false
-  await resetAndFetch()
-  ElMessage.success(
-    shouldCancel ? t('myCreations.message.cancelCollectSuccess') : t('myCreations.message.collectSuccess'),
-  )
+  try {
+    const set = new Set(selectedIds.value)
+    const shouldCancel = selectedCollectStatus.value.allCollected || activeTab.value === 'collect'
+    for (const id of selectedIds.value) {
+      const res = await algoApi.collect({ algoOrderResultId: String(id) })
+      if (res.code !== '0000') throw new Error(res.msg || '收藏失败')
+    }
+    allData.value = allData.value.map((x) => {
+      if (!set.has(x.id)) return x
+      return { ...x, collectStatus: shouldCancel ? 0 : 1 }
+    })
+    list.value = allData.value
+    selectedIds.value = []
+    batchMode.value = false
+    ElMessage.success(
+      shouldCancel ? t('myCreations.message.cancelCollectSuccess') : t('myCreations.message.collectSuccess'),
+    )
+  } catch (e: any) {
+    ElMessage.error(e?.message || '收藏失败')
+  }
 }
 
 const getItemUrl = (item: CreationItem) => {
-  if (removeWatermarkEnabled.value && item.noWatermarkUrl) return String(item.noWatermarkUrl)
-  return item.imageUrl || item.imgUrl || item.lessenImg || ''
+  if (removeWatermarkEnabled.value && item.originalUrl) return String(item.originalUrl)
+  return String(item.url || item.thumbUrl || '')
 }
 
 const setLocalWatermarkStatus = (enabled: boolean) => {
@@ -558,20 +674,29 @@ const uploadFile = async (file: File) => {
 
     const imageUrl = uploadResult.url
 
-    // 保存上传记录（接口存在即可使用；失败不影响前端列表展示）
-    try {
-      await creativeApi.saveUserResource({
-        userId: userStore.userInfo.userId,
-        imageUrl,
-      })
-    } catch (e) {
-      console.warn('[MyCreations] saveUserResource failed (ignored):', e)
-    }
-
     // 本地插入一条（后续接真实列表接口时可直接改为 refresh）
     const id = `upload-${Date.now()}`
-    allData.value = [{ id, imageUrl, fileType: 1, status: 3, isCollect: 0, source: 'upload' }, ...allData.value]
-    await resetAndFetch()
+    // “我的上传”暂不接算法创作列表接口：这里先按创作结构插入一条本地记录
+    allData.value = [
+      {
+        id,
+        algoOrderId: id,
+        menuCode: 'upload',
+        thumbUrl: imageUrl,
+        url: imageUrl,
+        originalUrl: imageUrl,
+        fileType: 1,
+        status: 3,
+        collectStatus: 0,
+        prompt: '',
+        source: 'upload',
+      },
+      ...allData.value,
+    ]
+    // upload tab：跳过重拉接口，避免 reset 时清空刚插入的数据
+    list.value = allData.value
+    hasMore.value = false
+    totalCount.value = allData.value.length
   } finally {
     uploading.value = false
   }
