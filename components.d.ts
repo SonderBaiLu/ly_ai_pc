@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AddTeamMember: typeof import('./src/components/TeamManagement/addTeamMember.vue')['default']
     BindPhoneModal: typeof import('./src/components/BindPhoneModal.vue')['default']
     ContactModal: typeof import('./src/components/ContactModal.vue')['default']
     CreationTypeSelectModal: typeof import('./src/components/CreationTypeSelectModal.vue')['default']
@@ -18,6 +19,7 @@ declare module 'vue' {
     CtaSection: typeof import('./src/components/CtaSection.vue')['default']
     DesignFeatureModal: typeof import('./src/components/DesignFeatureModal.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']
+    EditMemberDialog: typeof import('./src/components/TeamManagement/EditMemberDialog.vue')['default']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCarousel: typeof import('element-plus/es')['ElCarousel']

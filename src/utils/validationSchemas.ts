@@ -4,7 +4,7 @@ import * as z from 'zod';
 // 定义基础 原子级验证规则
 const phoneRegex = /^[3-9]\d{9}$/;
 
-const baseRules = {
+export const baseRules = {
     // 手机号： 必填，且符合正则
     phone: z.string()
         .min(1, '请输入手机号')
@@ -13,12 +13,16 @@ const baseRules = {
     code: z.string()
         .length(4, "验证码必须是4位")
         .regex(/^\d+$/, '验证码只能包含数字'),
-    // 密码：必填，至少6位
+    //密码必填，6-20位，数字字母组成
     password: z.string()
         .min(6, "密码长度不能小于6位")
-        .max(22, "密码长度不能大于22位"),
+        .max(20, "密码长度不能大于20位")
+        .regex(/^[a-zA-Z0-9]+$/, "密码只能由数字或字母组成"),
     // 条款：布尔值，可选可不选 (如果是必选，可以改为 .refine(val => val === true, '必须同意条款'))
     agreeTerms: z.boolean().optional(),
+    teamName: z.string()
+        .min(4, "昵称不能小于4个字符")
+        .max(20, "昵称不能大于20个字符")
 }
 // 验证码登录 (手机号 + 验证码 )
 export const codeLoginSchema = toTypedSchema(
@@ -34,3 +38,4 @@ export const passwordLoginSchema = toTypedSchema(
         password: baseRules.password,
     })
 );
+

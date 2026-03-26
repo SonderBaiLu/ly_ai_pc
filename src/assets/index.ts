@@ -5,6 +5,7 @@
 // 所有图片统一导出（按字母顺序排列，方便查找）
 export const images = {
   // A
+
   add: new URL('./images/add.png', import.meta.url).href,
   aiDesign1: new URL('./images/ai_design1.png', import.meta.url).href,
   aiDesign2: new URL('./images/ai_design2.png', import.meta.url).href,
@@ -23,7 +24,6 @@ export const images = {
   arrowRight: new URL('./images/arrow_right.png', import.meta.url).href,
   agreement: new URL('./images/agreement.png', import.meta.url).href,
   aiWatermark: new URL('./images/ai_watermark.png', import.meta.url).href,
-
   // B
   book: new URL('./images/book.png', import.meta.url).href,
   ban: new URL('./images/team/ban.png', import.meta.url).href,
@@ -111,6 +111,7 @@ export const images = {
   eyeClose: new URL('./images/login_popup/eye_close.png', import.meta.url).href,
   editMini: new URL('./images/edit_mini.png', import.meta.url).href,
   editors: new URL('./images/team/editors.png', import.meta.url).href,
+  enumArrow: new URL('./images/team/arrow.png', import.meta.url).href,
 
   // F
   fabricActive: new URL('./images/fabric_active.png', import.meta.url).href,
@@ -126,7 +127,9 @@ export const images = {
   // I
   inspirationValue: new URL('./images/inspiration_value.png', import.meta.url).href,
 
+
   // L
+  lingyan: new URL('./images/login_popup/lingyan.png', import.meta.url).href,
   language: new URL('./images/language.png', import.meta.url).href,
   languageBlack: new URL('./images/language_black.png', import.meta.url).href,
   logo: new URL('./images/logo.png', import.meta.url).href,
@@ -183,6 +186,8 @@ export const images = {
   tagDel: new URL('./images/tag_del.png', import.meta.url).href,
   time: new URL('./images/time.png', import.meta.url).href,
   team: new URL('./images/team.png', import.meta.url).href,
+  teamAdd: new URL('./images/team/teamAdd.png', import.meta.url).href,
+  teamSearch: new URL('./images/team/teamSearch.png', import.meta.url).href,
 
   // U
   uploadIcon: new URL('./images/upload_icon.png', import.meta.url).href,

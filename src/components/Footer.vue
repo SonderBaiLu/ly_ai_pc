@@ -77,7 +77,7 @@ import { AGREEMENT_TYPES, type AgreementType } from '@/constants/agreement'
 const { t, locale } = useI18n()
 const router = useRouter()
 const { enterModule } = useAuthGate()
-c
+
 type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
 const goAiFashion = (mode: StudioMode) => {

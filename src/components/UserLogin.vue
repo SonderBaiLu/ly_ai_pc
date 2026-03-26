@@ -1,10 +1,10 @@
 <template>
-  <div class="login-overlay" @click.self="handleClose">
+  <div class="login-overlay">
     <div class="login-modal">
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
-            <img src="/src/assets/images/login_popup/ailog.png" alt="" />
+            <img :src="images.lingyan" alt=""/>
           </span>
         </div>
         <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') }}</h1>
@@ -205,7 +205,9 @@
           :open-id="openId"
           :mode="currentMode"
           :confirmedInviteCode="confirmedInviteCode"
+          @success="handleBindSuccess"
           @close="dialogs.isVisible = false" />
+
     </Transition>
     <InvitationCode v-if="dialogs.invitation" @update:visible="dialogs.invitation = $event"
       @confirm="handleInviteConfirm" />
@@ -222,6 +224,9 @@ import { getSmsCodeApi, getUserWechat, getWechatQrCodeApi } from '@/api/userLogi
 import { useUserStore } from "@/stores/user"
 import ResetPassword from '@/components/ResetPassword.vue'
 import InvitationCode from '@/components/InvitationCode.vue'
+import {images} from '@/assets'
+import router from "@/router";
+
 
 // ==========================================
 // 1. 全局配置与基础状态
@@ -229,7 +234,6 @@ import InvitationCode from '@/components/InvitationCode.vue'
 const userStore = useUserStore()
 const { t } = useI18n()
 const emit = defineEmits(['close'])
-import { images } from '@/assets'
 const accountType = ref<'personal' | 'team'>('personal') // 账号类型：个人 / 团队
 const loginMethod = ref<'qrcode' | 'phone'>('phone')     // 个人登录方式：扫码 / 手机
 const phoneLoginType = ref<'code' | 'password'>('code')  // 手机登录方式：验证码 / 密码
@@ -306,21 +310,26 @@ const startPolling = () => {
         if (apiStatus === 0) {
           qrStatus.value = 'waiting';
         } else if (apiStatus === 1) {
-          console.log("当前轮询值：", apiStatus)
+          // 扫码成功，清除定时器
           clearInterval(qrCodeTimer!);
           qrCodeTimer = null;
           if (res.data.mobileStatus) {
+            // 需要绑定手机号
             // 弹出绑定手机号弹窗
             dialogs.isVisible = true;
             currentMode.value = '3' // 用户第一次登录 显示密码
             openId.value = res.data.openId
-
             ElMessage.success('扫码登录成功');
           } else{
-            userStore.setToken(res.data.accessToken);
-            const aa = await userStore.getUserInfo() // 触发获用户信息接口
-            console.log(aa)
+            // 已关注/已绑定，直接登录成功
+            const accessToken = res.data.accessToken
+            if(accessToken){
+              userStore.setToken(accessToken);
+            }
+            await userStore.getUserInfo() // 触发获用户信息接口
+            ElMessage.success('登录成功');
             emit('close');
+            await router.push('/');
           }
 
         } else if (apiStatus === -1) {
@@ -333,6 +342,14 @@ const startPolling = () => {
       console.error('查询状态异常', e);
     }
   }, 2000);
+}
+// 处理 ResetPassword 组件绑定成功后的回调
+const handleBindSuccess = async () => {
+  dialogs.isVisible = false;   // 关掉绑定手机号的弹窗
+  await userStore.getUserInfo(); // 刷新用户信息，确保拿到了最新状态
+  ElMessage.success('登录成功');
+  emit('close');       // 关闭整个登录大弹窗
+  await router.push('/');    // 跳转到首页
 }
 
 // 监听登录方式切换，决定是否请求二维码和清理定时器
@@ -591,8 +608,11 @@ const forgotPassword = () => {
       display: flex;
       gap: 14px;
       margin-bottom: 28px;
-      font-size: 16px;
-      opacity: 0.95;
+      font-size: 18px;
+      color: rgba(255,255,255,1);
+      font-family: NotoSans-bold;
+      text-align: justify;
+      font-weight: 700;
 
       .icon {
         font-size: 20px;

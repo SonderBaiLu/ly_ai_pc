@@ -1,6 +1,6 @@
 <template>
   <div class="page-layout">
-    <Header />
+    <Header/>
 
     <main class="team-management-container pt-header">
       <div class="page-header">
@@ -11,12 +11,15 @@
 
         <div class="header-right">
           <div class="search-wrapper">
-            <input class="searchUser" type="text" placeholder="搜索账号名或昵称..." v-model="queryParams.keyword"
-              @keyup.enter="handleSearch" />
+            <input class="searchUser" type="text" placeholder="搜索昵称..." v-model="queryParams.keyword"
+                   @keyup.enter="handleSearch"/>
+            <img class="search-icon" :src="images.teamSearch" alt="teamSearch" @click="handleSearch" />
           </div>
 
           <button class="add-btn" @click="openAddDialog">
-            <span class="icon">+</span> 添加成员
+            <span class="icon">
+              <img :src="images.teamAdd"  alt=""/>
+            </span> 添加成员
           </button>
         </div>
       </div>
@@ -24,71 +27,71 @@
       <div class="table-wrapper">
         <table class="native-team-table">
           <thead>
-            <tr>
-              <th style="width: 25%; text-align: left;">成员信息</th>
-              <th style="width: 20%;">注册时间</th>
-              <th style="width: 20%;">角色</th>
-              <th style="width: 15%;">账号状态</th>
-              <th class="endth" style="width: 20%; text-align: right;">操作栏项</th>
-            </tr>
+          <tr>
+            <th style="width: 25%; text-align: left;">成员信息</th>
+            <th style="width: 20%;">注册时间</th>
+            <th style="width: 20%;">角色</th>
+            <th style="width: 15%;">账号状态</th>
+            <th class="endth" style="width: 20%; text-align: right;">操作栏项</th>
+          </tr>
           </thead>
           <tbody>
-            <tr v-if="teamList.length === 0">
-              <td colspan="5">
-                <div class="empty-state">
-                  <img src="../assets/vue.svg" alt="暂无数据" class="empty-img" />
-                  <p>{{ loading ? '加载中...' : '暂无团队成员' }}</p>
-                </div>
-              </td>
-            </tr>
+          <tr v-if="teamList.length === 0">
+            <td colspan="5">
+              <div class="empty-state">
+                <img src="../assets/vue.svg" alt="暂无数据" class="empty-img"/>
+                <p>{{ loading ? '加载中...' : '暂无团队成员' }}</p>
+              </div>
+            </td>
+          </tr>
 
-            <tr v-for="row in teamList" :key="row.accountId">
-              <td>
-                <div class="member-info-col">
-                  <span class="member-userNameTwo">{{ row.userNameTwo }}</span>
-                  <span class="member-name">{{ row.nickName }}</span>
-                  <span v-if="row.mainStatus === '1'" class="main-account-badge">主账号</span>
-                </div>
-              </td>
-              <td class="create-time">{{ formatDate(row.createTime) }}</td>
-              <td>
-                <span :class="['role-tag', row.role === '1' ? 'admin' : 'member']">
-                  {{ row.role === '1' ? '管理员' : '成员' }}
+          <tr v-for="row in teamList" :key="row.id">
+            <td>
+              <div class="member-info-col">
+                <span class="member-userNameTwo">{{ row.userNameTwo }}</span>
+                <span class="member-name">{{ row.nickName }}</span>
+                <span v-if="row.mainStatus === 1" class="main-account-badge">主账号</span>
+              </div>
+            </td>
+            <td class="create-time">{{ formatDate(row.createTime) }}</td>
+            <td>
+                <span :class="['role-tag', row.role === 1 ? 'admin' : 'member']">
+                  {{ row.role === 1 ? '管理员' : '成员' }}
                 </span>
-              </td>
-              <td>
-                <span :class="['status', row.status === '1' ? 'normal' : 'ban']">
-                  <img v-if="row.status === '1'" src="@/assets/images/team/normal.png" class="role-dot" alt="正常" />
-                  <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁" />
-                  {{ row.status === '1' ? '正常' : '封禁' }}
+            </td>
+            <td>
+                <span :class="['status', row.status === 1 ? 'normal' : 'ban']">
+                  <img v-if="row.status === 1" src="@/assets/images/team/normal.png" class="role-dot" alt="正常"/>
+                  <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁"/>
+                  {{ row.status === 1 ? '正常' : '封禁' }}
                 </span>
-              </td>
-              <td style="text-align: right;">
-                <div class="action-buttons justify-end" v-if="row.accountId !== currentUserId">
-                  <template v-if="row.role !== '1'">
-                    <button class="action-btn" @click="openConfirm('disable', row)" title="停用">
-                      <img :class="['status', row.status === '1' ? 'Disable' : 'NoDisable']"
-                        :src="row.status === '1' ? images.ban : images.banRedColor" class="action-icon" alt="停用" />
-                      <span class="action-text">
-                        {{ row.status === '1' ? '停用' : '取消停用' }}
+            </td>
+            <td style="text-align: right;">
+              <div class="action-buttons justify-end" v-if="row.id !== currentUserId">
+                <template v-if="row.role !== 1">
+                  <button class="action-btn" @click="openConfirm('disable', row)" title="停用">
+                    <img :class="['status', row.status === 1 ? 'Disable' : 'NoDisable']"
+                         :src="row.status === 1 ? images.ban : images.banRedColor" class="action-icon" alt="停用"/>
+                    <span class="action-text">
+                        {{ row.status === 1 ? '停用' : '取消停用' }}
                       </span>
-                    </button>
-                  </template>
-                  <button class="action-btn" @click="openEdit(row)" title="编辑">
-                    <img :src="images.editors" class="action-icon" alt="编辑" />
-                    <span class="action-text">编辑</span>
                   </button>
-                  <button class="action-btn" @click="openConfirm('resetPwd', row)" title="重置密码">
-                    <img :src="images.reset" class="action-icon" alt="重置密码" />
-                    <span class="action-text">重置密码</span>
-                  </button>
-                  <button class="action-btn" @click="openConfirm('delete', row)" title="删除">
-                    <img :src="images.deleteT" class="action-icon" alt="删除" />
-                    <span class="action-text">删除</span>
-                  </button>
-                </div>
-              </td>
-            </tr>
+                </template>
+                <button class="action-btn" @click="openEdit(row)" title="编辑">
+                  <img :src="images.editors" class="action-icon" alt="编辑"/>
+                  <span class="action-text">编辑</span>
+                </button>
+                <button class="action-btn" @click="openConfirm('resetPwd', row)" title="重置密码">
+                  <img :src="images.reset" class="action-icon" alt="重置密码"/>
+                  <span class="action-text">重置密码</span>
+                </button>
+                <button class="action-btn" @click="openConfirm('delete', row)" title="删除">
+                  <img :src="images.deleteT" class="action-icon" alt="删除"/>
+                  <span class="action-text">删除</span>
+                </button>
+              </div>
+            </td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -102,85 +105,49 @@
         <div class="pagination-right">
           <div class="custom-pagination">
             <button class="page-btn text-btn" :disabled="queryParams.pageNum === 1"
-              @click="changePage(queryParams.pageNum - 1)">
+                    @click="changePage(queryParams.pageNum - 1)">
               上一页
             </button>
             <button v-for="page in totalPages" :key="page"
-              :class="['page-btn', { 'is-active': queryParams.pageNum === page }]" @click="changePage(page)">
+                    :class="['page-btn', { 'is-active': queryParams.pageNum === page }]" @click="changePage(page)">
               {{ page }}
             </button>
             <button class="page-btn text-btn" :disabled="queryParams.pageNum === totalPages"
-              @click="changePage(queryParams.pageNum + 1)">
+                    @click="changePage(queryParams.pageNum + 1)">
               下一页
             </button>
           </div>
         </div>
       </div>
     </footer>
+<!--    删除账号弹窗-->
+    <div class="custom-modal-overlay" v-if="confirmDialog.visible">
+      <div class="custom-delete-modal">
+        <h3 class="modal-title">{{ confirmDialog.title }}</h3>
+        <p class="modal-desc">{{ confirmDialog.message }}</p>
 
-    <div v-if="addDialogVisible" class="custom-modal-overlay">
-      <div class="custom-modal">
-        <button class="close-btn" @click="closeAddDialog">
-          <img :src="images.closeDialog" alt="关闭" style="width: 14px; height: 14px;" />
-        </button>
-        <h2 class="modal-title">添加成员</h2>
-
-        <div class="form-container">
-          <div class="form-group">
-            <label class="form-label">账号名</label>
-            <div class="input-wrapper">
-              <input type="text" v-model="addForm.nickName" class="form-input" placeholder="请输入账号名" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">密码 <span class="label-hint">6-20个数字、字母组成</span></label>
-            <div class="input-wrapper">
-              <input :type="showPwd ? 'text' : 'password'" v-model="addForm.password" class="form-input"
-                placeholder="请输入密码" />
-              <span class="icon-eye" @click="showPwd = !showPwd">
-                <img :src="showPwd ? images.eye : images.eyeClose" alt="" />
-              </span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">确认密码</label>
-            <div class="input-wrapper">
-              <input :type="showConfirmPwd ? 'text' : 'password'" v-model="addForm.confirmPassword" class="form-input"
-                placeholder="请再次输入密码确认" />
-              <span class="icon-eye" @click="showConfirmPwd = !showConfirmPwd">
-                <img :src="showConfirmPwd ? images.eye : images.eyeClose" alt="" />
-              </span>
-            </div>
-          </div>
-
-          <button @click="submitAddMember" class="submit-btn" :disabled="isSubmitting">
-            {{ isSubmitting ? '添加中...' : '确定添加' }}
-          </button>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="confirmDialog.visible = false">取消</button>
+          <button class="btn-confirm" @click="handleConfirm">确定</button>
         </div>
       </div>
     </div>
 
-    <div v-if="confirmDialog.visible" class="custom-modal-overlay">
-      <div class="custom-modal confirm-modal">
-        <h2 class="modal-title">{{ confirmDialog.title }}</h2>
-        <p class="confirm-message">{{ confirmDialog.message }}</p>
-        <div class="confirm-actions">
-          <button class="cancel-btn" @click="confirmDialog.visible = false">取消</button>
-          <button class="submit-btn confirm-submit" @click="executeConfirm">确定</button>
-        </div>
-      </div>
-    </div>
+    <EditMemberDialog
+        v-model:visible="editDialogVisible"
+        :member-data="currentEditRow"
+        @success="handleEditSuccess"
+    />
+    <addTeamMember @success="handleEditSuccess" v-model:visible="isDialogVisible" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus' // 仅保留轻提示，用于成功/失败提示
+import {ref, reactive, computed, onMounted} from 'vue'
 import Header from '@/components/Header.vue'
-import { images } from '@/assets'
-import { useUserStore } from '@/stores/user'
+import {images} from '@/assets'
+import {useUserStore} from '@/stores/user'
+import teamApi from "@/api/teamManage.ts";
 
 const userStore = useUserStore()
 const currentUserId = userStore.userInfo?.userId || ''
@@ -188,17 +155,28 @@ const currentUserId = userStore.userInfo?.userId || ''
 const loading = ref(false)
 const teamList = ref<any[]>([])
 const total = ref(0)
-
+// 搜索/分页参数
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 8,
   keyword: ''
 })
 
-// 新增：计算总页数
+// 接口返回的完整数据（用于分页切片）
+const allMockData = ref<Array<{
+  id: string;
+  userNameTwo: string;
+  nickName: string;
+  mainStatus: number;
+  role: number;
+  status: number;
+  createTime: string;
+}>>([]);
+
+// 计算总页数
 const totalPages = computed(() => Math.ceil(total.value / queryParams.pageSize))
 
-// 新增：计算左下角的分页显示文本
+// 计算分页显示文本
 const paginationText = computed(() => {
   if (total.value === 0) return '暂无数据';
   const start = (queryParams.pageNum - 1) * queryParams.pageSize + 1;
@@ -206,102 +184,88 @@ const paginationText = computed(() => {
   return `当前显示 ${start}-${end} 条，共 ${total.value}条记录`;
 });
 
-const addDialogVisible = ref(false)
-const isSubmitting = ref(false)
-const showPwd = ref(false)
-const showConfirmPwd = ref(false)
-const addForm = reactive({ nickName: '', password: '', confirmPassword: '' })
-
-// 确认弹窗状态
-const confirmDialog = reactive({
-  visible: false,
-  type: '', // 'remove' or 'transfer'
-  title: '',
-  message: '',
-  targetRow: null as any
-})
-
-// 格式化日期为 YYYY-MM-DD
+// 格式化日期
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   return dateStr.split(' ')[0];
 }
-// 模拟加载数据
-const allMockData = [
-  { id: '1', nickName: 'admin_test', createTime: '2023-10-01 12:00:00', role: '1', userNameTwo: 'AC', status: '1', mainStatus: '1' },
-  { id: '2', nickName: 'member_01', createTime: '2023-10-05 14:30:00', role: '0', userNameTwo: 'SW', status: '0', mainStatus: '0' },
-  { id: '3', nickName: 'member_02', createTime: '2023-10-06 09:15:00', role: '1', userNameTwo: 'LM', status: '1', mainStatus: '0' },
-  { id: '4', nickName: 'member_03', createTime: '2023-10-06 09:15:00', role: '0', userNameTwo: 'JR', status: '0', mainStatus: '1' },
-  { id: '5', nickName: 'member_04', createTime: '2023-10-06 09:15:00', role: '1', userNameTwo: 'EZ', status: '1', mainStatus: '0' },
-  { id: '6', nickName: 'member_05', createTime: '2023-10-06 09:15:00', role: '0', userNameTwo: 'CE', status: '1', mainStatus: '0' },
-  { id: '7', nickName: 'member_06', createTime: '2023-10-06 09:15:00', role: '0', userNameTwo: 'HT', status: '1', mainStatus: '0' },
-  { id: '8', nickName: 'member_07', createTime: '2023-10-06 09:15:00', role: '0', userNameTwo: 'NM', status: '1', mainStatus: '0' },
-  // 下面是第二页的数据
-  { id: '9', nickName: 'member_08', createTime: '2023-10-07 10:00:00', role: '0', userNameTwo: 'A8', status: '1', mainStatus: '0' },
-  { id: '10', nickName: 'member_09', createTime: '2023-10-07 11:00:00', role: '0', userNameTwo: 'A9', status: '1', mainStatus: '0' },
-  { id: '11', nickName: 'member_10', createTime: '2023-10-08 09:00:00', role: '0', userNameTwo: 'B1', status: '1', mainStatus: '0' },
-  { id: '12', nickName: 'member_11', createTime: '2023-10-08 10:00:00', role: '0', userNameTwo: 'B2', status: '1', mainStatus: '0' },
-  { id: '13', nickName: 'member_12', createTime: '2023-10-08 11:00:00', role: '0', userNameTwo: 'B3', status: '1', mainStatus: '0' },
-  { id: '14', nickName: 'member_13', createTime: '2023-10-09 14:00:00', role: '0', userNameTwo: 'B4', status: '1', mainStatus: '0' },
-  { id: '15', nickName: 'member_14', createTime: '2023-10-09 15:00:00', role: '0', userNameTwo: 'B5', status: '1', mainStatus: '0' },
-];
 
-// 分页逻辑
-const fetchTeamList = async () => {
+
+// 1. 调用接口获取完整数据
+const searchUsers = async () => {
   loading.value = true
   try {
-    setTimeout(() => {
-      total.value = allMockData.length;
-      const startIdx = (queryParams.pageNum - 1) * queryParams.pageSize;
-      const endIdx = startIdx + queryParams.pageSize;
-      teamList.value = allMockData.slice(startIdx, endIdx);
-      loading.value = false
-    }, 500)
-  } catch {
+    const res = await teamApi.getSonUserPage({
+      nickName: queryParams.keyword
+    })
+    if (String((res as any).code) === '0000') {
+      allMockData.value = res.data.list || []
+      total.value = allMockData.value.length // 赋值总数
+      fetchTeamList()
+    } else {
+      allMockData.value = []
+      total.value = 0
+      teamList.value = []
+    }
+  } catch (err) {
+    console.error('请求失败：', err)
+    allMockData.value = []
+    total.value = 0
+    teamList.value = []
+  } finally {
     loading.value = false
   }
 }
 
-// 新增：分页切换函数
+const fetchTeamList = () => {
+  const startIdx = (queryParams.pageNum - 1) * queryParams.pageSize;
+  const endIdx = startIdx + queryParams.pageSize;
+  teamList.value = allMockData.value.slice(startIdx, endIdx);
+}
+
+// 3. 分页切换
 const changePage = (page: number) => {
   if (page < 1 || page > totalPages.value) return
   queryParams.pageNum = page
   fetchTeamList()
 }
 
-// 搜索
+// 4. 搜索（重置页码 + 重新请求）
 const handleSearch = () => {
   queryParams.pageNum = 1
-  fetchTeamList()
+  searchUsers()
 }
 
-// 添加成员
+
+
+
+// ---------------- 弹窗/操作逻辑 ----------------
+const isDialogVisible = ref(false)  // 控制 添加成员弹窗的变量
+const showPwd = ref(false)
+const showConfirmPwd = ref(false)
+const addForm = reactive({nickName: '', password: '', confirmPassword: ''})
+
 const openAddDialog = () => {
   addForm.nickName = ''
   addForm.password = ''
   addForm.confirmPassword = ''
   showPwd.value = false
   showConfirmPwd.value = false
-  addDialogVisible.value = true
+  isDialogVisible.value = true
 }
 
-const closeAddDialog = () => addDialogVisible.value = false
+// const closeAddDialog = () => isDialogVisible.value = false
 
-const submitAddMember = async () => {
-  if (!addForm.nickName) return ElMessage.warning("请输入账号名")
-  if (!addForm.password) return ElMessage.warning("请输入密码")
-  if (addForm.password !== addForm.confirmPassword) return ElMessage.warning("两次输入的密码不一致")
 
-  isSubmitting.value = true
-  setTimeout(() => {
-    ElMessage.success('添加成功')
-    closeAddDialog()
-    fetchTeamList()
-    isSubmitting.value = false
-  }, 500)
-}
+// 确认弹窗
+const confirmDialog = reactive({
+  visible: false,
+  type: '',
+  title: '',
+  message: '',
+  targetRow: null as any
+})
 
-// 打开二次确认弹窗
 const openConfirm = (type: 'disable' | 'resetPwd' | 'delete', row: any) => {
   confirmDialog.type = type
   confirmDialog.targetRow = row
@@ -313,35 +277,54 @@ const openConfirm = (type: 'disable' | 'resetPwd' | 'delete', row: any) => {
     confirmDialog.title = '重置密码'
     confirmDialog.message = `确定要重置成员【${row.nickName}】的密码吗？`
   } else if (type === 'delete') {
-    confirmDialog.title = '删除成员'
-    confirmDialog.message = `确定要将成员【${row.nickName}】从团队中删除吗？`
+    confirmDialog.title = '删除账号确认'
+    confirmDialog.message = `确定需要删除该账号吗？删除后将无法登录，请谨慎操作。`
+    confirmDialog.visible = true
   }
-  confirmDialog.visible = true
+  }
+// 确认弹窗的提交操作
+const handleConfirm = async () => {
+  if (!confirmDialog.targetRow) return
+  try {
+    // 这里可以根据 confirmDialog.type 来判断调用哪个接口
+    if (confirmDialog.type === 'delete') {
+      const res =  await teamApi.deleteUser({ itemUserId: confirmDialog.targetRow.id })
+      if(String((res as any).code) === '0000') {
+        ElMessage.success('删除成功')
+      }
+    } else if (confirmDialog.type === 'disable') {
+      // await teamApi.disableUser(...)
+      ElMessage.success('操作成功')
+    } else if (confirmDialog.type === 'resetPwd') {
+      // await teamApi.resetPwd(...)
+      ElMessage.success('密码重置成功')
+    }
+    confirmDialog.visible = false
+    await searchUsers() // 刷新列表
+  } catch (err) {
+    ElMessage.error(err.message)
+  }
 }
 
-// 执行二次确认逻辑
-const executeConfirm = async () => {
-  confirmDialog.visible = false
-  if (confirmDialog.type === 'disable') {
-    // TODO: 调用停用接口
-    ElMessage.success('已停用该成员')
-  } else if (confirmDialog.type === 'resetPwd') {
-    // TODO: 调用重置密码接口
-    ElMessage.success('密码已重置')
-  } else if (confirmDialog.type === 'delete') {
-    // TODO: 调用删除接口
-    ElMessage.success('删除成功')
-  }
-  await fetchTeamList()
-}
-// 打开编辑功能
+
+
+// 编辑弹窗
+const editDialogVisible = ref(false)
+const currentEditRow = ref<string>("")
+
 const openEdit = (row: any) => {
-  // TODO: 打开编辑弹窗的逻辑
-  ElMessage.info(`点击了编辑成员：${row.nickName}`)
+  currentEditRow.value = row
+  editDialogVisible.value = true
 }
+
+// 编辑成功回调
+const handleEditSuccess = () => {
+  searchUsers()
+}
+// ---------------- 生命周期 ----------------
 
 onMounted(() => {
-  fetchTeamList()
+  searchUsers()
 })
 </script>
 
@@ -407,13 +390,16 @@ onMounted(() => {
       gap: 16px;
 
       .search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
         .searchUser {
           width: 256px;
           height: 38px;
           border-radius: 8px;
           background-color: #0F172A;
           border: 1px solid #334155;
-          padding: 0 16px;
+          padding: 0 40px 0 16px;
           color: rgba(156, 163, 175, 1);
           font-size: 14px;
           outline: none;
@@ -421,13 +407,27 @@ onMounted(() => {
           text-align: justify;
           font-family: Inter-black, serif;
           font-weight: 900;
-
           &::placeholder {
             color: rgba(255, 255, 255, 0.3);
           }
 
           &:focus {
             border-color: #38BDF8;
+          }
+        }
+        // 搜索框的 搜索图标
+        .search-icon {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+
+          &:hover {
+            opacity: 0.8;
           }
         }
       }
@@ -446,6 +446,10 @@ onMounted(() => {
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
+        img{
+          width: 14px;
+          height: 14px;
+        }
 
         &:hover {
           background-color: #0369A1;
@@ -487,13 +491,11 @@ onMounted(() => {
 
       tbody tr:hover {
         background-color: rgba(56, 189, 248, 0.08);
-        /* 浅蓝透明背景 */
         position: relative;
       }
 
       tbody tr:hover td {
         border-bottom-color: rgba(56, 189, 248, 0.5);
-        /* 悬停时底边框变蓝 */
       }
 
       td {
@@ -673,7 +675,7 @@ onMounted(() => {
   }
 }
 
-/* 新增：底部通栏分页器样式 */
+/* 底部通栏分页器样式 */
 .bottom-pagination {
   position: fixed;
   bottom: 0;
@@ -682,7 +684,6 @@ onMounted(() => {
   height: 56px;
   background-color: #0A0F1D;
   border-top: 1px solid #38BDF8;
-  /* 蓝色的上边框 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -694,9 +695,7 @@ onMounted(() => {
 .pagination-content {
   width: 100%;
   max-width: 1919px;
-  /* 与表格区域宽度一致 */
   padding: 0 140px;
-  /* 保持与上面 .team-management-container 相同的 padding */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -813,7 +812,6 @@ onMounted(() => {
     }
   }
 
-  /* 添加成员弹窗专用尺寸 */
   &:not(.confirm-modal) {
     width: 407px;
     padding: 48px 40px 52px;
@@ -929,6 +927,77 @@ onMounted(() => {
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+  }
+}
+/* --- 确认弹窗定制样式 --- */
+.custom-delete-modal {
+  width: 482px;
+  height: 228px;
+  background-color: rgba(18, 18, 18, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: -regular, sans-serif;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  .modal-title {
+    margin: 0 0 16px 0;
+    letter-spacing: 1px;
+    color: $color-bg-white;
+    font-size: 20px;
+    text-align: center;
+    font-family: NotoSans-bold,serif;
+    font-weight: 800;
+  }
+
+  .modal-desc {
+    color: $color-bg-white;
+    font-size: 16px;
+    margin: 0 0 36px 0;
+    text-align: center;
+    padding: 0 20px;
+    font-weight: 300;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 24px;
+
+    button {
+      width: 142px;
+      height: 44px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      color: #ffffff;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    .btn-confirm {
+      background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23,160,225,1) 0%,rgba(112,197,237,1) 100%);
+      border: none;
+      color: #ffffff;
+
+      &:hover {
+        opacity: 0.9;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+      }
     }
   }
 }

@@ -52,8 +52,8 @@ export const teamLogin = (payload: { userName: string, pwd: string }) => {
 export const changePwdBySms = (payload: {
     mobile: string,
     verifyCode: number,
-    newPwd: number,
-    newPwdAgain: number
+    newPwd: string,
+    newPwdAgain: string
 }) => {
     return request.post('/v1/pwd/changePwdBySms', payload) as unknown as Promise<any>
 }

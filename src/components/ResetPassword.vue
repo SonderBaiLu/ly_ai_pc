@@ -1,5 +1,5 @@
 <template>
-  <div class="reset-password-overlay" @click.self="closeModal">
+  <div class="reset-password-overlay">
     <div :class="['reset-password-modal', `mode-${modeType}`]">
       <button class="close-btn" @click="closeModal">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -60,7 +60,7 @@
               新密码 <span class="label-hint">6-20个数字、字母组成</span>
             </label>
             <div class="input-wrapper">
-              <input :type="showPwdOne ? 'text' : 'password'" v-model="formData.newPassword" class="form-input" placeholder="请输入密码" />
+              <input  maxlength="20" :type="showPwdOne ? 'text' : 'password'" v-model="formData.newPassword" class="form-input" placeholder="请输入密码" />
               <span class="icon-eye" @click="showPwdOne = !showPwdOne">
                 <img :src="showPwdOne ? images.eye : images.eyeClose" alt="" />
               </span>
@@ -70,7 +70,7 @@
           <div class="form-group">
             <label class="form-label">确认密码</label>
             <div class="input-wrapper">
-              <input :type="showPwdTwo ? 'text' : 'password'" v-model="formData.confirmPassword" class="form-input" placeholder="请再次输入密码确认" />
+              <input maxlength="20"  :type="showPwdTwo ? 'text' : 'password'" v-model="formData.confirmPassword" class="form-input" placeholder="请再次输入密码确认" />
               <span class="icon-eye" @click="showPwdTwo = !showPwdTwo">
                 <img :src="showPwdTwo ? images.eye : images.eyeClose" alt="" />
               </span>
@@ -95,6 +95,7 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 const { t } = useI18n()
+import { baseRules } from '@/utils/validationSchemas.ts'
 
 // Props & Emits
 const props = defineProps({
@@ -116,7 +117,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close','success'])
 const modeType = computed(() => props.mode as '0' | '1' | '2' | '3')
 
 // ====== UI 状态与文案计算 ======
@@ -194,52 +195,59 @@ const startCountdown = () => {
 }
 
 // ====== 提交逻辑 ======
+
 const handleSubmit = async () => {
   try {
-    // 1. 公共校验：密码模式需要校验密码
+    // 公共校验：密码模式需要校验密码
     if (['0', '1', '2'].includes(modeType.value)) {
-      if (!formData.newPassword) return ElMessage.warning("请输入新密码")
-      if (!formData.confirmPassword) return ElMessage.warning("请再次输入密码")
+      if (!formData.newPassword) return ElMessage.error("请输入新密码")
+      const pwdResult = baseRules.password.safeParse(formData.newPassword)
+      if (!pwdResult.success) {
+        // 解析失败，提取 zod 里的错误提示
+        return ElMessage.error(pwdResult.error.issues[0].message)
+      }
+
+      if (!formData.confirmPassword) return ElMessage.error("请再次输入密码")
       if (formData.newPassword !== formData.confirmPassword) {
-        return ElMessage.warning("两次输入的密码不一致，请重新输入")
+        return ElMessage.error("两次输入的密码不一致，请重新输入")
       }
     }
 
-    // 2. 根据模式执行对应 API
+    // 据模式执行对应 API
     switch (modeType.value) {
       case '0': // 找回/重置密码 (短信验证)
-        if (!formData.phone) return ElMessage.warning("请输入手机号")
-        if (!formData.code) return ElMessage.warning("请输入验证码")
+        if (!formData.phone) return ElMessage.error("请输入手机号")
+        if (!formData.code) return ElMessage.error("请输入验证码")
         await changePwdBySms({
           mobile: formData.phone,
           verifyCode: Number(formData.code),
-          newPwd: Number(formData.newPassword),
-          newPwdAgain: Number(formData.confirmPassword)
+          newPwd: formData.newPassword,
+          newPwdAgain: formData.confirmPassword
         })
         ElMessage.success('密码重置成功')
         break
 
       case '1': // 个人修改密码 (旧密码验证)
-        if (!formData.phone) return ElMessage.warning("请输入手机号")
-        if (!formData.oldPassword) return ElMessage.warning("请输入旧密码")
+        if (!formData.phone) return ElMessage.error("请输入手机号")
+        if (!formData.oldPassword) return ElMessage.error("请输入旧密码")
         await userApi.changePwdByOldPwd({
           oldPwd: Number(formData.oldPassword),
-          newPwd: Number(formData.newPassword),
-          newPwdAgain: Number(formData.confirmPassword),
+          newPwd: formData.newPassword,
+          newPwdAgain: formData.confirmPassword,
         })
         ElMessage.success('修改密码成功')
         break
 
       case '2': // 团队修改密码
-        if (!formData.oldPassword) return ElMessage.warning("请输入旧密码")
+        if (!formData.oldPassword) return ElMessage.error("请输入旧密码")
         // TODO: 替换为团队修改密码 API
         console.log('团队修改密码', formData)
         ElMessage.success('团队密码修改成功')
         break
 
       case '3': // 绑定手机号
-        if (!formData.phone) return ElMessage.warning("请输入手机号")
-        if (!formData.code) return ElMessage.warning("请输入验证码")
+        if (!formData.phone) return ElMessage.error("请输入手机号")
+        if (!formData.code) return ElMessage.error("请输入验证码")
         await doUserWechatLogin({
           mobile: formData.phone, // 手机号
           verifyCode: Number(formData.code), // 邀请码
@@ -252,6 +260,7 @@ const handleSubmit = async () => {
 
     // 成功后统一关闭弹窗 or 报错
     closeModal()
+
   } catch (e: any) {
     console.error('提交失败', e)
     ElMessage.error(e.msg || e.message || '操作失败，请重试')
@@ -259,7 +268,9 @@ const handleSubmit = async () => {
 }
 
 const closeModal = () => {
+  emit('success')
   emit('close')
+
 }
 
 onUnmounted(() => {
