@@ -61,7 +61,7 @@
     </div>
 
     <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
-      @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。
+      :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的服装款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的款式效果。
 参考示例：无领 驼色 长款 双面呢 宽松版型 羊毛材质 毛呢大衣" />
 
     <!-- 底部参数以及生成按钮 -->
@@ -80,6 +80,8 @@ const props = defineProps<{
   taskResultId?: string | number
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
+  coin?: number
+  menuId?: string | number
 }>()
 
 // 监听inspirationWords变化
@@ -117,7 +119,7 @@ const inspirationWords = ref<any[]>([])
 
 // 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
 const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
-const coin = computed(() => 0)
+const coin = computed(() => Number(props.coin ?? 0))
 const isGenerating = ref(false)
 
 const updateInspirationWords = (words: any[]) => {

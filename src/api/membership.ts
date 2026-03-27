@@ -93,8 +93,13 @@ export const membershipApi = {
   waveCoinList(params: any) {
     return request.post('/membership/waveCoinList', params) as unknown as Promise<ApiResponse<any>>
   },
+ /**
+   * 灵衍值明细
+   * - POST /api/v1/user/getUserPointsRecordList
+   * type [string]灵衍值明细类型 【CONSUME 消耗，PURCHASE 购买，EARN 获得】
+   */
   getCoinRecordList(params: any) {
-    return request.post('/membership/getCoinRecordList', params) as unknown as Promise<ApiResponse<any>>
+    return request.post('/v1/user/getUserPointsRecordList', params) as unknown as Promise<ApiResponse<any>>
   },
 }
 

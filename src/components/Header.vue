@@ -6,17 +6,58 @@
         <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" @click="router.push('/')">
       </div>
 
+      <!-- 联系我们、关注我们 -->
       <nav class="nav-menu">
-        <a v-for="item in menuItems" :key="item.key" href="#" class="nav-item"
-          :class="{ active: item.path && item.path === route.path }" @click.prevent="handleMenuClick(item)">
-          {{ t(`header.${item.key}`) }}
-        </a>
+        <template v-for="item in menuItems" :key="item.key">
+          <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in pcCustomerService" :key="index" class="qrcode-popover-item">
+                <h3 class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <el-popover v-else-if="item.key === 'followUs' && followUsList.length > 0" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in followUsList" :key="index" class="qrcode-popover-item">
+                <h3 v-if="x.title" class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <a v-else href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+            @click.prevent="handleMenuClick(item)">
+            {{ t(`header.${item.key}`) }}
+          </a>
+        </template>
       </nav>
 
       <div class="nav-right">
         <div class="lang-select-wrapper">
           <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
-          <el-select v-model="locale" @change="handleLanguageChange" class="lang-select">
+          <el-select v-model="locale" @change="handleLanguageChangeSelect" class="lang-select">
             <template #suffix>
               <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
             </template>
@@ -25,14 +66,14 @@
           </el-select>
         </div>
         <!-- 登录状态：显示头像 + 个人信息卡片（hover 展开，带延迟）；未登录：显示登录/注册按钮 -->
-        <div v-if="isAuthed" class="user-menu user-menu--home" @mouseenter="openUserCard"
-          @mouseleave="scheduleCloseUserCard">
-          <div class="user-avatar">
+        <div v-if="isAuthed" class="user-menu user-menu--home">
+          <div class="user-avatar" @mouseenter="openPersonalCenterOnHover" @mouseleave="scheduleCloseUserCard">
             <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{ t('header.register')
             }}</span>
-          <div v-show="isUserCardOpen" class="user-card">
+          <div v-show="isUserCardOpen" class="user-card" @mouseenter="openPersonalCenterOnHover"
+            @mouseleave="scheduleCloseUserCard">
             <el-button class="invitation-btn" type="primary"
               @click="enterModule(() => router.push('/invitation-gift'))">
               邀请有礼
@@ -49,10 +90,7 @@
                 <div class="user-card-name">
                   {{ userStore.userInfo?.nickname || userStore.userInfo?.userName || '未命名用户' }}
                 </div>
-                <div class="user-card-desc" v-if="userStore.userInfo?.userName">
-                  手机号：{{ userStore.userInfo?.userName || '暂无简介' }}
-                </div>
-                <div class="user-card-desc" v-else>
+                <div class="user-card-desc">
                   {{ userStore.userInfo?.desc || '暂无简介' }}
                 </div>
               </div>
@@ -97,7 +135,7 @@
                 @mouseleave.stop="scheduleCloseLanguagePopover">
                 <el-button class="language-option" :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
                   :link="getCurrentLanguageLabel() != '简体中文'"
-                  @click.stop="handleLanguageChange('zh'); closeLanguagePopover()">简体中文</el-button>
+                  @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文</el-button>
                 <el-button class="language-option"
                   :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
                   :link="getCurrentLanguageLabel() != 'English'"
@@ -108,7 +146,7 @@
               <img :src="images.customer" alt="Customer" class="user-icon" />
               <span class="row-label">客服</span>
             </div>
-            <div class="user-item flex items-center" @click="router.push('/membership')">
+            <div class="user-item flex items-center" @click="handleProductTutorialClick">
               <img :src="images.product" alt="Product" class="user-icon" />
               <span class="row-label">产品教程</span>
             </div>
@@ -139,7 +177,7 @@
 
       <div class="lang-select-wrapper">
         <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
-        <el-select v-model="locale" @change="handleLanguageChange" class="lang-select">
+        <el-select v-model="locale" @change="handleLanguageChangeSelect" class="lang-select">
           <template #suffix>
             <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
           </template>
@@ -148,11 +186,52 @@
         </el-select>
       </div>
 
+      <!-- 联系我们、关注我们 -->
       <nav class="nav-menu">
-        <a v-for="item in menuData" :key="item.key" href="#" class="nav-item"
-          :class="{ active: item.path && item.path === route.path }" @click.prevent="handleMenuClick(item)">
-          {{ t(`header.${item.key}`) }}
-        </a>
+        <template v-for="item in menuData" :key="item.key">
+          <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in pcCustomerService" :key="index" class="qrcode-popover-item">
+                <h3 class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <el-popover v-else-if="item.key === 'followUs' && followUsList.length > 0" placement="bottom" trigger="hover"
+            :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
+            <template #reference>
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+                @click.prevent="handleMenuClick(item)">
+                {{ t(`header.${item.key}`) }}
+              </a>
+            </template>
+            <div class="qrcode-popover-content">
+              <div v-for="(x, index) in followUsList" :key="index" class="qrcode-popover-item">
+                <h3 v-if="x.title" class="qrcode-popover-title">{{ x.title }}</h3>
+                <div class="qrcode-popover-box">
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
+                </div>
+                <p class="qrcode-popover-label">{{ x.desc }}</p>
+              </div>
+            </div>
+          </el-popover>
+
+          <a v-else href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
+            @click.prevent="handleMenuClick(item)">
+            {{ t(`header.${item.key}`) }}
+          </a>
+        </template>
       </nav>
 
       <div class="nav-right nav-right--ai">
@@ -198,7 +277,10 @@
               </div>
             </div>
           </div>
-          <img src="@/assets/images/msg.png" alt="消息" class="msg-icon" />
+          <div class="msg-wrapper">
+            <img src="@/assets/images/msg.png" alt="消息" class="msg-icon" />
+            <img :src="images.dot" class="dot-icon" v-if="userStore.userInfo?.msgCount > 0" />
+          </div>
           <div class="user-menu" @mouseleave="scheduleCloseUserCard">
             <div class="user-avatar" @mouseenter="openPersonalCenterOnHover">
               <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
@@ -241,7 +323,8 @@
                   <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
 
-                <div class="user-card-menu-item" @click="handleTeamManagementClick">
+                <div class="user-card-menu-item" @click="handleTeamManagementClick"
+                  v-if="userStore.userInfo?.mainAccount || userStore.userInfo?.mainAdmin">
                   <div class="user-card-menu-left">
                     <img :src="images.team" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">团队管理</span>
@@ -279,10 +362,7 @@
                   <div class="user-card-name">
                     {{ userStore.userInfo?.nickname || userStore.userInfo?.userName || '未命名用户' }}
                   </div>
-                  <div class="user-card-desc" v-if="userStore.userInfo?.userName">
-                    手机号：{{ userStore.userInfo?.userName || '暂无简介' }}
-                  </div>
-                  <div class="user-card-desc" v-else>
+                  <div class="user-card-desc">
                     {{ userStore.userInfo?.desc || '暂无简介' }}
                   </div>
                 </div>
@@ -325,7 +405,7 @@
                   @mouseleave.stop="scheduleCloseLanguagePopover">
                   <el-button class="language-option" :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
                     :link="getCurrentLanguageLabel() != '简体中文'"
-                    @click.stop="handleLanguageChange('zh'); closeLanguagePopover()">简体中文</el-button>
+                    @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文</el-button>
                   <el-button class="language-option"
                     :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
                     :link="getCurrentLanguageLabel() != 'English'"
@@ -337,7 +417,7 @@
                 <img :src="images.customer" alt="Customer" class="user-icon" />
                 <span class="row-label">客服</span>
               </div>
-              <div class="user-item flex items-center" @click="router.push('/membership')">
+              <div class="user-item flex items-center" @click="handleProductTutorialClick">
                 <img :src="images.product" alt="Product" class="user-icon" />
                 <span class="row-label">产品教程</span>
               </div>
@@ -369,6 +449,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
+import { userLanguageToI18nLocale } from '@/i18n'
+import { appApi } from '@/api/app'
 import { images } from '@/assets'
 import { useAuthGate } from '@/composables/useAuthGate'
 
@@ -377,12 +459,30 @@ const router = useRouter()
 const route = useRoute()
 
 const languageOptions = [
-  { label: '简体中文', value: 'zh' },
+  { label: '简体中文', value: 'zh-chs' },
   { label: 'English', value: 'en' },
 ]
 
-const handleLanguageChange = (value: string) => {
-  locale.value = value as 'zh' | 'en'
+const language = ref(useUserStore().userInfo?.language || 'zh-chs')  // 个人语言设置
+const handleLanguageChangeSelect = (value: 'zh-chs' | 'en') => {
+  // 顶部语言下拉：同步更新 vue-i18n + 后端偏好
+  void handleLanguageChange(value)
+}
+
+const handleLanguageChange = async (value: 'zh-chs' | 'en') => {
+  // 1) 切换前端语言
+  language.value = value as 'zh-chs' | 'en'
+  locale.value = userLanguageToI18nLocale(language.value)
+
+  // 2) 同步后端语言偏好（仅登录态需要）
+  try {
+    if (userStore.isLoggedIn) {
+      await userStore.updateUserInfo({ language: language.value }, '语言切换成功')
+    }
+  } catch (e) {
+    // 后端同步失败不影响当前前端翻译
+    console.warn('[Header] 更新语言失败：', e)
+  }
 }
 
 const { isAuthed, enterModule } = useAuthGate()
@@ -430,16 +530,6 @@ const scheduleCloseWavePointsPanel = () => {
   wavePointsPanelHideTimer = window.setTimeout(() => {
     isWavePointsPanelOpen.value = false
   }, 150)
-}
-
-const openUserCard = () => {
-  if (userCardHideTimer) {
-    window.clearTimeout(userCardHideTimer)
-    userCardHideTimer = null
-  }
-  isWavePointsPanelOpen.value = false
-  isUserCardOpen.value = true
-  isUserMenuOpen.value = false // 默认先展示个人中心
 }
 
 // 悬停头像区域：展示个人中心卡片
@@ -536,10 +626,8 @@ const monthlyLoginPoints = computed(() => {
 const showMonthlyLoginPointsTip = ref(false)
 const isMonthlyTipHiding = ref(false)
 const hasPlayedMonthlyTip = ref(false)
-const hasRefreshedUserInfoAfterTip = ref(false)
 let monthlyTipShowTimer: number | null = null
 let monthlyTipHideTimer: number | null = null
-let monthlyTipRefreshTimer: number | null = null
 
 const clearMonthlyTipTimers = () => {
   if (monthlyTipShowTimer) {
@@ -550,10 +638,15 @@ const clearMonthlyTipTimers = () => {
     window.clearTimeout(monthlyTipHideTimer)
     monthlyTipHideTimer = null
   }
-  if (monthlyTipRefreshTimer) {
-    window.clearTimeout(monthlyTipRefreshTimer)
-    monthlyTipRefreshTimer = null
-  }
+}
+
+const consumeMonthlyLoginPointsTip = () => {
+  const currentInfo = (userStore.userInfo as any) || {}
+  // 提示播放后本地消费 monthlyLoginPoints，避免后端延迟更新期间重复展示
+  userStore.setUserInfo({
+    ...currentInfo,
+    monthlyLoginPoints: 0,
+  })
 }
 
 const playMonthlyTip = () => {
@@ -566,16 +659,7 @@ const playMonthlyTip = () => {
     isMonthlyTipHiding.value = true
     monthlyTipHideTimer = window.setTimeout(() => {
       showMonthlyLoginPointsTip.value = false
-      if (!hasRefreshedUserInfoAfterTip.value) {
-        hasRefreshedUserInfoAfterTip.value = true
-        monthlyTipRefreshTimer = window.setTimeout(async () => {
-          try {
-            await userStore.getUserInfo()
-          } catch (error) {
-            console.error('月首灵衍值提示后刷新用户信息失败', error)
-          }
-        }, 5000)
-      }
+      consumeMonthlyLoginPointsTip()
     }, 800)
   }, 2000)
 }
@@ -592,7 +676,7 @@ onBeforeUnmount(() => {
   clearMonthlyTipTimers()
 })
 
-const getCurrentLanguageLabel = () => (locale.value === 'zh' ? '简体中文' : 'English')
+const getCurrentLanguageLabel = () => (userStore.userInfo?.language === 'zh-chs' ? '简体中文' : 'English')
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
@@ -608,11 +692,39 @@ const menuData = [
   { key: 'followUs', label: '关注我们', path: '/follow-us' },
 ]
 
+const customerCodeCards = [
+  { src: images.customerCode1, name: '商务咨询-小潮' },
+  { src: images.customerCode2, name: '商务咨询-雾楠' },
+  { src: images.customerCode3, name: '商务咨询-云纱' },
+]
+
+const pcCustomerService = computed(() =>
+  customerCodeCards.map((c) => ({
+    title: '扫码添加商务',
+    desc: c.name,
+    url: c.src,
+  })),
+)
+
+const followUsList = computed(() => [
+  { title: '扫码关注公众号', desc: '微信公众号', url: images.follow1 },
+  { title: '扫码关注视频号', desc: '微信视频号', url: images.follow2 },
+  { title: '扫码关注小红书', desc: '小红书官方号', url: images.follow3 },
+  { title: '打开抖音扫码关注', desc: '抖音官方号', url: images.follow4 },
+])
+
 // 规则：仅 AI 工作台相关页面使用“AI 专用导航”
 // 其它业务页面（如会员/邀请有礼）使用首页同款“第一个导航样式”
 const isAiDesignPage = computed(() => {
   const name = String(route.name ?? '')
-  return name === 'AiDesign' || name === 'AiFashionStudio' || name === 'MyCreations' || name === 'TeamManagement'
+  // 详情页也沿用 AI 专用导航样式，避免切换到详情后回退到首页导航
+  return (
+    name === 'AiDesign' ||
+    name === 'AiFashionStudio' ||
+    name === 'MyCreations' ||
+    name === 'TeamManagement' ||
+    name === 'CreativeDetail'
+  )
 })
 
 const handleMenuClick = (item: { key: string; path?: string; query?: Record<string, any> }) => {
@@ -636,7 +748,7 @@ const handleMenuClick = (item: { key: string; path?: string; query?: Record<stri
 
 const showComingSoon = () => {
   ElMessage.info(
-    locale.value === 'zh'
+    userStore.userInfo?.language === 'zh-chs'
       ? '功能暂未开放，敬请期待'
       : 'This feature is not available yet. Stay tuned.'
   )
@@ -664,7 +776,22 @@ const handlePlatformAgreementClick = () => {
 
 const handleProductTutorialClick = () => {
   closeUserMenu()
-  showComingSoon()
+  void (async () => {
+    try {
+      // 文档分类（后端字段必填：categoriesCode）
+      const res = (await appApi.getTutorialList({ categoriesCode: 'ALL' })) as any
+      if (String(res?.code) !== '0000' && res?.success !== true) {
+        ElMessage.error(res?.msg || (locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials'))
+        return
+      }
+
+      window.open(res?.data?.[0]?.url, '_blank')
+
+    } catch (e) {
+      console.error('[Header] getTutorialList error:', e)
+      ElMessage.error(locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials')
+    }
+  })()
 }
 
 const handleAiWatermarkSettingsClick = () => {
@@ -759,12 +886,59 @@ const handleLogout = async () => {
   flex: 1;
   gap: $spacing-xl;
 
+  .nav-item-wrap {
+    position: relative;
+    padding-bottom: 12px;
+  }
+
   .nav-item {
     color: $color-text-gray;
     text-decoration: none;
     font-size: $font-size-md;
     font-weight: $font-weight-medium;
     transition: color $transition-base;
+  }
+}
+
+/* ================= QR Code Hover Popover（联系我们 / 关注我们） ================= */
+
+// 二维码卡片内部布局
+.qrcode-popover {
+  &-content {
+    display: flex;
+    align-items: center;
+    gap: 45px;
+    padding: 12px 34px 11px 33px;
+  }
+
+  &-title {
+    margin-bottom: 15px;
+    color: $color-primary;
+    font-family: AlibabaPuHui-bold;
+    font-weight: 600;
+    font-size: $font-size-sm;
+  }
+
+  &-item {
+    text-align: center;
+  }
+
+  &-box {
+    width: 100px;
+    height: 100px;
+    border-radius: 5px;
+  }
+
+  &-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &-label {
+    margin-top: 11px;
+    font-size: $font-size-xs;
+    color: rgba(255, 255, 255, 0.7);
   }
 }
 
@@ -803,6 +977,22 @@ const handleLogout = async () => {
   .ai-link {
     cursor: pointer;
     font-size: $font-size-md;
+  }
+
+  .msg-wrapper {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+
+    .dot-icon {
+      position: absolute;
+      top: -2px;
+      right: -1px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+    }
   }
 
   .ai-coin-pill {
@@ -1090,6 +1280,16 @@ const handleLogout = async () => {
       .user-card-desc {
         color: $color-text-placeholder;
         font-size: 12px;
+        /* 1. 强制文字在一行显示，不换行 */
+        white-space: nowrap;
+        /* 2. 超出容器宽度的内容隐藏 */
+        overflow: hidden;
+        /* 3. 超出部分显示省略号 */
+        text-overflow: ellipsis;
+        /* 必须给容器设置宽度，否则无法生效！ */
+        width: 120px;
+        /* 行内元素需要加这个，比如 span/a 标签 */
+        display: inline-block;
       }
     }
 

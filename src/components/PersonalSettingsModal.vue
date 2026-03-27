@@ -28,18 +28,21 @@
       </div>
     </div>
 
+    <!-- 账号名 -->
+    <div class="form-item flex-between">
+      <div class="form-label">账号名<span class="account-name">{{ editingData.userName }}</span></div>
+      <!--密码修改-->
+      <el-button type="primary" size="small" @click="updatePwd()" class="password-edit-btn">
+        {{ hasPassword ?
+          t('personalSettings.changePassword')
+          :
+          t('personalSettings.notSetPassword')
+        }}
+      </el-button>
+    </div>
     <!-- 昵称 -->
     <div class="form-item">
-      <div class="flex items-center justify-between">
-        <div class="form-label">{{ t('personalSettings.nickname') }}</div>
-        <el-button type="primary" size="small" @click="updatePwd()" class="password-edit-btn">
-          {{ hasPassword ?
-            t('personalSettings.changePassword')
-            :
-            t('personalSettings.notSetPassword')
-          }}          <!--密码修改-->
-        </el-button>
-      </div>
+      <div class="form-label">{{ t('personalSettings.nickname') }}</div>
       <div class="form-value">
         <el-input v-model="editingData.nickname" :maxlength="20"
           :placeholder="t('personalSettings.nicknamePlaceholder')" class="nickname-input" show-word-limit />
@@ -57,7 +60,7 @@
         <div class="flex-end">
           <div class="footer-right" @click="editingData.introduction = ''">
             <span class="char-count">{{ editingData.introduction.length }}/300</span>
-            <img class="clear-img" :src="images.clear" alt="清空" />
+            <!-- <img class="clear-img" :src="images.clear" alt="清空" /> -->
           </div>
         </div>
       </div>
@@ -79,13 +82,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useModalStore } from '@/stores/modal'
 import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 import { images } from '@/assets'
 import ResetPassword from '@/components/ResetPassword.vue'
 
@@ -93,13 +96,28 @@ interface Props {
   modelValue: boolean
 }
 const props = defineProps<Props>()
-const { t } = useI18n()
+const { t, locale } = useI18n({
+  useScope: 'local',
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   saved: []
 }>()
 
 const userStore = useUserStore()
+
+// 个人中心只受“用户偏好语言”影响，避免被全局 i18n locale 反向覆盖
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 
 const dialogVisible = computed({
@@ -115,27 +133,16 @@ const editingData = ref({
   headImgUrl: '',
   nickname: '',
   introduction: '',
+  userName: '',
 })
 
 const avatarSrc = computed(() => editingData.value.headImgUrl || images.avatar)
 
-// 监听弹窗打开，同步 Pinia 数据到编辑数据
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    if (newVal) {
-      const userInfo = userStore.userInfo
-      if (userInfo) {
-        editingData.value = {
-          headImgUrl: userInfo.headImgUrl || '',
-          nickname: userInfo.nickname || '',
-          introduction: userInfo.introduction || '',
-        }
-      }
-    }
-  },
-  { immediate: true }
-)
+// 定义控制弹窗显示的变量 重置密码组件
+const isVisible = ref(false)
+const currentMode = ref('0')
+// 定义变量 决定 按钮显示 修改密码 还是 重置密码
+const hasPassword = ref(false)
 
 // 点击头像
 const handleAvatarClick = () => {
@@ -170,34 +177,15 @@ const handleAvatarChange = async (event: Event) => {
 
 // 保存
 const handleSave = async () => {
-  console.log(userStore.getUserInfo())
-  if (!userStore.userInfo?.userId) {
-    ElMessage.warning('请先登录')
-    return
-  }
-
-  const userData = computed(() => userStore.userInfo)
-  if (!userData.value) {
-    ElMessage.warning('用户信息不存在')
-    return
-  }
-
   try {
-    // 准备更新的用户信息
     const updateData = {
-      userId: userData.value.userId,
-      mobile: userData.value.mobile,
-      nickname: editingData.value.nickname.trim(),
-      introduction: editingData.value.introduction.trim(),
+      nickName: editingData.value.nickname.trim(),
+      desc: editingData.value.introduction.trim(),
       headImgUrl: editingData.value.headImgUrl,
     }
 
-    const res = await userApi.updateUserInfo(updateData)
+    const res = await userStore.updateUserInfo(updateData)
     if (res.code === '0000') {
-      ElMessage.success('保存成功')
-      // 刷新用户信息
-      if (userData.value.mobile) {
-      }
       emit('saved')
       handleClose()
     } else {
@@ -208,11 +196,6 @@ const handleSave = async () => {
     ElMessage.error('保存失败，请重试')
   }
 }
-// 定义控制弹窗显示的变量 重置密码组件
-const isVisible = ref(false)
-const currentMode = ref('0')
-// 定义变量 决定 按钮显示 修改密码 还是 重置密码
-const hasPassword = ref(false)
 
 // 获取密码状态
 const fetchPasswordStatus = async () => {
@@ -226,24 +209,26 @@ const fetchPasswordStatus = async () => {
     console.error("获取密码状态失败", error)
   }
 }
-// 监视密码是否有修改 是否有设置
+// 监听弹窗打开，同步 Pinia 数据到编辑数据
 watch(
-    () => props.modelValue,
-    (newVal) => {
-      if (newVal) {
-        const userInfo = userStore.userInfo
-        if (userInfo) {
-          editingData.value = {
-            headImgUrl: userInfo.headImgUrl || '',
-            nickname: userInfo.nickname || '',
-            introduction: userInfo.introduction || '',
-          }
+  () => props.modelValue,
+  (newVal) => {
+    if (newVal) {
+      const userInfo = userStore.userInfo
+      if (userInfo) {
+        editingData.value = {
+          headImgUrl: userInfo.headImgUrl || '',
+          nickname: userInfo.nickname || userInfo.nickName || '',
+          introduction: userInfo.desc || userInfo.introduction || '',
+          userName: userInfo.userName || '',
         }
-        // 每次弹窗打开时，重新获取密码设置状态
-        fetchPasswordStatus()
       }
-    },
-    { immediate: true }
+      // 监视密码是否有修改 是否有设置
+      // 每次弹窗打开时，重新获取密码设置状态
+      fetchPasswordStatus()
+    }
+  },
+  { immediate: true }
 )
 
 // 修改密码
@@ -317,7 +302,7 @@ const handleClose = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 21px;
 
     .section-title {
       font-size: $font-size-xl;
@@ -349,10 +334,18 @@ const handleClose = () => {
       color: $color-text-light;
       font-size: $font-size-lg;
       margin-bottom: $spacing-md;
+
+      .account-name {
+        margin-left: $spacing-xl;
+        color: $color-text-account-name;
+      }
     }
 
     .password-edit-btn {
-      background: $color-primary-dark;
+      background: $color-primary-dark !important;
+      width: 81px;
+      border-radius: 4px;
+      font-size: $font-size-sm;
     }
 
     .form-value {
@@ -376,6 +369,12 @@ const handleClose = () => {
             color: $color-text-placeholder;
           }
         }
+      }
+
+      .watermark-hint {
+        margin-top: $spacing-xs;
+        font-size: $font-size-sm;
+        color: $color-text-gray;
       }
 
       :deep(.el-input__count-inner) {

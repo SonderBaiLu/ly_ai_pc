@@ -20,10 +20,10 @@
           </div>
         </div>
 
-        <button class="fabric-btn" @click="showComingSoon">
+        <el-button class="fabric-btn" type="primary" @click="showComingSoon">
           {{ t('fabricSection.button') }}
           <img class="right-icon" src="@/assets/images/arrow_icon.png" alt="" srcset="">
-        </button>
+        </el-button>
       </div>
 
       <div class="fabric-right">
@@ -187,22 +187,12 @@ const stepDescriptions = computed(() => (tm('fabricSection.stepDescriptions') as
       }
 
       .fabric-btn {
-        display: flex;
-        align-items: center;
-        background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
-        border: none;
-        color: $color-text-white;
-        padding: 16px 40px;
+        min-width: 178px;
+        height: 60px;
         border-radius: $border-radius-lg;
         font-size: $font-size-lg;
         font-weight: $font-weight-semibold;
         cursor: pointer;
-        transition: all $transition-base;
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px rgba(56, 189, 248, 0.3);
-        }
 
         .right-icon {
           width: 18px;

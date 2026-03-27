@@ -276,7 +276,7 @@ watch(
         activeTab.value = 'membership'
       } else {
         // 其他情况，根据用户类型设置
-        if (props.isVip === true || props.isVip === 1) {
+        if (Number(userInfo.value?.vipLevel ?? 0) > 0) {
           activeTab.value = 'tidecoins'
         } else {
           activeTab.value = 'membership'
@@ -284,10 +284,10 @@ watch(
       }
 
       // 初始化基础版/标准版：保持与 Membership.vue 一致
-      // - userInfo.isVip === 1 -> 按 vipLevel 展示（通常为 1/2）
+      // - 按 vipLevel 展示（vipLevel >=2 视为标准版）
       // - 否则展示基础版（1）
-      const isVipUser = Number(userInfo.value?.isVip ?? props.isVip ?? 0) === 1
-      memberVersion.value = isVipUser ? Number(userInfo.value?.vipLevel ?? 1) : 1
+      const vipLevel = userInfo.value?.vipLevel ?? 0
+      memberVersion.value = vipLevel >= 2 ? 2 : 1
 
       loadMembershipPlans()
       loadTideCoinPlans()

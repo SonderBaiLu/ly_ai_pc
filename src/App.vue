@@ -13,7 +13,7 @@
       <PersonalSettingsModal v-model="modalStore.showPersonalSettingsModal" @saved="handleSettingsSaved" />
 
       <!-- 灵衍AI 生成内容标识规则及责任声明 -->
-      <WatermarkDisclaimerModal v-model="modalStore.showWatermarkDisclaimerModal" />
+      <WatermarkDisclaimerModal v-model="modalStore.showWatermarkDisclaimerModal" :variant="modalStore.watermarkDisclaimerVariant" />
 
       <!-- 全局注销弹窗 -->
       <WriteOffModal v-model="modalStore.showWriteOffModal" />
@@ -44,6 +44,7 @@ watchEffect(() => {
 const handleSettingsSaved = () => {
   modalStore.closePersonalSettingsModal()
 }
+
 onMounted(() => {
   // 先自动打开一次个人设置弹窗，方便调试样式
   // modalStore.openPersonalSettingsModal()

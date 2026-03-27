@@ -37,12 +37,29 @@
       <div class="info-panel">
         <!-- 顶部操作图标 -->
         <div class="info-actions">
-          <div class="btn-icon-wrapper" @click.stop="handleDownloadCommand('download')">
-            <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
-              <Loading />
-            </el-icon>
-            <img v-else :src="images.downloadIcon" class="btn-icon" alt="下载" />
-          </div>
+          <el-popover placement="bottom" :width="146" trigger="click" popper-class="download-menu-popper">
+            <template #reference>
+              <div class="btn-icon-wrapper" @click.stop>
+                <el-icon v-if="isDownloading" class="is-loading btn-icon-loading">
+                  <Loading />
+                </el-icon>
+                <img v-else :src="images.downloadIcon" class="btn-icon" alt="下载" />
+              </div>
+            </template>
+            <div class="download-menu">
+              <div class="download-menu-item" @click.stop="handleDownloadCommand('download')">
+                <img :src="images.downloadIcon" class="download-menu-icon" alt="下载" />
+                <span>下载</span>
+              </div>
+              <div class="download-menu-item switch-row">
+                <el-switch v-model="removeWatermarkEnabled" :disabled="!isUserVip" active-color="#17A0E1"
+                  inactive-color="#201B26"
+                  @change="(v) => handleWatermarkToggleChange(v as string | number | boolean)" />
+                <span>去除水印</span>
+                <img :src="images.vipText" alt="VIP" class="vip-text-icon" />
+              </div>
+            </div>
+          </el-popover>
           <img :src="templateDetail?.isCollect === 1 ? images.collectActive : images.collectNo" class="btn-icon" alt=""
             @click="handleAssetsCollect" />
           <el-dropdown trigger="click" @command="handleMoreCommand">
@@ -234,15 +251,12 @@
 
     <!-- 反馈弹窗 -->
     <FeedbackModal v-if="templateDetail" v-model="showFeedbackModal" :user-id="userStore.userInfo?.userId"
-      :task-id="templateDetail?.taskId" :task-result-id="templateDetail?.id" @success="handleFeedbackSuccess" />
+      :task-id="templateDetail?.taskId || (templateDetail as any)?.algoOrderId" :task-result-id="templateDetail?.id || (templateDetail as any)?.algoOrderResultId"
+      @success="handleFeedbackSuccess" />
 
     <!-- 会员购买弹窗 -->
     <MembershipModal :show="showCoinInsufficient" :error-type="coinErrorType" :is-vip="isUserVip"
       @close="handleCoinInsufficientClose" @success="handleMembershipPurchaseSuccess" />
-
-    <!-- 责任声明弹窗 -->
-    <WatermarkDisclaimerModal v-model="showWatermarkDisclaimer" @confirm="handleWatermarkDisclaimerConfirm"
-      @cancel="handleWatermarkDisclaimerCancel" @no-remind-change="handleWatermarkDisclaimerNoRemindChange" />
 
     <!-- 图片预览 - 使用 Element Plus ImageViewer -->
     <el-image-viewer v-if="showImagePreview" :url-list="previewImageList" :initial-index="previewInitialIndex"
@@ -256,13 +270,12 @@ import { images } from '@/assets'
 import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus'
 import { Loading, Back } from '@element-plus/icons-vue'
 import ThumbnailGallery from '@/components/ThumbnailGallery.vue'
-import type { Asset } from '@/composables/useTaskPolling'
-import { creativeApi } from '@/api/creative'
-import { assetApi } from '@/api/asset'
+import type { CreationResult } from '@/composables/useTaskPolling'
+import { algoApi } from '@/api/algo'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useTemplateStore } from '@/stores/template'
-import { useWatermarkStore } from '@/stores/watermark'
+import { useModalStore } from '@/stores/modal'
 import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import type { CreativeTemplate } from '@/types'
 import { copyToClipboard } from '@/utils/clipboard'
@@ -305,7 +318,7 @@ const router = useRouter()
 // 用户store
 const userStore = useUserStore()
 const templateStore = useTemplateStore()
-const watermarkStore = useWatermarkStore()
+const modalStore = useModalStore()
 
 // 响应式数据
 const templateDetail = ref<CreativeTemplate | null>(null)
@@ -322,13 +335,30 @@ const previewImageList = ref<string[]>([]) // 预览图片列表
 const previewInitialIndex = ref(0) // 预览初始索引
 const showFeedbackModal = ref(false) // 反馈弹窗显示状态
 
-// 去除水印相关状态
-const removeWatermarkEnabled = computed(() => watermarkStore.removeWatermarkEnabled)
 const showCoinInsufficient = ref(false) // 会员购买弹窗
 const coinErrorType = ref('up_vip') // 错误类型
-const showWatermarkDisclaimer = ref(false) // 责任声明弹窗
 const isDownloading = ref(false) // 下载状态
-const isUserVip = computed(() => userStore.userInfo?.isVip === 1)
+const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
+
+const removeWatermarkEnabled = computed(() => {
+  // 仅会员才展示“去除水印”开启状态；避免会员到期仍回显旧的 watermarkStatus=1
+  return isUserVip.value && userStore.userInfo?.watermarkStatus === 1 ? true : false
+})
+
+const setLocalWatermarkStatus = (enabled: boolean) => {
+  const prev = userStore.userInfo
+  if (!prev) return
+  userStore.setUserInfo({
+    ...prev,
+    // watermarkStatus 1 表示“去除水印开启”（无水印）
+    watermarkStatus: enabled ? 1 : 0,
+  })
+}
+
+const persistWatermarkStatus = async (enabled: boolean) => {
+  const payload = { watermarkStatus: enabled ? 1 : 0 }
+  await userStore.updateUserInfo(payload).catch(() => { })
+}
 
 // 购买会员成功后的待处理操作
 type PendingAction = { type: 'download' } | { type: 'toggle' } | { type: 'brandWatermark' }
@@ -357,20 +387,32 @@ const studioModuleName = computed(() => {
   return map[detailModule.value]
 })
 
-// 缩略图组件数据：将 relatedTemplates 映射成统一的 Asset 结构（ThumbnailGallery 使用）
-const thumbnailAssets = computed<Asset[]>(() => {
+// 缩略图组件数据：将 relatedTemplates 映射成统一的“创作（算法结果）”结构（ThumbnailGallery 使用）
+const thumbnailAssets = computed<CreationResult[]>(() => {
   return (relatedTemplates.value || []).map((t: any) => {
     return {
-      id: t?.id,
-      taskId: t?.taskId,
-      taskUuid: t?.taskUuid,
-      imageUrl: t?.lessenImg || t?.imgUrl || t?.imageUrl || '',
-      fileUrl: t?.fileUrl || '',
-      fileType: t?.fileType ?? 1,
-      status: t?.status ?? 3,
-      prompt: t?.prompt || t?.title || '',
+      id: String(t?.id ?? ''),
+      userId: t?.userId != null ? String(t.userId) : undefined,
+      userSonId: t?.userSonId != null ? String(t.userSonId) : null,
+      algoOrderId: String(t?.algoOrderId ?? t?.taskId ?? ''),
+      algoOrderNo: t?.algoOrderNo != null ? String(t.algoOrderNo) : undefined,
+      algoUuId: (t?.algoUuId ?? t?.taskUuid ?? null) as any,
+      menuCode: String(t?.menuCode ?? ''),
+      thumbUrl: (t?.thumbUrl ?? null) as any,
+      url: (t?.url ?? null) as any,
+      originalUrl: (t?.originalUrl ?? null) as any,
+      fileSize: t?.fileSize !== undefined && t?.fileSize !== null ? Number(t.fileSize) : undefined,
+      duration: t?.duration !== undefined && t?.duration !== null ? Number(t.duration) : undefined,
+      collectStatus: Number(t?.collectStatus ?? 0),
+      fileType: Number(t?.fileType ?? 1),
+      status: Number(t?.status ?? 3),
+      progress: t?.progress !== undefined && t?.progress !== null ? Number(t?.progress) : undefined,
+      successfulCount: t?.successfulCount !== undefined && t?.successfulCount !== null ? Number(t?.successfulCount) : undefined,
+      failedCount: t?.failedCount !== undefined && t?.failedCount !== null ? Number(t?.failedCount) : undefined,
+      prompt: String(t?.prompt ?? t?.title ?? ''),
+      createTime: String(t?.createTime ?? new Date().toISOString()),
     }
-  }) as unknown as Asset[]
+  }).filter((x) => x.id && x.algoOrderId)
 })
 
 const relatedPageParams = ref({
@@ -420,7 +462,8 @@ const isVideoType = (item: any): boolean => {
   // 我的资产页面：使用 fileType 字段
   if (pageTypeRef.value === 'assets') {
     if (item.fileType !== undefined && item.fileType !== null) {
-      return item.fileType === 2 // fileType === 2 表示视频
+      // fileType: 2视频 / 4音视频
+      return item.fileType === 2 || item.fileType === 4
     }
     // 如果 fileType 不存在，根据是否有 fileUrl 判断（有 fileUrl 通常是视频）
     return !!item.fileUrl
@@ -552,127 +595,65 @@ const currentDetailTargetId = ref<string | number | null>(null)
 
 // 获取详情数据（根据 pageType 调用不同接口）
 const loadTemplateDetail = async (
-  templateId?: string | number,
-  options?: { token?: number; expectedId?: string | number }
+  id?: string | number,
+  options?: { token: number; expectedId?: string | number },
 ) => {
-  const normalizeId = (v: any): string | number | null => {
-    if (v == null) return null
-    if (Array.isArray(v)) return v[0] ?? null
-    return v
-  }
+  if (!id) return
 
-  const id = normalizeId(templateId || props.id || route.params.id)
-  if (!id) {
-    // 弹窗模式下，如果没有ID，可能是组件刚创建时props还未传递，不立即关闭弹窗
-    // 等待一个tick，如果还是没有ID，再关闭
-    if (props.isModal) {
-      await nextTick()
-      const retryId = templateId || props.id || route.params.id
-      if (!retryId) {
-        ElMessage.error('ID不存在')
-        emit('close')
+  if (pageTypeRef.value === 'assets' && sourceTabRef.value === 'aiFashionStudio') {
+    // AI 工作台（AiFashionStudio）进入“创作详情”：
+    // 1) 先用缓存/列表项兜底渲染
+    // 2) 再请求 /api/v1/algo/getAlgoResultDetails 补全右侧展示字段
+    const fallback = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
+
+    if (fallback) {
+      templateDetail.value = {
+        ...(templateDetail.value || ({} as any)),
+        ...fallback,
       }
-      return
-    } else {
-      ElMessage.error('ID不存在')
-      router.back()
     }
+
+    try {
+      const algoResulId = String(id)
+      const response = await algoApi.getAlgoResultDetails({ algoResulId })
+      const detailData = (response as any)?.data ?? response
+
+      // 回填到当前详情
+      templateDetail.value = {
+        ...(templateDetail.value || ({} as any)),
+        ...(detailData as any),
+      }
+
+      // 同步回写到缩略图列表对应项（避免左右不一致）
+      const idx = relatedTemplates.value.findIndex((x: any) => String(x?.id) === algoResulId)
+      if (idx >= 0) {
+        relatedTemplates.value[idx] = {
+          ...(relatedTemplates.value[idx] as any),
+          ...(detailData as any),
+        }
+      }
+
+      lastLoadedDetailId.value = options?.expectedId ?? id
+    } catch (e) {
+      // 详情拉取失败：保留兜底缓存渲染，避免页面空白
+      console.warn('[CreativeDetail] getAlgoResultDetails failed:', e)
+      lastLoadedDetailId.value = options?.expectedId ?? id
+    }
+
     return
   }
 
-  const expectedId = normalizeId(options?.expectedId ?? id) ?? id
-  const token = options?.token
-
-  try {
-    const params: any = {
-      id: String(id),
-      userId: userStore.userInfo?.userId,
+  // 其它情况：避免接入旧接口（creative.ts / asset.ts）
+  // 仅保留基本回填，确保 UI 不因空数据崩溃。
+  const fallback = relatedTemplates.value.find((x: any) => String(x?.id) === String(id))
+  if (fallback) {
+    templateDetail.value = {
+      ...(templateDetail.value || ({} as any)),
+      ...(fallback as any),
     }
-
-    let response: any = { code: '9999' }
-
-    switch (pageTypeRef.value) {
-      case 'assets': // 我的资产详情
-        console.log('[资产详情] 查询参数:', params)
-        response = await assetApi.getTaskDetail(params)
-        console.log('[资产详情] 查询结果:', response)
-        if (response.code === '0000') {
-          const assetData = response.data || {}
-          // 映射资产详情字段到页面使用的字段
-          const updatedDetail = {
-            ...assetData,
-            imgUrl: assetData.imageUrl || assetData.imgUrl, // 映射 imageUrl 到 imgUrl
-          }
-          // 丢弃过期响应：token 不一致或当前目标 id 已变化
-          if (
-            (typeof token === 'number' && token !== detailRequestToken.value) ||
-            (currentDetailTargetId.value != null &&
-              String(currentDetailTargetId.value) !== String(expectedId))
-          ) {
-            return
-          }
-
-          templateDetail.value = updatedDetail
-
-          // 同步更新 relatedTemplates 中对应项的数据（确保数据一致性）
-          if (
-            selectedThumbnail.value >= 0 &&
-            selectedThumbnail.value < relatedTemplates.value.length &&
-            String(relatedTemplates.value[selectedThumbnail.value]?.id) === String(id)
-          ) {
-            relatedTemplates.value[selectedThumbnail.value] = {
-              ...relatedTemplates.value[selectedThumbnail.value],
-              ...updatedDetail,
-            }
-          }
-
-          // 只有成功回写到 UI 后，才认为该 id “已加载”
-          lastLoadedDetailId.value = expectedId
-        }
-        break
-
-      case 'template': // 创意模板详情
-      case 'like': // 我的喜欢详情
-        console.log('[模板详情] 查询参数:', params)
-        response = await creativeApi.getCreativeTemplateDetail(params)
-        console.log('[模板详情] 查询结果:', response)
-        if (response.code === '0000') {
-          const updatedDetail = response.data || {}
-          // 丢弃过期响应：token 不一致或当前目标 id 已变化
-          if (
-            (typeof token === 'number' && token !== detailRequestToken.value) ||
-            (currentDetailTargetId.value != null &&
-              String(currentDetailTargetId.value) !== String(expectedId))
-          ) {
-            return
-          }
-
-          templateDetail.value = updatedDetail
-
-          // 同步更新 relatedTemplates 中对应项的数据（确保数据一致性）
-          if (
-            selectedThumbnail.value >= 0 &&
-            selectedThumbnail.value < relatedTemplates.value.length &&
-            String(relatedTemplates.value[selectedThumbnail.value]?.id) === String(id)
-          ) {
-            relatedTemplates.value[selectedThumbnail.value] = {
-              ...relatedTemplates.value[selectedThumbnail.value],
-              ...updatedDetail,
-            }
-          }
-
-          // 只有成功回写到 UI 后，才认为该 id “已加载”
-          lastLoadedDetailId.value = expectedId
-        }
-        break
-    }
-
-    if (response.code !== '0000') {
-      ElMessage.error(response.msg || '获取详情失败')
-    }
-  } catch (error) {
-    console.error('获取详情失败:', error)
-    ElMessage.error('获取详情失败')
+    lastLoadedDetailId.value = options?.expectedId ?? id
+  } else {
+    templateDetail.value = null
   }
 }
 
@@ -731,7 +712,8 @@ const loadRelatedTemplates = async (isRefresh = false) => {
         params.isCollect = 0
       }
 
-      const response = await assetApi.getMyAssetsPage(params)
+      // 旧接口 asset.ts 已下线：当前项目对该页面仅做 AiFashionStudio mock + latest algo 字段适配
+      const response: any = { code: '9999', msg: '暂未接入', data: null }
 
       if (response.code === '0000' && response.data) {
         const { records, total } = response.data as any
@@ -880,13 +862,8 @@ const loadRelatedTemplates = async (isRefresh = false) => {
       }
     } else {
       // 其他页面（template）：加载相关模板
-      const cateId = props.cateId || (route.query.cateId as string)
-      const response = await creativeApi.getCreativeTemplateList({
-        titleId: cateId,
-        userId: userStore.userInfo?.userId,
-        size: relatedPageParams.value.size,
-        current: relatedPageParams.value.current,
-      })
+      // 旧接口 creative.ts 已下线：当前项目对该页面仅做 AiFashionStudio mock + latest algo 字段适配
+      const response: any = { code: '9999', msg: '暂未接入', data: null }
 
       if (response.code === '0000') {
         let { records, total } = (response.data as any) || {}
@@ -1120,58 +1097,12 @@ const refreshUserInfoIfPossible = async () => {
   }
 }
 
-// 确保资产有 noWatermarkUrl（如果没有则调用接口获取）
+// 获取“无水印链接”：优先使用最新接口字段 originalUrl
+// - 只做本地取值，不再走旧接口（避免依赖 creative.ts 中的旧算法结果接口）
 const ensureNoWatermarkUrlForAsset = async (asset: any): Promise<string | null> => {
-  if (asset?.noWatermarkUrl) {
-    return asset.noWatermarkUrl
-  }
-
-  try {
-    const userId = userStore.userInfo?.userId
-    if (!userId) {
-      console.warn('[TemplateDetail] 用户ID不存在，无法获取无水印URL')
-      return null
-    }
-
-    const taskResultId = asset?.id || templateDetail.value?.id
-    if (!taskResultId) {
-      console.warn('[TemplateDetail] 资产ID不存在，无法获取无水印URL')
-      return null
-    }
-
-    const res = await creativeApi.findAlgorithmResulList({
-      taskResultIds: [String(taskResultId)],
-      userId: String(userId),
-    })
-
-    if (res.code === '0000' && res.data) {
-      const list: any[] =
-        (Array.isArray(res.data) ? res.data : null) ||
-        (Array.isArray((res.data as any)?.records) ? (res.data as any).records : null) ||
-        (Array.isArray((res.data as any)?.list) ? (res.data as any).list : null) ||
-        []
-      const hit = list.find((it) => String(it?.id) === String(taskResultId)) || list[0]
-      const fetchedNoWatermarkUrl = hit?.noWatermarkUrl
-
-      if (fetchedNoWatermarkUrl) {
-        // 更新内存中的数据
-        if (templateDetail.value) {
-          ; (templateDetail.value as any).noWatermarkUrl = fetchedNoWatermarkUrl
-        }
-        if (
-          selectedThumbnail.value >= 0 &&
-          selectedThumbnail.value < relatedTemplates.value.length
-        ) {
-          ; (relatedTemplates.value[selectedThumbnail.value] as any).noWatermarkUrl =
-            fetchedNoWatermarkUrl
-        }
-        return fetchedNoWatermarkUrl
-      }
-    }
-  } catch (e) {
-    console.warn('[TemplateDetail] 获取 noWatermarkUrl 失败:', e)
-  }
-  return null
+  const originalUrl = asset?.originalUrl ?? asset?.noWatermarkUrl
+  if (!originalUrl) return null
+  return String(originalUrl)
 }
 
 // 处理下载菜单命令
@@ -1185,14 +1116,16 @@ const handleDownloadCommand = (command: string) => {
 }
 
 // 处理去除水印开关变化
-const handleWatermarkToggleChange = (val: string | number | boolean) => {
+const handleWatermarkToggleChange = async (val: string | number | boolean) => {
   const enabled = val === true || val === 1 || val === '1' || val === 'true'
-  // 如果不是会员，打开会员购买弹窗
-  if (!isUserVip.value) {
+  // 只有尝试“开启去水印”时才需要校验会员是否还有效
+  if (enabled) await refreshUserInfoIfPossible()
+  // 只有“开启去水印”才需要会员；关闭去水印允许所有用户操作
+  if (!isUserVip.value && enabled) {
     pendingAfterVipAction.value = { type: 'toggle' }
     showCoinInsufficient.value = true
     coinErrorType.value = 'up_vip'
-    watermarkStore.setRemoveWatermarkEnabled(false)
+    setLocalWatermarkStatus(false)
     return
   }
 
@@ -1201,13 +1134,13 @@ const handleWatermarkToggleChange = (val: string | number | boolean) => {
   if (!noRemind && enabled) {
     // 显示责任声明弹窗
     pendingAfterVipAction.value = { type: 'toggle' }
-    showWatermarkDisclaimer.value = true
-    watermarkStore.setRemoveWatermarkEnabled(false)
+    setLocalWatermarkStatus(false)
+    modalStore.openWatermarkDisclaimerModalPage()
     return
   }
 
-  // 更新状态
-  watermarkStore.setRemoveWatermarkEnabled(enabled)
+  // 更新状态并持久化（不需要弹窗的情况下）
+  await persistWatermarkStatus(enabled)
 }
 
 // 处理会员购买弹窗关闭
@@ -1231,9 +1164,10 @@ const handleMembershipPurchaseSuccess = async () => {
       // 检查是否需要显示责任声明
       const noRemind = localStorage.getItem('watermark_disclaimer_no_remind') === 'true'
       if (!noRemind) {
-        showWatermarkDisclaimer.value = true
+        setLocalWatermarkStatus(false)
+        modalStore.openWatermarkDisclaimerModalPage()
       } else {
-        watermarkStore.setRemoveWatermarkEnabled(true)
+        await persistWatermarkStatus(true)
       }
     } else if (pendingAfterVipAction.value.type === 'brandWatermark') {
       // 品牌水印入口购买成功后，自动打开品牌水印弹窗
@@ -1243,30 +1177,28 @@ const handleMembershipPurchaseSuccess = async () => {
   }
 }
 
-// 处理责任声明确认
-const handleWatermarkDisclaimerConfirm = () => {
-  showWatermarkDisclaimer.value = false
-  watermarkStore.setRemoveWatermarkEnabled(true)
-  // 如果之前有待处理的下载操作，继续执行
-  if (pendingAfterVipAction.value?.type === 'download') {
-    pendingAfterVipAction.value = null
-    handleDownload()
-  } else if (pendingAfterVipAction.value?.type === 'toggle') {
-    pendingAfterVipAction.value = null
-  }
-}
+// 责任声明弹窗确认/取消：清理 pending，并在需要时继续执行
+watch(
+  () => modalStore.watermarkDisclaimerConfirmToken,
+  () => {
+    const pending = pendingAfterVipAction.value
+    if (!pending) return
 
-// 处理责任声明取消
-const handleWatermarkDisclaimerCancel = () => {
-  showWatermarkDisclaimer.value = false
-  watermarkStore.setRemoveWatermarkEnabled(false)
-  pendingAfterVipAction.value = null
-}
+    if (pending.type === 'download') {
+      pendingAfterVipAction.value = null
+      handleDownload()
+    } else if (pending.type === 'toggle') {
+      pendingAfterVipAction.value = null
+    }
+  },
+)
 
-// 处理不再弹窗提醒变化
-const handleWatermarkDisclaimerNoRemindChange = (noRemind: boolean) => {
-  localStorage.setItem('watermark_disclaimer_no_remind', noRemind ? 'true' : 'false')
-}
+watch(
+  () => modalStore.watermarkDisclaimerCancelToken,
+  () => {
+    pendingAfterVipAction.value = null
+  },
+)
 
 // 下载/保存资产（参考资产列表的下载逻辑）
 const handleDownload = async () => {
@@ -1276,12 +1208,19 @@ const handleDownload = async () => {
 
   try {
     isDownloading.value = true
-    // 优先使用当前选中项的数据（因为 MediaPlayer 使用的是 relatedTemplates 中的数据）
-    // 如果 relatedTemplates 中有数据，优先使用；否则使用 templateDetail
-    const currentItem =
+    // 优先使用最新映射后的缩略图数据（ThumbnailGallery 使用的字段：thumbUrl/url/originalUrl）
+    // 只在“我的资产”页启用；其它页面保持原逻辑
+    const currentItemBase =
       selectedThumbnail.value >= 0 && selectedThumbnail.value < relatedTemplates.value.length
         ? relatedTemplates.value[selectedThumbnail.value]
         : templateDetail.value
+
+    const currentItem =
+      pageTypeRef.value === 'assets' &&
+      selectedThumbnail.value >= 0 &&
+      selectedThumbnail.value < thumbnailAssets.value.length
+        ? thumbnailAssets.value[selectedThumbnail.value]
+        : currentItemBase
 
     // 根据文件类型选择下载 URL（与资产列表逻辑一致）
     const isVideo = isVideoType(currentItem)
@@ -1302,23 +1241,20 @@ const handleDownload = async () => {
       }
     }
 
-    let downloadUrl = isVideo ? currentItem.fileUrl : currentItem.imageUrl || currentItem.imgUrl
+    let downloadUrl = isVideo ? currentItem.url : currentItem.url || currentItem.thumbUrl
 
-    // 如果需要去除水印，尝试获取 noWatermarkUrl
+    // 如果需要去除水印，优先使用 originalUrl（无水印链接）
     if (pageTypeRef.value === 'assets' && wantRemoveWatermark && isUserVip.value) {
       const noWatermarkUrl = await ensureNoWatermarkUrlForAsset(currentItem)
-      if (noWatermarkUrl) {
-        downloadUrl = noWatermarkUrl
-      }
+      if (noWatermarkUrl) downloadUrl = noWatermarkUrl
     }
 
     console.log('[handleDownload] 下载信息:', {
       isVideo,
       selectedThumbnail: selectedThumbnail.value,
       currentItem,
-      fileUrl: currentItem.fileUrl,
-      imageUrl: currentItem.imageUrl,
-      imgUrl: currentItem.imgUrl,
+      url: currentItem.url,
+      originalUrl: currentItem.originalUrl,
       downloadUrl,
       templateDetailFileUrl: templateDetail.value.fileUrl,
       relatedTemplatesLength: relatedTemplates.value.length,
@@ -1333,11 +1269,7 @@ const handleDownload = async () => {
     const filePrefix = 'chaotuishou'
     const namePart =
       currentItem?.prompt ||
-      currentItem?.title ||
-      currentItem?.name ||
       templateDetail.value?.prompt ||
-      templateDetail.value?.title ||
-      templateDetail.value?.name ||
       (isVideo ? 'video' : 'image')
 
     // 文件扩展名：视频 mp4，图片 png（与资产列表逻辑一致）
@@ -1555,33 +1487,31 @@ const handleAssetsCollect = async () => {
 
   try {
     const isCollecting = !templateDetail.value.isCollect
-    const userId = userStore.userInfo?.userId
-    if (!userId) {
-      ElMessage.warning('请先登录')
-      return
-    }
-    const params: any = {
-      userId,
-    }
-
-    if (isCollecting) {
-      params.dataIds = [templateDetail.value.id]
-    } else {
-      if (templateDetail.value.collectId) {
-        params.collectIds = [templateDetail.value.collectId]
-      } else {
-        ElMessage.error('收藏信息丢失')
+    // AI 工作台（AiFashionStudio）生成的资产：使用 /api/v1/algo/collect
+    if (isAiFashionStudioAssetsDetail.value) {
+      const algoOrderResultId = String(templateDetail.value.id || '')
+      if (!algoOrderResultId) {
+        ElMessage.error('结果ID丢失，无法收藏')
         return
       }
-    }
 
-    const response = await assetApi.batchCollect(params)
-    if (response.code === '0000') {
-      templateDetail.value.isCollect = isCollecting ? 1 : 0
-      templateDetail.value.collectId = (response.data as any)?.collectIds?.[0] || null
-      ElMessage.success(isCollecting ? '收藏成功' : '取消收藏')
+      const response = await algoApi.collect({ algoOrderResultId })
+      if (response.code === '0000') {
+        templateDetail.value.isCollect = isCollecting ? 1 : 0
+        // 如果后端有返回新的 collectId，则回填；没有则保留原值
+        const nextCollectId =
+          (response.data as any)?.collectId ??
+          (response.data as any)?.collectIds?.[0] ??
+          templateDetail.value.collectId
+        templateDetail.value.collectId = nextCollectId || null
+        ElMessage.success(isCollecting ? '收藏成功' : '取消收藏')
+      } else {
+        ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
+      }
     } else {
-      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
+      // 其它来源资产：旧接口 creative.ts / asset.ts 已下线
+      ElMessage.warning('暂未接入收藏/取消收藏（旧接口已下线）')
+      return
     }
   } catch (error) {
     console.error('收藏操作失败:', error)
@@ -1643,28 +1573,28 @@ const handleDelete = async () => {
       type: 'warning',
     })
 
-    const params = {
-      taskResultIds: [templateDetail.value.id],
-      userId,
+    const deletedAssetId: string = String(templateDetail.value.id)
+
+    // AI 工作台生成结果：使用 algo/del
+    if (isAiFashionStudioAssetsDetail.value) {
+      const response = await algoApi.del({ algoOrderResultId: deletedAssetId })
+      if (response.code === '0000') {
+        ElMessage.success('删除成功')
+        emit('delete', deletedAssetId)
+        if (props.isModal) {
+          emit('close')
+        } else {
+          router.back()
+        }
+      } else {
+        ElMessage.error(response.msg || '删除失败')
+      }
+      return
     }
 
-    const response = await assetApi.batchDelete(params)
-    if (response.code === '0000') {
-      ElMessage.success('删除成功')
-      const deletedAssetId = templateDetail.value.id
-      // 触发 delete 事件，通知父组件更新列表
-      if (deletedAssetId !== undefined && deletedAssetId !== null) {
-        emit('delete', deletedAssetId)
-      }
-      // 返回上一页
-      if (props.isModal) {
-        emit('close')
-      } else {
-        router.back()
-      }
-    } else {
-      ElMessage.error(response.msg || '删除失败')
-    }
+    // 其它资产：旧接口 creative.ts / asset.ts 已下线
+    ElMessage.warning('暂未接入删除（旧接口已下线）')
+    return
   } catch (error: any) {
     // 用户取消删除
     if (error === 'cancel') {
@@ -1684,10 +1614,7 @@ onMounted(async () => {
 
   // ===== 临时：AI服装设计详情先用静态数据展示（不调用接口）=====
   // 触发条件：从 AI 工作台进入详情（assets + sourceTab=aiFashionStudio），或显式携带 ?mock=1
-  if (
-    (pageTypeRef.value === 'assets' && sourceTabRef.value === 'aiFashionStudio') ||
-    String(route.query.mock || '') === '1'
-  ) {
+  if (String(route.query.mock || '') === '1') {
     const now = new Date()
     const dateText = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
       now.getDate()

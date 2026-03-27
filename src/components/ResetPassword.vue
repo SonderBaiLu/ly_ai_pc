@@ -95,10 +95,20 @@ import {ElMessage} from 'element-plus'
 import {changePwdBySms, doUserWechatLogin, getSmsCodeApi} from "@/api/userLogin"
 import userApi from '@/api/user'
 import {useUserStore} from '@/stores/user'
+import { userLanguageToI18nLocale } from '@/i18n'
 
 const userStore = useUserStore()
-const {t} = useI18n()
 import {baseRules} from '@/utils/validationSchemas.ts'
+const { t, locale } = useI18n({ useScope: 'local' })
+
+// 个人中心弹窗：只跟随用户偏好语言，避免被全局 i18n locale 覆盖
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 // Props & Emits
 const props = defineProps({
@@ -198,7 +208,6 @@ const startCountdown = () => {
 }
 
 // ====== 提交逻辑 ======
-
 const handleSubmit = async () => {
   try {
     // 公共校验：密码模式需要校验密码

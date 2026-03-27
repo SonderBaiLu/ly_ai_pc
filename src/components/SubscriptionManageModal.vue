@@ -91,7 +91,6 @@ const emit = defineEmits<{
 }>()
 
 const userStore = useUserStore()
-const userInfo = userStore.userInfo
 
 const visible = computed({
   get: () => props.modelValue,
@@ -219,7 +218,7 @@ const normalizeRecord = (item: any, index: number) => {
 }
 
 const loadRecords = async (isRefresh = false) => {
-  if (!userInfo?.userId) return
+  if (!userStore.isLoggedIn) return
 
   if (isRefresh) {
     loadingRecords.value = true
@@ -232,23 +231,18 @@ const loadRecords = async (isRefresh = false) => {
   }
 
   try {
-    const res = await subscriptionApi.getSubscriptionRecords({
-      userId: userInfo.userId,
-      current: pageParams.value.current,
-      size: pageParams.value.size,
+    const res = await subscriptionApi.getOrderSubscribe({
+      productKind: 'vip',
+      currentPage: pageParams.value.current,
+      offset: pageParams.value.size,
     })
-    if (res.code === '0000' && res.data) {
-      const data: any = res.data
-      let { vipSubscribeVO, orderVoPage } = data
+    if (res.code === '0000') {
+      const data: any = res.data || {}
+      const pageData: any = data?.orderVoPage || data
 
-      // 只在首次加载或刷新时更新订阅信息
-      if (isRefresh) {
-        subscriptions.value = vipSubscribeVO || {}
-      }
-
-      const rawRecords = orderVoPage.records || []
+      const rawRecords = pageData?.records || pageData?.list || []
       const newRecords = rawRecords.map((item: any, index: number) => normalizeRecord(item, index))
-      const total = orderVoPage.total || 0
+      const total = Number(pageData?.total || pageData?.totalCount || 0)
 
       if (isRefresh) {
         records.value = newRecords

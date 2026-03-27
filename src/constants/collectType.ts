@@ -9,5 +9,3 @@ export const COLLECT_TYPE = {
 
 export type CollectTypeValue = (typeof COLLECT_TYPE)[keyof typeof COLLECT_TYPE]
 
-export * from './taskType'
-export * from './creationParamCode'

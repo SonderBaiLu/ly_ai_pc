@@ -194,9 +194,9 @@
         <div class="footer-agreement">
           <div class="agreement">
             {{ t('LoginPopUpPage.agreement') }}
-            <a href="#">{{ t('LoginPopUpPage.userAgreement') }}</a>
+            <a href="#" @click.prevent="goAgreement('USER_AGREEMENT')">{{ t('LoginPopUpPage.userAgreement') }}</a>
             {{ t('LoginPopUpPage.and') }}
-            <a href="#">{{ t('LoginPopUpPage.userPolicy') }}</a>
+            <a href="#" @click.prevent="goAgreement('PRIVACY_POLICY')">{{ t('LoginPopUpPage.userPolicy') }}</a>
           </div>
         </div>
       </div>
@@ -210,6 +210,8 @@
           @success="handleBindSuccess"
           @close="dialogs.isVisible = false" />
 
+      <ResetPassword v-if="dialogs.isVisible" :open-id="openId" :mode="currentMode"
+        :confirmedInviteCode="confirmedInviteCode" @close="dialogs.isVisible = false" />
     </Transition>
     <InvitationCode v-if="dialogs.invitation" @update:visible="dialogs.invitation = $event"
       @confirm="handleInviteConfirm" />
@@ -219,6 +221,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onUnmounted, onBeforeUnmount } from 'vue' // 补全了 onBeforeUnmount
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
 import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
@@ -235,6 +238,7 @@ import router from "@/router";
 // ==========================================
 const userStore = useUserStore()
 const { t } = useI18n()
+const router = useRouter()
 const emit = defineEmits(['close'])
 const accountType = ref<'personal' | 'team'>('personal') // 账号类型：个人 / 团队
 const loginMethod = ref<'qrcode' | 'phone'>('phone')     // 个人登录方式：扫码 / 手机
@@ -251,6 +255,14 @@ const openId = ref('0') // 这个变脸给ResetPassword页面的绑定手机号�
 // 统一关闭弹窗的方法
 const handleClose = () => {
   emit('close')
+}
+
+const goAgreement = (type: 'USER_AGREEMENT' | 'PRIVACY_POLICY') => {
+  handleClose()
+  router.push({
+    path: '/agreement',
+    query: { type },
+  })
 }
 
 // ==========================================
@@ -460,7 +472,7 @@ const isGettingCode = ref(false)    // 获取验证码的 loading
 const isSubmitting = ref(false)     // 个人登录的 loading
 const isTeamSubmitting = ref(false) // 团队登录的 loading
 
-// UI 交互状态
+// UI ---交互状态 ---
 const showPersonalPwd = ref(false)
 const pwdErrorMsg = ref('')
 const codeErrorMsg = ref('')

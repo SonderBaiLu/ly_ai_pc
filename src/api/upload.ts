@@ -66,9 +66,9 @@ export const uploadApi = {
       const formData = new FormData()
       formData.append('file', file)
 
-      // 调用上传接口
+      // 调用上传接口（/api/v1/storage/uploadImage）
       const response: ApiResponse<UploadResponse> = await request.post(
-        '/api-file/files/upload',
+        '/v1/storage/uploadImage',
         formData,
         {
           headers: {
@@ -83,12 +83,13 @@ export const uploadApi = {
       }
 
       const respData: any = (response as any).data
-      if (response.code === '0000' && respData?.url) {
+      const uploadedUrl = String(respData?.url || respData?.fileUrl || respData || '').trim()
+      if (response.code === '0000' && uploadedUrl) {
         // 上传成功，获取图片URL
         if (showLoading && showMessage) {
           ElMessage.success('图片上传成功')
         }
-        return { success: true, url: respData.url }
+        return { success: true, url: uploadedUrl }
       } else {
         const msg = (response as any).msg || '图片上传失败'
         if (showMessage) ElMessage.error(msg)

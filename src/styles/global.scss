@@ -109,6 +109,10 @@ body {
   color: $color-text-white !important;
   border: none !important;
   box-shadow: none !important;
+
+  &:hover {
+    background: $color-primary-dark !important;
+  }
 }
 
 /* 全局：primary 按钮禁用态黑色透明遮罩（统一“不可点击”视觉） */
@@ -139,22 +143,78 @@ body {
 }
 
 // ===================== 自定义轻提示（ElMessage）=====================
-// 成功提示统一使用当前框架主题色，而不是默认绿色
-.el-message.el-message--success {
-  box-shadow: none !important;
-  border-radius: 8px !important;
+// Element Plus Message 组件样式覆盖
+.el-message {
   background-color: rgba(18, 18, 18, 1) !important;
+  backdrop-filter: blur(10px) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: $color-primary !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+
+  .el-message__content {
+    color: $color-text-white !important;
+  }
 
   .el-message__icon {
     color: $color-primary !important;
   }
 
-  .el-message__content {
-    color: $color-primary !important;
+  // 成功消息样式
+  &.el-message--success {
+    .el-message__icon {
+      color: $color-primary !important;
+    }
+
+    .el-message__content {
+      color: $color-primary !important;
+    }
+  }
+
+  // 错误消息样式
+  &.el-message--error {
+    background: rgba(0, 0, 0, 0.8) !important;
+    border-color: rgba(245, 101, 101, 0.3) !important;
+
+    .el-message__icon {
+      color: #f56565 !important;
+    }
+  }
+
+  // 警告消息样式
+  &.el-message--warning {
+    background: rgba(0, 0, 0, 0.8) !important;
+    border-color: rgba(255, 107, 53, 0.3) !important;
+
+    .el-message__icon {
+      color: #ff6b35 !important;
+    }
+  }
+
+  // 信息消息样式
+  &.el-message--info {
+    background: rgba(0, 0, 0, 0.8) !important;
+    border-color: rgba(144, 147, 153, 0.3) !important;
+
+    .el-message__icon {
+      color: #909399 !important;
+    }
+  }
+
+  // 上传加载消息 - 使用主题色
+  &.upload-loading-message {
+
+    .el-message__icon {
+      color: $color-primary !important;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .el-message__content {
+      color: $color-primary !important;
+      font-weight: 500 !important;
+    }
   }
 }
+
 
 // 上传失败提示：居中黑底 + failFace 图标
 .el-message.my-toast-fail-face {
@@ -185,6 +245,71 @@ body {
     height: 24px;
     object-fit: contain;
     flex: 0 0 auto;
+  }
+}
+
+// 下载样式
+.el-popover.download-menu-popper {
+  width: 130px !important;
+  background-color: rgba(37, 39, 40, 1) !important;
+  border: 1px solid rgba(51, 51, 51, 1) !important;
+
+  .download-menu {
+    color: $color-text-white;
+    font-size: 10px;
+
+    .download-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 0 !important;
+      height: 25px !important;
+
+      .download-menu-icon {
+        width: 11px;
+        height: 11px;
+        margin-right: 8px;
+        object-fit: contain;
+      }
+    }
+
+    .vip-text-icon {
+      width: 24px;
+      height: 21px;
+      object-fit: contain;
+    }
+
+    /* 去除水印开关：20x10（圆点 8x8） */
+    .download-menu-item.switch-row {
+      .el-switch__core {
+        min-width: 20px !important;
+        height: 10px !important;
+        border-radius: 5px !important;
+      }
+
+      /* 圆点（白色 action） */
+      .el-switch__action {
+        left: 1px !important;
+        width: 8px !important;
+        height: 8px !important;
+      }
+
+      /* 避免 checked 状态下 inner padding 把布局撑开 */
+      .el-switch__inner {
+        height: 8px !important;
+        padding: 0 !important;
+      }
+
+      /* checked 时圆点平移到右侧 */
+      .el-switch.is-checked .el-switch__action {
+        left: calc(100% - 8px - 1px) !important;
+      }
+
+      .el-switch.is-checked .el-switch__inner {
+        padding: 0 !important;
+      }
+    }
   }
 }
 
@@ -390,7 +515,8 @@ img {
 
 // Popper 容器（Dropdown / Tooltip / Select 等共用）
 .el-popper {
-  background: transparent !important;
+  // background: transparent !important;
+  background-color: rgba(9, 17, 37, 1) !important;
   box-shadow: none !important;
   border-color: transparent !important;
 

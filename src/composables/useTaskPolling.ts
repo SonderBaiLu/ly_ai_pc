@@ -1,46 +1,70 @@
 import { ElMessage } from 'element-plus'
-import { creativeApi } from '@/api/creative'
+import { algoApi } from '@/api/algo'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 import type { Ref } from 'vue'
-import { getQueryTypeByTaskType } from '@/constants/taskType'
 
 /**
- * 资产接口（直接使用后端返回的字段）
+ * 创作（算法结果）数据结构：只使用最新接口字段
+ * - 统一用 thumbUrl/url/originalUrl/collectStatus/status/fileType
+ * - 不兼容旧字段（imageUrl/fileUrl/noWatermarkUrl/collectId/isCollect 等）
  */
-export interface Asset {
-  id: string // 资产ID
-  taskId: string // 任务ID
-  taskUuid: string // 任务UUID
-  imageUrl: string // 图片URL或视频封面
-  fileUrl?: string // 视频URL（如果是视频）
-  fileType: number // 文件类型：1=图片, 2=视频
-  prompt: string // 提示词
-  model?: string // 模型名称
-  size?: string // 尺寸
-  count?: number // 生成数量
-  scenario?: string // 场景
-  baseImageUrl?: string // 原始图片
-  createTime: string // 创建时间
-  updateTime?: string // 更新时间
-  status: number // 状态：1未开始 2进行中 3完成 4失败
-  type?: number // 类型
-  isDel?: number | null // 是否删除
-  collectId?: string | null // 收藏ID，null表示未收藏
-  queryType?: string // 查询类型（前端用于轮询，非后端字段）
-  progress?: number // 生成进度（0-100，直接使用接口 progress）
-  successfulCount?: number // 成功数量
-  failedCount?: number // 失败数量
-  noWatermarkUrl?: string | null // 无水印URL（图片和视频都使用此字段）
+export interface CreationResult {
+  /** 生成结果ID（后端：id） */
+  id: string
+  /** 用户ID（后端：userId） */
+  userId?: string
+  /** 团队用户ID（后端：userSonId） */
+  userSonId?: string | null
+  /** 生成订单ID（后端：algoOrderId） */
+  algoOrderId: string
+  /** 算法请求编号（后端：algoOrderNo） */
+  algoOrderNo?: string
+  /** 算法 uuid（后端：algoUuId，可能为 null） */
+  algoUuId?: string | null
+  /** 功能菜单 code（后端：menuCode） */
+  menuCode?: string
+
+  /** 缩略图（后端：thumbUrl） */
+  thumbUrl?: string | null
+  /** 资源链接（后端：url） */
+  url?: string | null
+  /** 无水印链接（后端：originalUrl） */
+  originalUrl?: string | null
+  /** 文件大小（后端：fileSize） */
+  fileSize?: number
+  /** 音视频时长（后端：duration） */
+  duration?: number
+  /** 收藏状态（后端：collectStatus 0未收藏 1已收藏） */
+  collectStatus?: number | null
+
+  /** 生成类型（后端：fileType 1图片 2视频 3音频 4音视频） */
+  fileType: number
+  /** 任务状态（后端：status 0初始化 1待请求 2处理中 3完成 4失败） */
+  status: number
+
+  /** 进度信息（后端可能返回） */
+  progress?: number
+  successfulCount?: number
+  failedCount?: number
+
+  /** 提示词（用于 UI 回显） */
+  prompt: string
+
+  /** 创建时间（用于 UI） */
+  createTime: string
+
+  /** 前端轮询专用字段（非后端字段） */
+  queryType?: string
 }
 
 /**
  * 全局注册所有使用任务轮询的资产列表引用
  * 这样同一个 taskId 的进度更新可以同步到多个模块的资产列表中
  */
-const assetsRefsRegistry = new Set<Ref<Asset[]>>()
+const assetsRefsRegistry = new Set<Ref<CreationResult[]>>()
 
-const registerAssetsRef = (assetsRef: Ref<Asset[]>) => {
+const registerAssetsRef = (assetsRef: Ref<CreationResult[]>) => {
   assetsRefsRegistry.add(assetsRef)
 }
 
@@ -56,7 +80,7 @@ const pollingTaskMap = new Map<string, ReturnType<typeof setInterval>>()
  * 处理API响应、任务轮询、资产状态更新等逻辑
  */
 export function useTaskPolling(
-  assets: Ref<Asset[]>,
+  assets: Ref<CreationResult[]>,
   currentAssetIndex: Ref<number>,
   coinErrorType: Ref<string>,
   showCoinInsufficient: Ref<boolean>,
@@ -114,16 +138,20 @@ export function useTaskPolling(
    */
   const addGeneratingAsset = (taskId: string, _taskType: string, queryType: string) => {
     const now = new Date()
-    const generatingAsset: Asset = {
+    const generatingAsset: CreationResult = {
+      // 占位卡片：先用 taskId 作为结果 id，待 query 返回后用真实结果覆盖
       id: taskId,
-      taskId: taskId,
-      taskUuid: taskId,
-      imageUrl: '',
-      fileUrl: '',
+      algoOrderId: taskId,
+      algoUuId: null,
+      menuCode: '',
+      thumbUrl: null,
+      url: null,
+      originalUrl: null,
+      collectStatus: 0,
       fileType: 1, // 默认图片
       prompt: creativeDescription.value || '生成中...',
       createTime: now.toISOString(),
-      status: 2, // 2=进行中
+      status: 2, // 2=处理中
       queryType: queryType, // 前端用于轮询
       progress: 0, // 初始进度
     }
@@ -171,11 +199,18 @@ export function useTaskPolling(
         // 获取用户ID（转换为字符串）
         const userId = String(userInfo.value?.userId || '')
 
-        // 统一使用算法结果查询接口
-        const res = await creativeApi.findAlgorithmResult({ userId, taskUuid: taskId })
+        // 使用 algo/query 轮询算法生成状态
+        const res = await algoApi.query({ algoOrderId: taskId, userId })
 
         if (res.code === '0000' && res.data) {
-          const { status, resultList, progress, successfulCount, failedCount } = res.data
+          const { status, progress, successfulCount, failedCount } = res.data
+          const orderResultVOS: any[] = Array.isArray(res.data?.orderResultVOS) ? res.data.orderResultVOS : []
+
+          // 兼容：进度/数量可能只在 orderResultVOS 内返回
+          const fallbackFirst = orderResultVOS[0] || {}
+          const mergedProgress = progress ?? fallbackFirst.progress
+          const mergedSuccessfulCount = successfulCount ?? fallbackFirst.successfulCount
+          const mergedFailedCount = failedCount ?? fallbackFirst.failedCount
 
           // status 状态：1未开始 2进行中 3完成 4失败
           if (status === 3) {
@@ -191,7 +226,7 @@ export function useTaskPolling(
             clearInterval(pollInterval)
             pollingTaskMap.delete(taskId)
 
-            if (resultList && resultList.length > 0) {
+            if (orderResultVOS && orderResultVOS.length > 0) {
               // 更新资产为生成完成状态
               updateAssetWithResult(taskId, res.data, taskType)
               ElMessage.success(`生成完成！`)
@@ -206,7 +241,7 @@ export function useTaskPolling(
                 }
               }
 
-              onTaskFinished?.(resultList)
+              onTaskFinished?.(orderResultVOS)
             } else {
               // 状态为3但resultList为空，视为生成失败
               updateAssetWithError(taskId, '生成完成但未返回结果')
@@ -227,11 +262,11 @@ export function useTaskPolling(
           } else if (status === 2) {
             // 2=进行中，生成中 - 更新进度信息，仅使用 progress
             updateAssetProgress(taskId, {
-              progress,
-              successfulCount,
-              failedCount,
+              progress: mergedProgress,
+              successfulCount: mergedSuccessfulCount,
+              failedCount: mergedFailedCount,
             })
-            console.log(`任务生成中，taskId: ${taskId}，进度: ${progress || 0}%`)
+            console.log(`任务生成中，taskId: ${taskId}，进度: ${mergedProgress || 0}%`)
           }
         } else if (res.code === '0001') {
           // API返回错误也视为生成失败
@@ -246,7 +281,7 @@ export function useTaskPolling(
           clearInterval(pollInterval)
           pollingTaskMap.delete(taskId)
           updateAssetWithError(taskId, '生成超时')
-          ElMessage.warning(`生成超时，请稍后在"我的资产"中查看`)
+          ElMessage.warning(`生成超时，请稍后在"我的创作"中查看`)
         }
       } catch (error) {
         console.error('查询任务结果失败:', error)
@@ -292,21 +327,22 @@ export function useTaskPolling(
    * 对于跨模块同步，只更新第一个结果，不添加额外的资产
    */
   const updateAssetWithResultInAssets = (
-    targetAssets: Ref<Asset[]>,
+    targetAssets: Ref<CreationResult[]>,
     taskId: string,
     resultList: any[]
   ) => {
-    // 同时支持 taskId 和 taskUuid 匹配（因为后端返回的资产可能使用 taskUuid）
+    // 占位卡片阶段：id/algoOrderId 可能都等于 taskId
     const assetIndex = targetAssets.value.findIndex(
-      (asset: Asset) => asset.taskId === taskId || asset.taskUuid === taskId
+      (asset: CreationResult) => asset.algoOrderId === taskId || asset.id === taskId || asset.algoUuId === taskId
     )
     if (assetIndex !== -1 && resultList.length > 0) {
       // 只更新第一个结果（跨模块同步时不添加额外资产）
       const item = resultList[0]
       targetAssets.value[assetIndex] = {
+        ...targetAssets.value[assetIndex],
         ...item,
-        taskId: item.taskId || taskId,
-        taskUuid: item.taskUuid || taskId,
+        algoOrderId: String(item.algoOrderId ?? item.algoOrderID ?? item.taskId ?? taskId),
+        algoUuId: (item.algoUuId ?? item.taskUuid ?? null) as any,
         queryType: targetAssets.value[assetIndex].queryType, // 保留前端轮询字段
       }
     }
@@ -323,11 +359,12 @@ export function useTaskPolling(
     // 处理返回的数据结构，可能包含 resultList 数组
     let resultList: any[] = []
 
-    if (resultData.resultList && Array.isArray(resultData.resultList)) {
-      // 如果返回的是包含 resultList 的对象
+    if (Array.isArray(resultData?.resultList)) {
       resultList = resultData.resultList
-    } else {
-      // 如果直接返回的是单个结果对象
+    } else if (Array.isArray(resultData?.orderResultVOS)) {
+      // algo/query：返回 orderResultVOS
+      resultList = resultData.orderResultVOS
+    } else if (resultData) {
       resultList = [resultData]
     }
 
@@ -335,64 +372,111 @@ export function useTaskPolling(
 
     // 找到对应的占位资产（同时支持 taskId 和 taskUuid 匹配）
     const assetIndex = assets.value.findIndex(
-      (asset: Asset) => asset.taskId === taskId || asset.taskUuid === taskId
+      (asset: CreationResult) => asset.algoOrderId === taskId || asset.id === taskId || asset.algoUuId === taskId
     )
     console.log('找到的占位资产索引:', assetIndex)
 
     if (assetIndex !== -1 && resultList.length > 0) {
+      const originAsset = assets.value[assetIndex]
+
+      // 如果是 algo/query 的 orderResultVO 结构，则映射成页面 Asset 需要的字段
+      const isAlgoOrderVO = (v: any) => {
+        return v && (v.thumbUrl || v.url || v.originalUrl || typeof v.fileType === 'number' || v.algoOrderId)
+      }
+
+      let mappedList: CreationResult[] = resultList as any
+      if (isAlgoOrderVO(resultList[0])) {
+        mappedList = resultList.map((vo: any, idx: number): CreationResult => {
+          return {
+            ...originAsset,
+            // latest fields
+            id: String(vo?.id ?? `${taskId}-${idx}`), // 结果ID
+            userId: vo?.userId != null ? String(vo.userId) : undefined,
+            userSonId: vo?.userSonId != null ? String(vo.userSonId) : null,
+            algoOrderId: String(vo?.algoOrderId ?? taskId), // 算法订单ID
+            algoOrderNo: vo?.algoOrderNo != null ? String(vo.algoOrderNo) : undefined,
+            algoUuId: (vo?.algoUuId ?? null) as any, // 算法返回uuid
+            menuCode: String(vo?.menuCode ?? ''),
+
+            // 后端：fileType 1图片 2视频 3音频 4音视频
+            fileType: Number(vo?.fileType ?? 1),
+
+            thumbUrl: vo?.thumbUrl ?? null,
+            url: vo?.url ?? null,
+            originalUrl: vo?.originalUrl ?? null,
+
+            fileSize: vo?.fileSize !== undefined && vo?.fileSize !== null ? Number(vo.fileSize) : undefined,
+            duration: vo?.duration !== undefined && vo?.duration !== null ? Number(vo.duration) : undefined,
+            collectStatus: Number(vo?.collectStatus ?? 0),
+
+            // 后端：status 0初始化 1待请求 2处理中 3完成 4失败
+            status: Number(vo?.status ?? 3),
+
+            progress: vo?.progress !== undefined && vo?.progress !== null ? Number(vo?.progress) : 0,
+            successfulCount: vo?.successfulCount !== undefined && vo?.successfulCount !== null ? Number(vo?.successfulCount) : 0,
+            failedCount: vo?.failedCount !== undefined && vo?.failedCount !== null ? Number(vo?.failedCount) : 0,
+          }
+        })
+      }
+
       // 在原始模块中执行完整逻辑（包括处理多个结果、添加新资产等）
-      if (resultList.length === 1) {
+      if (mappedList.length === 1) {
         // 如果只有一个结果，更新占位卡片
-        const item = resultList[0]
+        const item = mappedList[0]
         console.log('更新单个结果 - item:', item)
         assets.value[assetIndex] = {
+          ...originAsset,
           ...item,
-          taskId: item.taskId || taskId,
-          taskUuid: item.taskUuid || taskId,
-          queryType: assets.value[assetIndex].queryType, // 保留前端轮询字段
+          id: String(item.id || originAsset.id || taskId),
+          algoOrderId: String(item.algoOrderId || originAsset.algoOrderId || taskId),
+          algoUuId: (item.algoUuId ?? originAsset.algoUuId ?? null) as any,
+          queryType: originAsset.queryType, // 保留前端轮询字段
         }
       } else {
         // 如果有多个结果，更新第一个占位卡片，其余的添加到列表
-        console.log('处理多个结果，数量:', resultList.length)
+        console.log('处理多个结果，数量:', mappedList.length)
         // 先更新第一个占位卡片
-        const firstItem = resultList[0]
+        const firstItem = mappedList[0]
         console.log('更新第一个占位卡片 - item:', firstItem)
-            assets.value[assetIndex] = {
+        assets.value[assetIndex] = {
+          ...originAsset,
           ...firstItem,
-          id: firstItem.id || `${taskId}-0`, // 确保 id 唯一
-          taskId: firstItem.taskId || taskId,
-          taskUuid: firstItem.taskUuid || taskId,
-              queryType: assets.value[assetIndex].queryType, // 保留前端轮询字段
-            }
+          id: String(firstItem.id || `${taskId}-0`), // 确保 id 唯一
+          algoOrderId: String(firstItem.algoOrderId || taskId),
+          algoUuId: (firstItem.algoUuId ?? null) as any,
+          queryType: originAsset.queryType, // 保留前端轮询字段
+        }
         // 然后从第二个开始，依次插入到第一个后面
-        for (let i = 1; i < resultList.length; i++) {
-          const item = resultList[i]
+        for (let i = 1; i < mappedList.length; i++) {
+          const item = mappedList[i]
           console.log('添加额外结果，index:', i, 'item:', item)
-            const newAsset: Asset = {
-              ...item,
-            id: item.id || `${taskId}-${i}`, // 确保 id 唯一
-              taskId: item.taskId || taskId,
-              taskUuid: item.taskUuid || taskId,
-            }
+          const newAsset: CreationResult = {
+            ...originAsset,
+            ...item,
+            id: String(item.id || `${taskId}-${i}`), // 确保 id 唯一
+            algoOrderId: String(item.algoOrderId || taskId),
+            algoUuId: (item.algoUuId ?? null) as any,
+            queryType: originAsset.queryType,
+          }
           // 插入到第一个资产后面，每次插入后位置会递增
           assets.value.splice(assetIndex + i, 0, newAsset)
-          }
+        }
       }
 
       // 自动切换到第一个生成的资产（只在原始模块中执行）
       currentAssetIndex.value = assetIndex
       console.log('资产更新完成，当前索引:', assetIndex)
+
+      // 跨模块同步：在其它所有模块中更新完成状态（只更新第一个结果，不添加额外资产）
+      assetsRefsRegistry.forEach((assetsRef) => {
+        // 跳过原始模块（已经处理过了）
+        if (assetsRef !== assets) {
+          updateAssetWithResultInAssets(assetsRef, taskId, mappedList)
+        }
+      })
     } else {
       console.warn('未找到对应的占位资产或结果列表为空')
     }
-
-    // 跨模块同步：在其他所有模块中更新完成状态（只更新第一个结果，不添加额外资产）
-    assetsRefsRegistry.forEach((assetsRef) => {
-      // 跳过原始模块（已经处理过了）
-      if (assetsRef !== assets) {
-        updateAssetWithResultInAssets(assetsRef, taskId, resultList)
-      }
-    })
   }
 
   /**
@@ -400,13 +484,12 @@ export function useTaskPolling(
    * 抽成一个工具函数，方便在多个模块的 assets 列表上复用
    */
   const updateAssetWithErrorInAssets = (
-    targetAssets: Ref<Asset[]>,
+    targetAssets: Ref<CreationResult[]>,
     taskId: string,
     errorMsg: string
   ) => {
-    // 同时支持 taskId 和 taskUuid 匹配（因为后端返回的资产可能使用 taskUuid）
     const assetIndex = targetAssets.value.findIndex(
-      (asset: Asset) => asset.taskId === taskId || asset.taskUuid === taskId
+      (asset: CreationResult) => asset.algoOrderId === taskId || asset.id === taskId || asset.algoUuId === taskId
     )
     if (assetIndex !== -1) {
       targetAssets.value[assetIndex] = {
@@ -432,7 +515,7 @@ export function useTaskPolling(
    * 抽成一个工具函数，方便在多个模块的 assets 列表上复用
    */
   const updateAssetProgressInAssets = (
-    targetAssets: Ref<Asset[]>,
+    targetAssets: Ref<CreationResult[]>,
     taskId: string,
     progressData: {
       progress?: number
@@ -440,9 +523,8 @@ export function useTaskPolling(
       failedCount?: number
     }
   ) => {
-    // 同时支持 taskId 和 taskUuid 匹配（因为后端返回的资产可能使用 taskUuid）
     const assetIndex = targetAssets.value.findIndex(
-      (asset: Asset) => asset.taskId === taskId || asset.taskUuid === taskId
+      (asset: CreationResult) => asset.algoOrderId === taskId || asset.id === taskId || asset.algoUuId === taskId
     )
     if (assetIndex !== -1) {
       const currentAsset = targetAssets.value[assetIndex]
@@ -483,18 +565,15 @@ export function useTaskPolling(
    * 从资产记录列表中恢复进行中任务的轮询（用于页面刷新后自动恢复）
    * 只对 status 为 1/2 且有 type 的任务调用 startPollingTaskResult
    */
-  const recoverTasksFromRecords = (records: Asset[] = []) => {
+  const recoverTasksFromRecords = (records: CreationResult[] = []) => {
     records.forEach((item) => {
-      const taskId = (item.taskUuid as string) || (item.taskId as string)
-      if (!taskId || !item.type) return
+      const taskId = String(item.algoOrderId || item.id || '')
+      if (!taskId) return
 
       // 仅对未开始/进行中的任务恢复轮询
       if (item.status === 1 || item.status === 2) {
-        const queryType = getQueryTypeByTaskType(item.type)
-        if (!queryType) return
-
-        // startPollingTaskResult 内部已做去重判断，这里直接调用即可
-        startPollingTaskResult(taskId, '任务恢复', queryType)
+        // queryType 是前端字段：若不存在则使用 default，不阻断恢复
+        startPollingTaskResult(taskId, '任务恢复', item.queryType || 'default')
       }
     })
   }

@@ -2,9 +2,9 @@
   <section class="cta-section">
     <h3 class="cta-title">{{ t('designMatrix.ctaTitle') }}</h3>
     <p class="cta-subtitle">{{ t('designMatrix.ctaSubtitle') }}</p>
-    <button class="cta-btn" type="button" @click="onClick">
+    <el-button class="cta-btn" type="primary" @click="onClick">
       {{ t('designMatrix.ctaButton') }}
-    </button>
+    </el-button>
   </section>
 </template>
 
@@ -42,15 +42,11 @@ const onClick = () => {
 }
 
 .cta-btn {
-  width: 168px;
+  min-width: 168px;
   height: 60px;
-  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
-  border: none;
-  color: $color-text-white;
   border-radius: 9999px;
   font-size: $font-size-lg;
   font-weight: $font-weight-semibold;
-  cursor: pointer;
 }
 
 @media (max-width: 640px) {

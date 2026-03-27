@@ -23,8 +23,8 @@
       </div>
 
       <!-- 正常状态：显示图片 -->
-      <LazyImage v-else :src="imageData.lessenImg || imageData.imgUrl || imageData.imageUrl" object-fit="cover"
-        width="100%" height="100%" :border-radius="0" class="item-image" />
+      <LazyImage v-else :src="imageData.thumbUrl || imageData.url || ''" object-fit="cover" width="100%" height="100%"
+        :border-radius="0" class="item-image" />
 
       <!-- 左上角选择标记 -->
       <div v-if="showSelect && isNormalStatus" class="select-button" @click.stop="handleSelect">
@@ -42,10 +42,10 @@
         isNormalStatus &&
         (collectMode === 'both' ||
           (collectMode === 'collected-only' &&
-            (imageData.isCollect === 1 || imageData.collectId)))
+            (Number(imageData.collectStatus ?? 0) === 1)))
       " class="favorite-button" :class="{ 'no-click': collectMode === 'collected-only' }"
         @click.stop="collectMode === 'both' ? handleCollect() : null">
-        <img v-if="imageData.isCollect === 1 || imageData.collectId" :src="images.collectActive" alt="已收藏"
+        <img v-if="Number(imageData.collectStatus ?? 0) === 1" :src="images.collectActive" alt="已收藏"
           class="favorite-icon" />
         <img v-else :src="images.collect" alt="收藏" class="favorite-icon" />
       </div>
@@ -76,8 +76,8 @@
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import { COLLECT_TYPE, type CollectTypeValue } from '@/constants'
-import { userApi } from '@/api/user'
+import { COLLECT_TYPE, type CollectTypeValue } from '@/constants/collectType'
+import { algoApi } from '@/api/algo'
 import { useUserStore } from '@/stores/user'
 import images from '@/assets'
 import { useI18n } from 'vue-i18n'
@@ -85,15 +85,13 @@ import { useI18n } from 'vue-i18n'
 // 图片数据接口
 interface ImageData {
   id: string | number
-  imgUrl?: string
-  imageUrl?: string
-  resultUrl?: string
-  url?: string
+  url?: string | null
+  thumbUrl?: string | null
+  originalUrl?: string | null
   name?: string
   title?: string
   imgDesc?: string
-  isCollect?: number | boolean
-  collectId?: string | number
+  collectStatus?: number
   fileType?: number // 文件类型：1-图片 2-视频
   status?: number // 状态：1未开始 2进行中 3完成 4失败
   [key: string]: any
@@ -155,8 +153,7 @@ const emit = defineEmits<{
   (e: 'click', data: { imageData: ImageData }): void
 }>()
 
-// 获取用户信息
-const userStore = useUserStore()
+useUserStore()
 
 // 计算标题
 const itemTitle = computed(() => {
@@ -213,34 +210,16 @@ const handleCollect = async () => {
   }
 
   try {
-    const isCollect = !props.imageData.isCollect
-
-    // 调用收藏/取消收藏接口
-    const collectData: any = {
-      userId: userStore.userInfo?.userId || '',
-      dataId: props.imageData.id,
-      collectType: props.collectType, // 使用传入的类型
-    }
-
-    // 如果有 collectId，传递它（用于取消收藏）
-    if (props.imageData.collectId) {
-      collectData.collectId = props.imageData.collectId
-    }
-
-    const res = await userApi.userCollect(collectData)
-
+    const wasCollected = Number(props.imageData.collectStatus ?? 0) === 1
+    const res = await algoApi.collect({ algoOrderResultId: String(props.imageData.id) })
     if (res.code === '0000') {
-      // 触发父组件事件，由父组件更新数据
+      const nextCollectStatus =
+        (res.data as any)?.collectStatus !== undefined ? Number((res.data as any).collectStatus) : (wasCollected ? 0 : 1)
       emit('collect', {
-        imageData: {
-          ...props.imageData,
-          isCollect: isCollect,
-          collectId: res.data?.collectId,
-        },
-        isCollect: isCollect,
+        imageData: { ...props.imageData, collectStatus: nextCollectStatus },
+        isCollect: nextCollectStatus === 1,
       })
-
-      ElMessage.success(isCollect ? '收藏成功' : '取消收藏')
+      ElMessage.success(wasCollected ? '取消收藏' : '收藏成功')
     } else {
       ElMessage.error(res.msg || '网络开小差了~，请稍后再试')
     }

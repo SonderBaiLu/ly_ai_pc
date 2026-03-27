@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { images } from '@/assets'
+import { algoApi } from '@/api/algo'
 
 // 定义灵感词项接口
 interface InspirationItem {
@@ -96,6 +97,9 @@ interface Props {
   tryExamples?: string[]
   // 自动轮播间隔（毫秒）
   tryIntervalMs?: number
+
+  // 功能模块Id（用于“试一试”接口）
+  menuId?: string | number
 }
 
 // 定义事件接口
@@ -141,9 +145,9 @@ const localDescription = ref(props.modelValue)
 // 跟踪输入框是否获得焦点
 const isFocused = ref(false)
 
-// ===== 试一试示例逻辑（纯 CSS 跑马灯，只在点击时切换文案）=====
-const currentIndex = ref(0)
-const currentExample = computed(() => props.tryExamples?.[currentIndex.value] || '')
+// ===== 试一试推荐逻辑（点击触发接口，回填创意描述）=====
+const isFetchingTryPrompt = ref(false)
+const currentExample = ref<string>(props.tryExamples?.[0] || '')
 
 // 监听外部传入的值变化
 watch(
@@ -203,8 +207,54 @@ const handleRemoveTag = (id: string): void => {
 }
 
 const handleShuffle = () => {
-  if (!props.tryExamples || props.tryExamples.length === 0) return
-  currentIndex.value = (currentIndex.value + 1) % props.tryExamples.length
+  // 如果没有 menuId，则回退到本地示例轮换
+  const fallback = () => {
+    if (!props.tryExamples || props.tryExamples.length === 0) return
+    const idx = props.tryExamples.indexOf(currentExample.value)
+    const nextIdx = idx >= 0 ? (idx + 1) % props.tryExamples.length : 0
+    currentExample.value = props.tryExamples[nextIdx] || currentExample.value
+  }
+
+  const menuId = props.menuId
+  if (!menuId) {
+    fallback()
+    return
+  }
+
+  if (isFetchingTryPrompt.value) return
+  isFetchingTryPrompt.value = true
+
+  algoApi
+    .getFunctionPrompt({ menuId: String(menuId) })
+    .then((res) => {
+      if (res?.code !== '0000') {
+        fallback()
+        return
+      }
+
+      const data = (res as any)?.data
+
+      const prompt =
+        (typeof data === 'string' ? data : null) ||
+        (typeof data?.prompt === 'string' ? data.prompt : null) ||
+        (typeof data?.functionPrompt === 'string' ? data.functionPrompt : null) ||
+        (typeof data?.content === 'string' ? data.content : null) ||
+        (Array.isArray(data) && typeof data[0] === 'string' ? data[0] : null) ||
+        ''
+
+      if (prompt) {
+        localDescription.value = prompt
+        currentExample.value = prompt
+      } else {
+        fallback()
+      }
+    })
+    .catch(() => {
+      fallback()
+    })
+    .finally(() => {
+      isFetchingTryPrompt.value = false
+    })
 }
 
 onMounted(() => {

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 // 引入API接口
 import { loginBySmsCodeApi, loginByPwd, teamLogin, getUserDetailsApi, logout } from '@/api/userLogin'
+import { userApi } from '@/api/user'
 
 export interface UserInfo {
   userId?: string | number
@@ -83,6 +84,22 @@ export const useUserStore = defineStore('user', {
         return detailInfo
       } catch (error) {
         console.error('获取用户详细信息失败', error)
+      }
+    },
+
+    // 统一更新用户信息：调用后端接口并刷新 userInfo，避免各页面分散维护刷新逻辑
+    async updateUserInfo(params: any, successMessage: string = '保存成功') {
+      console.log('[userStore] updateUserInfo', params, successMessage)
+      try {
+        const res = await userApi.updateUserInfo({ ...params })
+        if (String((res as any)?.code) === '0000') {
+          ElMessage.success(successMessage)
+          await this.getUserInfo()
+        }
+        return res
+      } catch (error) {
+        console.error('更新用户信息失败:', error)
+        throw error
       }
     },
 

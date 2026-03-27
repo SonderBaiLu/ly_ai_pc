@@ -3,10 +3,10 @@
     <div class="hero-container container">
       <h1 class="hero-title">{{ t('hero.title') }}</h1>
       <p class="hero-desc">{{ t('hero.description') }}</p>
-      <button class="start-btn" @click="showComingSoon">
+      <el-button class="start-btn" type="primary" @click="showComingSoon">
         {{ t('hero.button') }}
         <img src="@/assets/images/star.png" alt="Arrow Right" class="btn-icon" />
-      </button>
+      </el-button>
     </div>
   </section>
 </template>
@@ -50,22 +50,15 @@ const showComingSoon = () => {
 }
 
 .start-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  min-width: 195px;
+  height: 60px;
+  border-radius: 30px;
   font-size: $font-size-lg;
-  padding: 16px 40px;
-  border-radius: 9999px;
-  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
-  border: none;
-  color: $color-text-white;
-  cursor: pointer;
-  margin: 0 auto;
-}
 
-.btn-icon {
-  width: 20px;
-  height: 20px;
+  .btn-icon {
+    width: 20px;
+    height: 20px;
+    margin-left: 6px;
+  }
 }
 </style>

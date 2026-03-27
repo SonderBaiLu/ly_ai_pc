@@ -6,7 +6,7 @@
       <h1 class="page-title">平台协议</h1>
 
       <el-tabs v-model="activeType" class="agreement-tabs">
-        <el-tab-pane v-for="tab in tabs" :key="tab.type" :label="tab.label" :name="tab.type" />
+        <el-tab-pane v-for="tab in tabs.slice(0, tabs.length - 1)" :key="tab.type" :label="tab.label" :name="tab.type" />
       </el-tabs>
 
       <section class="agreement-card">

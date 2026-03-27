@@ -27,3 +27,18 @@ export const CREATION_PARAM_CODES = {
 
 export type CreationParamCode = (typeof CREATION_PARAM_CODES)[keyof typeof CREATION_PARAM_CODES]
 
+/**
+ * 参数字典 code 对应说明（与后端枚举保持一致）
+ */
+export const CREATION_PARAM_LABELS: Record<CreationParamCode, string> = {
+  [CREATION_PARAM_CODES.CREATION_STYLE]: 'AI服装设计-创作款型',
+  [CREATION_PARAM_CODES.DESIGN_FEATURES]: 'AI服装设计-设计特征',
+  [CREATION_PARAM_CODES.INSPIRATION_WORDS]: '灵感词词典',
+  [CREATION_PARAM_CODES.SKETCH_TYPE]: '线稿转实物-线稿类型',
+  [CREATION_PARAM_CODES.SKETCH_STYLE]: '线稿转实物-线稿风格',
+  [CREATION_PARAM_CODES.IMAGE_TYPE]: '线稿转实物-图片类型',
+  [CREATION_PARAM_CODES.GARMENT_STYLE]: '实物转线稿-款型',
+  [CREATION_PARAM_CODES.SKETCH_GENERATION_TYPE]: '实物转线稿-线稿生成类型',
+  [CREATION_PARAM_CODES.SKETCH_GENERATION_STYLE]: '实物转线稿-线稿生成风格',
+  [CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE]: '面料创款-图片类型',
+}

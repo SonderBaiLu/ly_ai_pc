@@ -20,14 +20,14 @@
         <!-- 资产列表 -->
         <div class="assets-list">
           <!-- 资产项 -->
-          <div v-for="(asset, index) in assets" :key="asset.id || asset.taskId || asset.taskUuid || `asset-${index}`"
+          <div v-for="(asset, index) in assets" :key="asset.id || asset.algoOrderId || asset.algoUuId || `creation-${index}`"
             class="asset-item" :class="[
               { active: index === currentIndex },
-              asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
+              asset.status === 0 || asset.status === 1 || asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
             ]" @click="selectAsset(index)">
 
             <!-- 生成中状态（使用动态图占位；不展示进度条） -->
-            <div v-if="asset.status === 2" class="asset-placeholder generating">
+            <div v-if="asset.status === 0 || asset.status === 1 || asset.status === 2" class="asset-placeholder generating">
               <div class="status-spinner" aria-hidden="true"></div>
               <div class="status-text">正在生成中...</div>
               <GradientProgress :percentage="getProgressValue(asset)" />
@@ -42,27 +42,46 @@
             <!-- 正常显示：当前选中资产的主要显示区域 -->
             <div v-else class="current-asset-display">
               <!-- 媒体展示区域 - 点击跳转详情 -->
-              <div class="media-frame" :data-asset-index="index" :draggable="asset.fileType !== 2"
+              <div class="media-frame" :data-asset-index="index" :draggable="!isVideo(asset)"
                 @click="handleViewDetail(index)" @dragstart.stop="handleAssetDragStart(asset, $event)">
                 <MediaPlayer :ref="(el: any) => setMediaPlayerRef(el, index)"
-                  :src="asset.fileType === 2 ? asset.fileUrl || '' : ''" :poster="asset.imageUrl" width="100%"
+                  :src="isVideo(asset) ? getVideoUrl(asset) : ''" :poster="getImagePoster(asset)" width="100%"
                   height="100%" :autoplay="false" :muted="false" :loop="false" :controls="true" object-fit="contain"
-                  poster-fit="contain" class="media-player" :minimal-controls="true" :image-only="asset.fileType !== 2"
+                  poster-fit="contain" class="media-player" :minimal-controls="true" :image-only="!isVideo(asset)"
                   @play="() => handleVideoPlay(index)" @pause="() => handleVideoPause(index)" />
               </div>
 
               <!-- 操作按钮栏 -->
               <div class="action-buttons">
-                <el-button class="action-btn" :class="{ 'is-collected': asset.collectId }" type="primary"
+                <el-button class="action-btn" :class="{ 'is-collected': isCollected(asset) }" type="primary"
                   @click.stop="handleCollect(index)">
-                  <img :src="asset.collectId ? images.collectActive : images.collectNo" alt="收藏" class="action-icon" />
-                  <span>{{ asset.collectId ? '已收藏' : '收藏' }}</span>
+                  <img :src="isCollected(asset) ? images.collectActive : images.collectNo" alt="收藏"
+                    class="action-icon" />
+                  <span>{{ isCollected(asset) ? '已收藏' : '收藏' }}</span>
                 </el-button>
-                <el-button class="action-btn" :loading="isDownloading(asset, index)"
-                  :disabled="isDownloading(asset, index)" type="primary" @click="handleDownload(index)">
-                  <img :src="images.downloadIcon" alt="下载" class="action-icon" />
-                  <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
-                </el-button>
+                <el-popover placement="bottom" :width="146" trigger="click" popper-class="download-menu-popper"
+                  :visible="downloadMenuVisibleIndex === index"
+                  @update:visible="(visible: boolean) => setDownloadMenuVisible(index, visible)">
+                  <template #reference>
+                    <el-button class="action-btn" :loading="isDownloading(asset, index)"
+                      :disabled="isDownloading(asset, index)" type="primary" @click.stop>
+                      <img :src="images.downloadIcon" alt="下载" class="action-icon" />
+                      <span>{{ isDownloading(asset, index) ? '下载中...' : '下载' }}</span>
+                    </el-button>
+                  </template>
+                  <div class="download-menu">
+                    <div class="download-menu-item" @click.stop="handleDownloadFromMenu(index)">
+                      <img :src="images.downloadIcon" alt="下载" class="download-menu-icon" />
+                      <span>下载</span>
+                    </div>
+                    <div class="download-menu-item switch-row">
+                      <el-switch v-model="removeWatermarkEnabled" :disabled="!props.isVip" active-color="#17A0E1"
+                        inactive-color="#201B26" @change="(v) => handleRemoveWatermarkToggle(Boolean(v))" />
+                      <span>去除水印</span>
+                      <img :src="images.vipText" alt="VIP" class="vip-text-icon" />
+                    </div>
+                  </div>
+                </el-popover>
                 <el-button class="action-btn delete-btn" type="primary" @click.stop="handleDelete(index)">
                   <img :src="images.delMini" alt="删除" class="action-icon" />
                   <span>删除</span>
@@ -106,15 +125,17 @@
 
 <script setup lang="ts">
 // 自动导入：Vue API, Element Plus 图标
-import { type Asset } from '@/composables/useTaskPolling'
+import { type CreationResult } from '@/composables/useTaskPolling'
 import { ElMessage } from 'element-plus'
 import { ArrowUp } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import GradientProgress from './GradientProgress.vue'
+import { useModalStore } from '@/stores/modal'
+import { useUserStore } from '@/stores/user'
 
 // 定义组件属性
 interface Props {
-  assets: Asset[]
+  assets: CreationResult[]
   currentIndex: number
   // 分页相关属性
   hasMoreData?: boolean
@@ -155,6 +176,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
+const modalStore = useModalStore()
+const userStore = useUserStore()
+
 // 去除水印开关状态（本地状态，从 props 同步）
 const removeWatermarkEnabled = ref(props.removeWatermarkEnabled)
 
@@ -170,6 +194,7 @@ watch(
 const mainContentRef = ref<HTMLElement>()
 const scrollbarRef = ref<any>(null)
 const activeContentTab = ref('all')
+const downloadMenuVisibleIndex = ref<number | null>(null)
 
 // 回到顶部相关
 const showBackTop = ref(false)
@@ -193,7 +218,8 @@ const generatingCount = computed(() => {
   return generatingAssets.reduce((total, asset) => {
     const successfulCount = asset.successfulCount || 0
     const failedCount = asset.failedCount || 0
-    const count = asset.count || 1
+    // 最新字段不再提供 count：按“至少 1 个结果”估算
+    const count = Math.max(1, Number(asset.successfulCount ?? 0) + Number(asset.failedCount ?? 0) || 1)
     // 已完成数量 = 成功数量 + 失败数量
     const completedCount = successfulCount + failedCount
     // 正在生成中数量 = 总数 - 已完成数量
@@ -205,12 +231,12 @@ const generatingCount = computed(() => {
 // 下载中的 key 集合（来自父级）
 const downloadingKeySet = computed(() => new Set(props.downloadingAssetKeys))
 
-const getAssetKey = (asset: Asset, index: number) => {
+const getAssetKey = (asset: CreationResult, index: number) => {
   // 尽量使用稳定且唯一的 key（与 v-for key 口径保持一致）
-  return (asset as any).id || (asset as any).taskId || (asset as any).taskUuid || `asset-${index}`
+  return (asset as any).id || (asset as any).algoOrderId || (asset as any).algoUuId || `creation-${index}`
 }
 
-const isDownloading = (asset: Asset, index: number) => {
+const isDownloading = (asset: CreationResult, index: number) => {
   return downloadingKeySet.value.has(getAssetKey(asset, index))
 }
 
@@ -233,7 +259,7 @@ let intersectionObserver: IntersectionObserver | null = null
 const currentPlayingIndex = ref<number | null>(null)
 
 // 计算属性：获取当前选中的资产（预留扩展，当前未直接使用）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const currentAsset = computed(() => {
   // 只有当用户主动选择了资产（currentIndex >= 0）且索引有效时才返回
   if (props.currentIndex >= 0 && props.currentIndex < props.assets.length) {
@@ -245,7 +271,7 @@ const currentAsset = computed(() => {
 void currentAsset
 
 // 计算属性：根据图片尺寸判断媒体框架的样式类（预留扩展，当前未使用）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const mediaFrameClass = computed(() => '')
 void mediaFrameClass
 
@@ -273,33 +299,51 @@ const emptyDescription = computed(() => {
   }
 })
 
-// 进度显示：只使用接口返回的 progress 字段，向下取整并限制在 0-100
-const getProgressValue = (asset: Asset) => {
-  const raw = Number((asset as any).progress ?? 0)
-  if (Number.isNaN(raw)) return 0
-  return Math.min(100, Math.max(0, Math.floor(raw)))
+const isVideo = (asset: CreationResult) => {
+  const ft = Number((asset as any).fileType ?? asset.fileType)
+  return ft === 2 || ft === 4
+}
+
+const getImagePoster = (asset: CreationResult) => {
+  return (asset as any).thumbUrl || ''
+}
+
+const getVideoUrl = (asset: CreationResult) => {
+  return (asset as any).url || ''
+}
+
+const isCollected = (asset: CreationResult) => {
+  return Number((asset as any).collectStatus ?? 0) === 1
+}
+
+// 进度显示：直接使用接口 progress（0-100）
+const getProgressValue = (asset: CreationResult) => {
+  const p = Number((asset as any).progress ?? 0)
+  if (!Number.isFinite(p)) return 0
+  return Math.min(100, Math.max(0, Math.floor(p)))
 }
 
 // 进度显示：只使用接口返回的 progress 字段，向下取整并限制在 0-100
 // 处理主大图拖拽开始：与缩略图拖拽保持同一协议，方便左侧统一解析
-const handleAssetDragStart = (asset: Asset, event: DragEvent) => {
+const handleAssetDragStart = (asset: CreationResult, event: DragEvent) => {
   try {
     // 视频不参与拖拽到图片上传区
-    if (asset.fileType === 2) {
+    if (isVideo(asset)) {
       event.preventDefault()
       return
     }
 
     const data = {
       type: 'asset',
-      imageUrl: asset.imageUrl,
-      fileUrl: asset.fileUrl,
+      imageUrl: getImagePoster(asset),
+      fileUrl: getVideoUrl(asset),
       id: (asset as any).id,
       fileType: asset.fileType,
     }
     event.dataTransfer?.setData('application/json', JSON.stringify(data))
-    if (asset.imageUrl) {
-      event.dataTransfer?.setData('text/plain', asset.imageUrl)
+    const poster = getImagePoster(asset)
+    if (poster) {
+      event.dataTransfer?.setData('text/plain', poster)
     }
   } catch (e) {
     console.error('[MainImageDisplay] 拖拽初始化失败:', e)
@@ -348,6 +392,49 @@ const handleCollect = (index: number) => {
 // 处理下载
 const handleDownload = (index: number) => {
   emit('download', index, removeWatermarkEnabled.value)
+}
+
+const setDownloadMenuVisible = (index: number, visible: boolean) => {
+  downloadMenuVisibleIndex.value = visible ? index : null
+}
+
+const handleDownloadFromMenu = (index: number) => {
+  handleDownload(index)
+  downloadMenuVisibleIndex.value = null
+}
+
+const handleRemoveWatermarkToggle = async (enabled: boolean) => {
+  if (enabled && !props.isVip) {
+    removeWatermarkEnabled.value = false
+    emit('watermark-toggle-change', false)
+    emit('open-membership-modal')
+    return
+  }
+
+  // VIP 且用户未选择“不再弹窗提醒”：需要先确认责任声明
+  if (enabled) {
+    const noRemind = localStorage.getItem('watermark_disclaimer_no_remind') === 'true'
+    if (!noRemind) {
+      // 与详情页一致：弹窗前先保持开关关闭
+      removeWatermarkEnabled.value = false
+      emit('watermark-toggle-change', false)
+      modalStore.openWatermarkDisclaimerModalPage()
+      return
+    }
+  }
+
+  removeWatermarkEnabled.value = enabled
+  emit('watermark-toggle-change', enabled)
+
+  try {
+    // watermarkStatus 1 表示“去除水印开启”（无水印）
+    await userStore.updateUserInfo({ watermarkStatus: enabled ? 1 : 0 })
+  } catch (e) {
+    console.error('[MainImageDisplay] 更新水印状态失败:', e)
+    // 接口失败则回显为 store 当前值（避免 UI 与后端不一致）
+    removeWatermarkEnabled.value = userStore.userInfo?.watermarkStatus === 1
+    emit('watermark-toggle-change', removeWatermarkEnabled.value)
+  }
 }
 // 处理删除
 const handleDelete = (index: number) => {
@@ -559,7 +646,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       // 当资产滚动到视口中心区域（intersectionRatio >= 0.6，即可见60%以上）才自动播放视频
       if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
         // 如果是视频，自动播放
-        if (asset.fileType === 2) {
+        if (isVideo(asset)) {
           const mediaPlayer = mediaPlayerRefs.get(index)
           console.log(`[智能播放] 获取到的 mediaPlayer ref:`, mediaPlayer)
 
@@ -614,7 +701,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
         }
       } else {
         // 离开中心区域，如果是视频则暂停播放
-        if (asset.fileType === 2 && currentPlayingIndex.value === index) {
+        if (isVideo(asset) && currentPlayingIndex.value === index) {
           const mediaPlayer = mediaPlayerRefs.get(index)
           if (mediaPlayer && typeof mediaPlayer.pause === 'function') {
             mediaPlayer.pause()
@@ -689,7 +776,7 @@ const scrollToTop = () => {
 }
 
 // 预留：检测当前可见的资产（目前未用到，后续可扩展智能播放等能力）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const detectVisibleAsset = () => { }
 void detectVisibleAsset
 

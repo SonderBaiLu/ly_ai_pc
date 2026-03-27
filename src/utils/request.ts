@@ -52,10 +52,21 @@ const detectOsType = (): OSType => {
 
 const getAppLanguage = () => {
   try {
+    // 已登录：优先用个人中心语言偏好（后端字段：userInfo.language）
+    const token = localStorage.getItem('token')
+    if (token) {
+      const rawUserInfo = localStorage.getItem('userInfo')
+      if (rawUserInfo) {
+        const userInfo = JSON.parse(rawUserInfo) as any
+        const lang = String(userInfo?.language ?? '').trim()
+        if (lang === 'en') return 'en'
+        if (lang === 'zh-chs') return 'zh-chs'
+      }
+    }
+
     const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
     if (stored === 'en') return 'en'
-    // 兼容前端常用写法：zh / zh-chs
-    if (stored === 'zh' || stored === 'zh-chs') return 'zh-chs'
+    if (stored === 'zh-chs') return 'zh-chs'
   } catch {
     // ignore
   }
@@ -184,9 +195,11 @@ const handleAuthExpired = () => {
       // 102：需要打开登录弹窗
       if (code === '102') {
         handleAuthExpired()
-        const authError: any = new Error(msg || 'Need Login')
+        // 102：仅触发登录弹窗，不再携带任何提示文案，避免各页面 catch 再次弹接口错误提示
+        const authError: any = new Error('')
         authError.__AUTH_REQUIRED__ = true
         authError.code = code
+        authError.msg = ''
         return Promise.reject(authError)
       }
 

@@ -667,15 +667,11 @@ const loadMembershipPlans = async () => {
   }
 }
 
-// 根据用户当前会员类型，初始化/更新默认显示的版本，并确保拉取对应版本的价格（套餐）
-// - 非会员（isVip !== 1）-> 标准版（0）
-// - 会员：vipType === 1 -> 基础版（1）；其他（0 标准 / 2 高级 / 空）-> 标准版（0）
+// 根据用户当前会员类型
 watch(
-  () => [userInfo.value?.isVip, userInfo.value?.vipLevel] as const,
-  async ([isVip, vipLevel]) => {
-    // 非会员保持默认“基础版”；会员则按 vipLevel 决定显示基础/标准
-    // vipLevel: 1 基础 / 2 标准 / 3 高级（此页面仅展示基础&标准两档）
-    const nextVersion = isVip === 1 ? vipLevel : 1
+  () => userInfo.value?.vipLevel,
+  async (vipLevel) => {
+    const nextVersion = Number(vipLevel ?? 0) >= 2 ? 2 : 1
     if (memberVersion.value === nextVersion) return
     memberVersion.value = nextVersion
     await loadMembershipPlans()
@@ -1599,14 +1595,14 @@ const getPurchaseButtonText = (plan: any) => {
     }
 
     .corner-discount-tag {
-      background: linear-gradient(90deg, rgba(244, 232, 190, 1) 0%, rgba(196, 170, 117, 1) 47%, rgba(244, 232, 190, 1) 100%);
+      background: linear-gradient(90deg, rgba(244, 232, 190, 1) 0%, rgba(196, 170, 117, 1) 47%, rgba(244, 232, 190, 1) 100%) !important;
     }
 
     .purchase-button {
       background: linear-gradient(90deg,
           rgba(244, 232, 190, 1) 0%,
           rgba(196, 170, 117, 1) 50%,
-          rgba(244, 232, 190, 1) 99%);
+          rgba(244, 232, 190, 1) 99%) !important;
     }
 
     .coin-info-card {

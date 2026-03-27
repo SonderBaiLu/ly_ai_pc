@@ -30,8 +30,9 @@ export const userApi = {
   usercancellation() {
     return request.get('/v1/login/userCancellation')
   },
+  // 更新用户信息
   updateUserInfo(params: any) {
-    return request.post('/user/updateUserInfo', params) as unknown as Promise<ApiResponse<any>>
+    return request.post('/v1/user/updateUserInfo', params) as unknown as Promise<ApiResponse<any>>
   },
   // 获取用户是否设置了密码 返回 true or false
   getUserSetPwd() {

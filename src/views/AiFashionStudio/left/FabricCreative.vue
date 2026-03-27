@@ -59,7 +59,7 @@
     </div>
 
     <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
-      @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
+      :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
 参考示例：该面料是一块米色毛呢面料，将面料生成一件无领米色长款宽松版型毛呢大衣，20岁欧洲短发女模特穿着，搭配毛衣和阔腿裤。" />
 
     <!-- 底部参数以及生成按钮 -->
@@ -81,6 +81,8 @@ const props = defineProps<{
   taskResultId?: string | number
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
+  coin?: number
+  menuId?: string | number
 }>()
 
 // 监听inspirationWords变化
@@ -119,7 +121,7 @@ const updateInspirationWords = (words: any[]) => {
 
 // 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
 const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '自适应', '2K', '1'])
-const coin = computed(() => 50)
+const coin = computed(() => Number(props.coin ?? 0))
 const isGenerating = ref(false)
 
 const typeText = computed(() => {

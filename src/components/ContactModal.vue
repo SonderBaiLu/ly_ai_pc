@@ -29,7 +29,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { ElDialog } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { images } from '@/assets'
