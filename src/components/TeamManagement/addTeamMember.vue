@@ -78,7 +78,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import teamApi from "@/api/teamManage.ts";
 // TODO: VITE_API_PROXY_TARGET 获取 URL
