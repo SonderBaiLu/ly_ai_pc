@@ -109,7 +109,8 @@
                 {{ getMembershipStatusText() }}
               </div>
 
-              <div class="user-card-row">
+              <div class="user-card-row" role="button" tabindex="0" @click="handleOpenInspirationDetail"
+                @keydown.enter.prevent="handleOpenInspirationDetail">
                 <span>灵衍值</span>
                 <div class="user-money flex items-center">
                   <img :src="images.money" alt="" />
@@ -192,8 +193,7 @@
           <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
             :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
             <template #reference>
-              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
-                @click.prevent="handleMenuClick(item)">
+              <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }">
                 {{ t(`header.${item.key}`) }}
               </a>
             </template>
@@ -676,20 +676,23 @@ onBeforeUnmount(() => {
   clearMonthlyTipTimers()
 })
 
-const getCurrentLanguageLabel = () => (userStore.userInfo?.language === 'zh-chs' ? '简体中文' : 'English')
+const currentUserLanguage = computed<'zh-chs' | 'en'>(() =>
+  userStore.userInfo?.language === 'en' ? 'en' : 'zh-chs'
+)
+const getCurrentLanguageLabel = () => (currentUserLanguage.value === 'zh-chs' ? '简体中文' : 'English')
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
   // 面料创拍：进入 AI 工作台，并带上 mode=fabricCreative
   { key: 'fabricCreative', path: '/ai-fashion', query: { mode: 'fabricCreative' } },
   { key: 'about', path: '/about' },
-  { key: 'contactUs', path: '/contact-us' },
+  { key: 'contactUs', path: '' },
   { key: 'followUs', path: '/follow-us' },
 ]
 
 const menuData = [
-  { key: 'contactUs', label: '联系我们', path: '/contact-us' },
-  { key: 'followUs', label: '关注我们', path: '/follow-us' },
+  { key: 'contactUs', label: '联系我们', path: '' },
+  { key: 'followUs', label: '关注我们', path: '' },
 ]
 
 const customerCodeCards = [
@@ -729,26 +732,20 @@ const isAiDesignPage = computed(() => {
 
 const handleMenuClick = (item: { key: string; path?: string; query?: Record<string, any> }) => {
   if (item.path) {
-    // 联系我们：全局打开客服弹窗（App.vue 已挂载 ContactModal）
-    if (item.key === 'contactUs' || item.path === '/contact-us') {
-      modalStore.openContactUsModal()
-      return
-    }
     // 首页模块入口：未登录统一弹登录弹窗；登录后正常跳转
     if (item.path === '/ai-design' || item.path === '/ai-fashion' || item.path === '/my-creations') {
       // 未登录统一先进 AI 设计工作台；登录后再按入口进入对应模块
       enterModule(() => router.push({ path: item.path!, query: item.query }))
       return
+    } else {
+      router.push({ path: item.path, query: item.query })
     }
-    router.push({ path: item.path, query: item.query })
-    return
   }
-  showComingSoon()
 }
 
 const showComingSoon = () => {
   ElMessage.info(
-    userStore.userInfo?.language === 'zh-chs'
+    currentUserLanguage.value === 'zh-chs'
       ? '功能暂未开放，敬请期待'
       : 'This feature is not available yet. Stay tuned.'
   )

@@ -46,11 +46,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { images } from '@/assets'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthGate } from '@/composables/useAuthGate'
 import { appApi, type SysPlatformMenuItem } from '@/api/app'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
+import { useUserStore } from '@/stores/user'
 
 type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
@@ -58,6 +59,16 @@ const activeTabCode = ref('')
 const router = useRouter()
 const { requireAuth } = useAuthGate()
 const menuList = ref<SysPlatformMenuItem[]>([])
+const userStore = useUserStore()
+
+const refreshUserInfoIfLoggedIn = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    await userStore.getUserInfo()
+  } catch (e) {
+    console.warn('[AiDesign] refreshUserInfoIfLoggedIn failed:', e)
+  }
+}
 
 const goToStudio = (mode: StudioMode) => {
   // 点击模块入口时再做登录引导：未登录弹窗，已登录跳转
@@ -106,7 +117,19 @@ const fetchSysPlatformMenu = async () => {
 
 onMounted(() => {
   fetchSysPlatformMenu()
+  refreshUserInfoIfLoggedIn()
 })
+
+onActivated(() => {
+  refreshUserInfoIfLoggedIn()
+})
+
+watch(
+  () => userStore.isLoggedIn,
+  (loggedIn) => {
+    if (loggedIn) refreshUserInfoIfLoggedIn()
+  },
+)
 </script>
 
 <style scoped lang="scss">

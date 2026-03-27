@@ -4,7 +4,7 @@
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
-            <img :src="images.lingyan" alt=""/>
+            <img :src="images.lingyan" alt="" />
           </span>
         </div>
         <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') }}</h1>
@@ -118,11 +118,12 @@
               <div class="input-wrapper code-input-wrapper">
                 <input type="tel" maxlength="4" v-model="formData.code"
                   :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
-                <button @click="GetSmSCode" class="get-code-btn" :disabled="!formData.phone || isCounting || isGettingCode">
+                <button @click="GetSmSCode" class="get-code-btn"
+                  :disabled="!formData.phone || isCounting || isGettingCode">
                   {{
                     isGettingCode ? '发送中...' :
-                        isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
-                            t('LoginPopUpPage.getVerificationCode')
+                      isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
+                        t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
 
@@ -202,16 +203,8 @@
       </div>
     </div>
     <Transition name="modal">
-      <ResetPassword
-          v-if="dialogs.isVisible"
-          :open-id="openId"
-          :mode="currentMode"
-          :confirmedInviteCode="confirmedInviteCode"
-          @success="handleBindSuccess"
-          @close="dialogs.isVisible = false" />
-
       <ResetPassword v-if="dialogs.isVisible" :open-id="openId" :mode="currentMode"
-        :confirmedInviteCode="confirmedInviteCode" @close="dialogs.isVisible = false" />
+        :confirmedInviteCode="confirmedInviteCode" @success="handleBindSuccess" @close="dialogs.isVisible = false" />
     </Transition>
     <InvitationCode v-if="dialogs.invitation" @update:visible="dialogs.invitation = $event"
       @confirm="handleInviteConfirm" />
@@ -219,7 +212,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onUnmounted, onBeforeUnmount } from 'vue' // 补全了 onBeforeUnmount
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -229,9 +221,7 @@ import { getSmsCodeApi, getUserWechat, getWechatQrCodeApi } from '@/api/userLogi
 import { useUserStore } from "@/stores/user"
 import ResetPassword from '@/components/ResetPassword.vue'
 import InvitationCode from '@/components/InvitationCode.vue'
-import {images} from '@/assets'
-import router from "@/router";
-
+import { images } from '@/assets'
 
 // ==========================================
 // 1. 全局配置与基础状态
@@ -382,15 +372,15 @@ const startPolling = () => {
             ElMessage.success('扫码成功，请绑定手机号');
           } else {
             const accessToken = res.data.accessToken;
-            if(accessToken){
+            if (accessToken) {
               userStore.setToken(accessToken);
             }
             try {
               await userStore.getUserInfo();
               ElMessage.success('登录成功');
               emit('close');
-              await router.push('/').catch(() => {});
-            } catch (e:any) {
+              await router.push('/').catch(() => { });
+            } catch (e: any) {
               ElMessage.error(e.message);
             }
           }
@@ -423,14 +413,14 @@ const handleBindSuccess = async (mode: string) => {
       await userStore.getUserInfo();
       ElMessage.success('登录成功');
       emit('close'); // 关闭整个登录大弹窗
-      await router.push('/').catch(() => {});
+      await router.push('/').catch(() => { });
     } else {
       // 模式 0, 1, 2 (重置/修改密码) 成功后，不需要拉取用户信息！
       // 只需要引导用户回到密码登录界面即可
       loginMethod.value = 'phone';
       phoneLoginType.value = 'password';
     }
-  } catch (e:any) {
+  } catch (e: any) {
     ElMessage.error(e.message);
   }
 }
@@ -550,7 +540,7 @@ const handleSubmit = async () => {
     } else if (phoneLoginType.value === 'code') {
       codeErrorMsg.value = errorMsg
     }
-  }finally {
+  } finally {
     isSubmitting.value = false // 解除 loading
   }
 }
@@ -579,7 +569,7 @@ const handleTeamSubmit = async () => {
     emit('close')
   } catch (e: any) {
     teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
-  }finally {
+  } finally {
     isTeamSubmitting.value = false //  解除 loading
   }
 }
@@ -703,7 +693,7 @@ const forgotPassword = () => {
       gap: 14px;
       margin-bottom: 28px;
       font-size: 18px;
-      color: rgba(255,255,255,1);
+      color: rgba(255, 255, 255, 1);
       font-family: NotoSans-bold;
       text-align: justify;
       font-weight: 700;
@@ -873,8 +863,8 @@ const forgotPassword = () => {
     margin-bottom: 20px;
     overflow: hidden;
     border-radius: 8px 8px 8px 8px;
-    background-color: rgba(255,255,255,1);
-    border: 1px solid rgba(243,244,246,1);
+    background-color: rgba(255, 255, 255, 1);
+    border: 1px solid rgba(243, 244, 246, 1);
 
 
     .qrcode-image {

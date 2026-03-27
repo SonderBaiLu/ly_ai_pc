@@ -5,7 +5,6 @@
 // 所有图片统一导出（按字母顺序排列，方便查找）
 export const images = {
   // A
-
   add: new URL('./images/add.png', import.meta.url).href,
   aiDesign1: new URL('./images/ai_design1.png', import.meta.url).href,
   aiDesign2: new URL('./images/ai_design2.png', import.meta.url).href,
@@ -24,6 +23,7 @@ export const images = {
   arrowRight: new URL('./images/arrow_right.png', import.meta.url).href,
   agreement: new URL('./images/agreement.png', import.meta.url).href,
   aiWatermark: new URL('./images/ai_watermark.png', import.meta.url).href,
+
   // B
   book: new URL('./images/book.png', import.meta.url).href,
   ban: new URL('./images/team/ban.png', import.meta.url).href,
@@ -81,12 +81,10 @@ export const images = {
   delMini: new URL('./images/del_mini.png', import.meta.url).href,
   download: new URL('./images/download.png', import.meta.url).href,
   downloadIcon: new URL('./images/download_icon.png', import.meta.url).href,
-  downloadMini: new URL('./images/download_mini.png', import.meta.url).href,
 
   design1: new URL('./images/home/design1.png', import.meta.url).href,
   design2: new URL('./images/home/design2.png', import.meta.url).href,
   design3: new URL('./images/home/design3.png', import.meta.url).href,
-  design4: new URL('./images/home/design4.png', import.meta.url).href,
 
   designFeatures: new URL('./images/design_features.png', import.meta.url).href,
   designFeatures1: new URL('./images/design_features1.png', import.meta.url).href,
@@ -149,6 +147,7 @@ export const images = {
   logo2: new URL('./images/logo2.png', import.meta.url).href,
   logoMini: new URL('./images/logo.png', import.meta.url).href,
   logoHui: new URL('./images/logo_hui.png', import.meta.url).href,
+  logoBlack: new URL('./images/logo_black.png', import.meta.url).href,
   logout: new URL('./images/logout.png', import.meta.url).href,
   link: new URL('./images/link.png', import.meta.url).href,
 
@@ -203,7 +202,6 @@ export const images = {
   teamSearch: new URL('./images/team/teamSearch.png', import.meta.url).href,
 
   // U
-  uploadIcon: new URL('./images/upload_icon.png', import.meta.url).href,
   uploadImg: new URL('./images/upload_img.png', import.meta.url).href,
 
   // V

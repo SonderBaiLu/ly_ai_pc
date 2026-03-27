@@ -285,7 +285,7 @@ const fetchPage = async (reset = false) => {
         fileType,
         collectStatus,
         currentPage: page.value,
-        offset: pageSize,
+        pageSize: pageSize,
       })
 
       const code = String((res as any)?.code ?? '')

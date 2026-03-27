@@ -19,38 +19,45 @@
         <div class="studio-content">
           <!-- 左侧参数面板 -->
           <section class="param-panel">
-            <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="refImageUrl"
-              :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.aiFashion"
-              :inspiration-words="inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
+            <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="formDataByMenu.aiFashion.image"
+              v-model:prompt="formDataByMenu.aiFashion.prompt" :task-result-id="formDataByMenu.aiFashion.taskResultId"
+              :creation-type-selection="creationTypeSelectionByMenu.aiFashion"
+              :default-image-params="currentImageDefaultParams"
+              :inspiration-words="formDataByMenu.aiFashion.inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
               @open-type-modal="() => openTypeModal('aiFashion')"
               @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @inspiration-library="handleInspirationLibrary"
-              @update:inspiration-words="(words) => inspirationWords = words" />
-            <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="refImageUrl"
-              :task-result-id="refImageTaskResultId"
+              @generate="handleAiFashionGenerate" @inspiration-library="handleInspirationLibrary"
+              @show-history="openHistoryModal"
+              @update:inspiration-words="(words) => formDataByMenu.aiFashion.inspirationWords = words" />
+            <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="formDataByMenu.fabricCreative.image"
+              :task-result-id="formDataByMenu.fabricCreative.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
-              :inspiration-words="inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
-              @open-type-modal="() => openTypeModal('fabricCreative')"
+              :inspiration-words="formDataByMenu.fabricCreative.inspirationWords" :coin="imageCoin"
+              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
-              @update:inspiration-words="(words) => inspirationWords = words" />
-            <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="refImageUrl"
-              :task-result-id="refImageTaskResultId" :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
-              :inspiration-words="inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
-              @open-type-modal="() => openTypeModal('sketchToReal')"
+              @show-history="openHistoryModal"
+              @update:inspiration-words="(words) => formDataByMenu.fabricCreative.inspirationWords = words" />
+            <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="formDataByMenu.sketchToReal.image"
+              :task-result-id="formDataByMenu.sketchToReal.taskResultId"
+              :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
+              :inspiration-words="formDataByMenu.sketchToReal.inspirationWords" :coin="imageCoin"
+              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('sketchToReal')"
               @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @inspiration-library="handleInspirationLibrary"
-              @update:inspiration-words="(words) => inspirationWords = words" />
-            <RealToSketch v-else v-model:image-url="refImageUrl" :task-result-id="refImageTaskResultId"
-              :creation-type-selection="creationTypeSelectionByMenu.realToSketch" :inspiration-words="inspirationWords"
-              :coin="imageCoin" :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('realToSketch')"
+              @inspiration-library="handleInspirationLibrary" @show-history="openHistoryModal"
+              @update:inspiration-words="(words) => formDataByMenu.sketchToReal.inspirationWords = words" />
+            <RealToSketch v-else v-model:image-url="formDataByMenu.realToSketch.image"
+              :task-result-id="formDataByMenu.realToSketch.taskResultId"
+              :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
+              :inspiration-words="formDataByMenu.realToSketch.inspirationWords" :coin="imageCoin"
+              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @inspiration-library="handleInspirationLibrary"
-              @update:inspiration-words="(words) => inspirationWords = words" />
+              @inspiration-library="handleInspirationLibrary" @show-history="openHistoryModal"
+              @update:inspiration-words="(words) => formDataByMenu.realToSketch.inspirationWords = words" />
           </section>
 
           <!-- 结果列表（主图 + 缩略图） -->
@@ -71,16 +78,19 @@
     </div>
 
     <!-- 模型参数弹窗（父层统一管理，子组件只负责触发 show-params） -->
-    <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="imageDefaultParams"
-      :algorithm-models="imageAlgorithmModels" @confirm="handleImageParamsConfirm" @close="handleImageParamsClose" />
+    <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="currentImageDefaultParams"
+      :algorithm-models="currentImageAlgorithmModels" @confirm="handleImageParamsConfirm"
+      @close="handleImageParamsClose" />
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
     <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
       :option-tree="creationTypeOptionTree" @confirm="handleTypeConfirm" />
 
     <!-- 灵感词词典弹窗（父层统一管理） -->
-    <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData" :defaults="inspirationWords"
-      @confirm="handleInspirationConfirm" />
+    <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData"
+      :defaults="formDataByMenu[activeInspirationMenu].inspirationWords" @confirm="handleInspirationConfirm" />
+
+    <HistoryCreativeModal v-model="showHistoryModal" source="creative" :file-type="1" @select="selectHistoryCreation" />
   </div>
 </template>
 
@@ -90,10 +100,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { images } from '@/assets'
 import { useUserStore } from '@/stores/user'
 import { appApi } from '@/api/app'
-import { algoApi } from '@/api/algo'
+import { algoApi, buildTemplateParamsFromPopup } from '@/api/algo'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { CreationResult } from '@/composables/useTaskPolling'
+import HistoryCreativeModal from '@/components/HistoryCreativeModal.vue'
 import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import { useTemplateStore } from '@/stores/template'
 import Fashion from './left/Fashion.vue'
@@ -210,6 +221,87 @@ const handleFabricGenerate = (payload: any) => {
   showComingSoon()
 }
 
+const buildInspirationWordsParams = (words: any[] = []) => {
+  return (Array.isArray(words) ? words : [])
+    .map((w: any) => ({
+      id: String(w?.id ?? w?.wordsId ?? w?.code ?? ''),
+      configType: String(w?.configType ?? 'words'),
+      prentId: String(w?.prentId ?? w?.parentId ?? ''),
+      content: String(w?.content ?? w?.name ?? w?.wordsName ?? ''),
+    }))
+    .filter((x) => x.id && x.content)
+}
+
+const buildHistoryParams = (taskResultId: any) => {
+  const id = taskResultId == null ? '' : String(taskResultId)
+  if (!id) return []
+  return [{ taskResultId: id, type: 'ref' }]
+}
+
+const buildCreationStyleParams = (selection: any) => {
+  const values: string[] = Array.isArray(selection?.pathValues) ? selection.pathValues : []
+  const ids: string[] = Array.isArray(selection?.pathNodeIds) ? selection.pathNodeIds : []
+  if (!values.length) return []
+  return values.map((content, idx) => ({
+    id: String(ids[idx] ?? ''),
+    configType: 'class',
+    prentId: String(idx > 0 ? (ids[idx - 1] ?? '') : ''),
+    content: String(content ?? ''),
+  })).filter((x) => x.content)
+}
+
+const handleAiFashionGenerate = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  const form = formDataByMenu.aiFashion
+  const paramsState = form.params
+  const algoModel: any = paramsState.selectedAlgorithm
+  const modelConfigId = Number(algoModel?.algorithmId ?? algoModel?.id ?? 0)
+  const modelConfigCode = String(algoModel?.code ?? '')
+  const modelConfigName = String(algoModel?.name ?? '')
+  const menuCode = String(activeMenuCode.value || menuCodeByKey.aiFashion)
+
+  if (!modelConfigId || !modelConfigCode || !menuCode) {
+    ElMessage.error('模型参数未就绪，请先点击“参数设置”确认算法模型')
+    return
+  }
+
+  const image = String(form.image || '').trim()
+
+  const templateParams = buildTemplateParamsFromPopup(Object.values(paramsState.selectedParams || {}))
+  const payload: any = {
+    modelConfigId,
+    modelConfigCode,
+    modelConfigName,
+    menuCode,
+    image,
+    templateParams,
+    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
+    creativeDescription: String(form.prompt || '').trim(),
+    historyParams: buildHistoryParams(form.taskResultId),
+    creationStyleParams: buildCreationStyleParams(creationTypeSelectionByMenu.aiFashion),
+    designFeaturesParams: [],
+  }
+
+  try {
+    loading.value = true
+    const res = await algoApi.submit(payload)
+    if (res.code === '0000') {
+      ElMessage.success('已提交生成任务')
+    } else {
+      ElMessage.error(res.msg || '提交失败')
+    }
+  } catch (e) {
+    console.error('[AiFashionStudio] doCalculationPoint failed:', e)
+    ElMessage.error('网络开小差了~，请稍后再试')
+  } finally {
+    loading.value = false
+  }
+}
+
 // 查看详情：跳转到 CreativeDetail（左大图 + 右侧信息面板）
 const handleViewDetail = (index: number) => {
   const list = assets.value || []
@@ -284,43 +376,116 @@ const handleTypeConfirm = (v: CreationTypeSelection) => {
 // ==================== 图片参数弹窗（父层统一管理） ====================
 const showImageParamPopup = ref(false)
 const showInspirationLibrary = ref(false)
-const inspirationWords = ref<any[]>([])
+const showHistoryModal = ref(false)
 
+type LeftPanelFormState = {
+  image: string
+  taskResultId?: string | number
+  prompt: string
+  inspirationWords: any[]
+  params: {
+    selectedAlgorithm: any
+    selectedParams: Record<number, any>
+    defaultModelsParams: string[]
+    algorithmModels: any[]
+    coinCost: number
+    defaultParamObject: any
+  }
+}
 
-// 默认回显选中模型
-const imageDefaultParams = ref<string[]>([])
-const imageCoin = ref(0)
+const createLeftPanelFormState = (): LeftPanelFormState => ({
+  image: '',
+  taskResultId: undefined,
+  prompt: '',
+  inspirationWords: [],
+  params: {
+    selectedAlgorithm: null,
+    selectedParams: {},
+    defaultModelsParams: [],
+    algorithmModels: [],
+    coinCost: 0,
+    defaultParamObject: null,
+  },
+})
 
-// 模型参数
-const imageAlgorithmModels = ref<any[]>([])
+const formDataByMenu = reactive<Record<LeftMenuKey, LeftPanelFormState>>({
+  aiFashion: createLeftPanelFormState(),
+  sketchToReal: createLeftPanelFormState(),
+  realToSketch: createLeftPanelFormState(),
+  fabricCreative: createLeftPanelFormState(),
+})
+const activeInspirationMenu = ref<LeftMenuKey>('aiFashion')
+const getCurrentForm = () => formDataByMenu[leftMenu.value]
+const getCurrentParams = () => getCurrentForm().params
 
-const buildDefaultParamsFromModels = (models: any[]) => {
-  if (!Array.isArray(models) || models.length === 0) return
+const imageCoin = computed(() => getCurrentParams()?.coinCost ?? 0)
+const currentImageDefaultParams = computed(() => getCurrentParams()?.defaultModelsParams || [])
+const currentImageAlgorithmModels = computed(() => getCurrentParams()?.algorithmModels || [])
+
+const buildDefaultStateFromModels = (models: any[]) => {
+  if (!Array.isArray(models) || models.length === 0) {
+    return {
+      selectedAlgorithm: null,
+      selectedParams: {} as Record<number, any>,
+      defaultModelsParams: [] as string[],
+      coinCost: 0,
+      defaultParamObject: null,
+    }
+  }
+
   const defaultModel = models.find((m: any) => Number(m?.defaultStatus) === 1) || models[0]
-  const algorithmName = String(defaultModel?.name || '').trim()
   const groups = (Array.isArray(defaultModel?.paramGroups) ? defaultModel.paramGroups : [])
     .slice()
     .sort((a: any, b: any) => Number(a?.type || 0) - Number(b?.type || 0))
-  const paramNames = groups
-    .map((group: any) => {
-      const params = Array.isArray(group?.params) ? group.params : []
-      if (!params.length) return ''
-      const defaultParam = params.find((p: any) => Number(p?.defaultStatus) === 1) || params[0]
-      return String(defaultParam?.templateName || '').trim()
-    })
-    .filter(Boolean)
 
-  if (algorithmName) {
-    imageDefaultParams.value = [algorithmName, ...paramNames]
+  const selectedParams: Record<number, any> = {}
+  const paramList: any[] = []
+  for (const group of groups) {
+    const params = Array.isArray(group?.params) ? group.params : []
+    if (!params.length) continue
+    const defaultParam = params.find((p: any) => Number(p?.defaultStatus) === 1) || params[0]
+    selectedParams[Number(group?.type)] = defaultParam
+    paramList.push(defaultParam)
   }
 
-  const paramsCoin = groups.reduce((sum: number, group: any) => {
-    const params = Array.isArray(group?.params) ? group.params : []
-    if (!params.length) return sum
-    const defaultParam = params.find((p: any) => Number(p?.defaultStatus) === 1) || params[0]
-    return sum + Number(defaultParam?.waveCoin ?? 0)
-  }, 0)
-  imageCoin.value = Number(defaultModel?.waveCoin ?? 0) + paramsCoin
+  const algorithmName = String(defaultModel?.name || '').trim()
+  const paramNames = paramList.map((p: any) => String(p?.templateName || '').trim()).filter(Boolean)
+  const defaultModelsParams = algorithmName ? [algorithmName, ...paramNames] : []
+
+  const paramsCoin = paramList.reduce((sum: number, p: any) => sum + Number(p?.waveCoin ?? 0), 0)
+  const coinCost = Number(defaultModel?.waveCoin ?? 0) + paramsCoin
+  const defaultParamObject = {
+    algorithmId: defaultModel?.algorithmId ?? defaultModel?.id ?? 0,
+    algorithmCode: defaultModel?.code || '',
+    algorithmName: algorithmName || '',
+    paramList: paramList.map((p: any) => ({
+      templateId: p?.templateId || '',
+      templateCode: p?.templateCode || '',
+      templateName: p?.templateName || '',
+      type: p?.type,
+      vipStatus: p?.vipStatus,
+      waveCoin: p?.waveCoin,
+      templateDesc: p?.templateDesc || '',
+      imageUrl: p?.imageUrl || '',
+    })),
+  }
+
+  return {
+    selectedAlgorithm: defaultModel,
+    selectedParams,
+    defaultModelsParams,
+    coinCost,
+    defaultParamObject,
+  }
+}
+
+const calculateCoinCost = (selectedAlgorithm: any, selectedParams: Record<number, any>) => {
+  const modelCoin = Number(selectedAlgorithm?.waveCoin ?? 0)
+  const paramsCoin = Object.values(selectedParams || {}).reduce(
+    (sum: number, p: any) => sum + Number(p?.waveCoin ?? 0),
+    0,
+  )
+  return modelCoin + paramsCoin
 }
 
 const normalizeAlgoConfigModels = (payload: any): any[] => {
@@ -336,10 +501,39 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
   try {
     const res = await appApi.getAlgoConfigTempRelation({ menuCode })
     if (String((res as any)?.code) === '0000') {
-      const models = normalizeAlgoConfigModels((res as any)?.data)
-      if (models.length > 0) {
-        imageAlgorithmModels.value = models
-        buildDefaultParamsFromModels(models)
+      const dataObj: any = (res as any)?.data ?? (res as any)?.datas ?? {}
+      const models = normalizeAlgoConfigModels(dataObj)
+      const menuKey = menuKeyByCode[menuCode]
+      if (menuKey) {
+        const state = formDataByMenu[menuKey].params
+        state.algorithmModels = models
+
+        const hasSelectedParams = Object.keys(state.selectedParams || {}).length > 0
+        // 接口仅返回 algorithmModels：默认值从数组内逐层按 defaultStatus 提取
+        if (!hasSelectedParams) {
+          const defaultState = buildDefaultStateFromModels(models)
+          state.selectedAlgorithm = defaultState.selectedAlgorithm
+          state.selectedParams = defaultState.selectedParams
+          state.defaultModelsParams = defaultState.defaultModelsParams
+          state.coinCost = defaultState.coinCost
+          state.defaultParamObject = defaultState.defaultParamObject
+          return
+        }
+
+        // 用户已手动选择：刷新模型后保持选择并重算展示/积分
+        const currentAlgorithmId = String(state.selectedAlgorithm?.algorithmId ?? state.selectedAlgorithm?.id ?? '')
+        const matchedAlgorithm = (models || []).find(
+          (m: any) => String(m?.algorithmId ?? m?.id ?? '') === currentAlgorithmId,
+        )
+        state.selectedAlgorithm = matchedAlgorithm || models[0] || null
+        const selectedParamNames = Object.values(state.selectedParams || {})
+          .map((p: any) => String(p?.templateName || '').trim())
+          .filter(Boolean)
+        state.defaultModelsParams = [
+          String(state.selectedAlgorithm?.name || ''),
+          ...selectedParamNames,
+        ].filter(Boolean)
+        state.coinCost = calculateCoinCost(state.selectedAlgorithm, state.selectedParams)
       }
     }
   } catch (error) {
@@ -388,19 +582,33 @@ const currentMenuId = computed(() => {
 })
 
 const handleImageParamsConfirm = (result: any) => {
-  // ImageParamPopup 的 result: { algorithmName, paramList: [{templateName,...}, ...] }
+  // ImageParamPopup 的 result: { algorithmId, algorithmName, paramList: [{templateName,...}, ...] }
+  const state = getCurrentParams()
   const algorithmName = String(result?.algorithmName || '').trim()
   const paramNames: string[] = Array.isArray(result?.paramList)
     ? result.paramList.map((p: any) => String(p?.templateName || '').trim()).filter(Boolean)
     : []
-  imageDefaultParams.value = [algorithmName || imageDefaultParams.value[0], ...paramNames]
+  state.defaultModelsParams = [algorithmName || state.defaultModelsParams?.[0] || '', ...paramNames].filter(Boolean)
+  state.selectedParams = Array.isArray(result?.paramList)
+    ? result.paramList.reduce((acc: Record<number, any>, p: any) => {
+      const t = Number(p?.type)
+      if (Number.isFinite(t)) acc[t] = p
+      return acc
+    }, {})
+    : {}
+  state.selectedAlgorithm = (state.algorithmModels || []).find(
+    (m: any) => String(m?.algorithmId ?? m?.id) === String(result?.algorithmId)
+  ) || null
   const paramsCoin = Array.isArray(result?.paramList)
     ? result.paramList.reduce((sum: number, p: any) => sum + Number(p?.waveCoin ?? 0), 0)
     : 0
   const modelCoin = Number(
-    imageAlgorithmModels.value.find((m: any) => String(m?.algorithmId ?? m?.id) === String(result?.algorithmId))?.waveCoin ?? 0
+    (state.algorithmModels || []).find(
+      (m: any) => String(m?.algorithmId ?? m?.id) === String(result?.algorithmId)
+    )?.waveCoin ?? 0
   )
-  imageCoin.value = modelCoin + paramsCoin
+  state.coinCost = modelCoin + paramsCoin
+  state.defaultParamObject = result
 }
 
 const handleImageParamsClose = (_result: any) => {
@@ -409,12 +617,13 @@ const handleImageParamsClose = (_result: any) => {
 
 // ==================== 灵感词词典弹窗（父层统一管理） ====================
 const handleInspirationLibrary = () => {
+  activeInspirationMenu.value = leftMenu.value
   fetchInspirationWords()
   showInspirationLibrary.value = true
 }
 
 const handleInspirationConfirm = (words: any[]) => {
-  inspirationWords.value = words
+  formDataByMenu[activeInspirationMenu.value].inspirationWords = words
   showInspirationLibrary.value = false
 }
 
@@ -615,34 +824,58 @@ const handleAlgoDelete = async (idx: number) => {
 }
 
 // ==================== 左侧：上传参考图（支持从右侧拖拽） ====================
-const refImageUrl = ref('')
-const refImageTaskResultId = ref<string | number | undefined>(undefined)
 
 const handleDropFile = (payload: any) => {
+  const currentForm = formDataByMenu[leftMenu.value]
   // payload 可能来自：
   // 1) 本地文件拖拽：{ file, type, position }
   // 2) 我的资产拖拽：{ url, taskResultId, type, position, fileType }
   if (payload?.file) {
     const file: File = payload.file
-    refImageUrl.value = URL.createObjectURL(file)
-    refImageTaskResultId.value = undefined
+    currentForm.image = URL.createObjectURL(file)
+    currentForm.taskResultId = undefined
     return
   }
 
   if (payload?.url) {
-    refImageUrl.value = String(payload.url)
-    refImageTaskResultId.value = payload.taskResultId
+    currentForm.image = String(payload.url)
+    currentForm.taskResultId = payload.taskResultId
     return
   }
 }
 
 const handleRefDelete = () => {
-  refImageUrl.value = ''
-  refImageTaskResultId.value = undefined
+  const currentForm = formDataByMenu[leftMenu.value]
+  currentForm.image = ''
+  currentForm.taskResultId = undefined
+}
+
+const openHistoryModal = () => {
+  showHistoryModal.value = true
+}
+
+const selectHistoryCreation = (item: any) => {
+  const imageUrl = String(item?.imageUrl || item?.resultUrl || item?.thumbUrl || item?.url || '').trim()
+  if (!imageUrl) return
+  const currentForm = formDataByMenu[leftMenu.value]
+  currentForm.image = imageUrl
+  currentForm.taskResultId = item?.id == null ? undefined : String(item.id)
+  showHistoryModal.value = false
+}
+
+const refreshUserInfoIfLoggedIn = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    await userStore.getUserInfo()
+  } catch (error) {
+    console.error('刷新用户信息失败', error)
+  }
 }
 
 // 根据路由参数初始化当前模块（从 AiDesign 页面跳转时生效）
-onMounted(() => {
+onMounted(async () => {
+  await refreshUserInfoIfLoggedIn()
+
   const mode = route.query.mode as LeftMenuKey | undefined
   if (mode && ['aiFashion', 'sketchToReal', 'realToSketch', 'fabricCreative'].includes(mode)) {
     leftMenu.value = mode
@@ -651,16 +884,23 @@ onMounted(() => {
   // 详情页“重新生成/再次生成”跳转过来时，支持预填参考图
   const refImageUrlFromQuery = route.query.refImageUrl
   if (refImageUrlFromQuery) {
-    refImageUrl.value = String(refImageUrlFromQuery)
+    formDataByMenu[leftMenu.value].image = String(refImageUrlFromQuery)
   }
   const taskResultIdFromQuery = route.query.taskResultId
   if (taskResultIdFromQuery) {
-    refImageTaskResultId.value = String(taskResultIdFromQuery)
+    formDataByMenu[leftMenu.value].taskResultId = String(taskResultIdFromQuery)
   }
 
-  syncActiveMenuCode()
-  fetchAlgoConfigTempRelation(activeMenuCode.value)
-  fetchSysPlatformMenu()
+  await fetchSysPlatformMenu()
+  await syncActiveMenuCode()
+
+  setTimeout(() => {
+    fetchAlgoConfigTempRelation(activeMenuCode.value)
+  }, 1000);
+})
+
+onActivated(() => {
+  refreshUserInfoIfLoggedIn()
 })
 
 watch(

@@ -12,7 +12,7 @@
       <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="sketch" :show-actions="!!imageUrl"
         :clickable="true" placeholder-text="上传或拖拽1张图片" :show-history-tip="true" :history-max-count="1"
         @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-        @show-history="emit('coming-soon')" @drop-file="(p: File) => emit('drop-file', p)" />
+        @show-history="emit('show-history')" @drop-file="(p: File) => emit('drop-file', p)" />
 
       <!-- 款型选择回显 -->
       <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
@@ -104,6 +104,7 @@ const emit = defineEmits<{
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
+  (e: 'show-history'): void
   (e: 'update:inspiration-words', words: any[]): void
 }>()
 

@@ -16,16 +16,15 @@
     <el-scrollbar ref="scrollbarRef" class="modal-body" @scroll="handleBodyScroll">
       <!-- 订阅列表 -->
       <div v-if="activeTab === 'subscription'" class="tab-panel">
-        <!-- v-if="hasActiveSubscription" -->
         <div class="subscription-list">
-          <div class="subscription-item">
+          <div v-for="item in listData" :key="item.id" class="subscription-item">
             <div class="info">
               <img :src="images.subscription" alt="订阅" class="icon" />
-              <div class="name">{{ membershipTypeText }}</div>
+              <div class="name">{{ getMembershipTypeText(item) }}</div>
             </div>
             <div class="desc">
               <div class="label">有效期至</div>
-              <div class="value">{{ subscriptions.expirationDate || '--' }}</div>
+              <div class="value">{{ item.endTime || '--' }}</div>
             </div>
           </div>
         </div>
@@ -33,18 +32,18 @@
 
       <!-- 购买记录 -->
       <div v-else class="tab-panel">
-        <div class="record-list" v-if="!loadingRecords && records.length > 0">
-          <div v-for="item in records" :key="item.id" class="record-item">
+        <div class="record-list" v-if="!loading && listData.length > 0">
+          <div v-for="item in listData" :key="item.id" class="record-item">
             <div class="record-header">
-              {{ item.title }}
+              {{ item.productName || '--' }}
             </div>
             <div class="record-row">
               <span class="label">价格</span>
-              <span class="value">¥{{ item.payAmount.toFixed(2) }}</span>
+              <span class="value">¥{{ Number(item.productPrice ?? 0).toFixed(2) }}</span>
             </div>
             <div class="record-row">
               <span class="label">购买时间</span>
-              <span class="value">{{ item.payTime }}</span>
+              <span class="value">{{ item.payTime || '--' }}</span>
             </div>
             <div class="record-row">
               <span class="label">订单编号</span>
@@ -58,7 +57,7 @@
             <div class="record-row">
               <span class="label">支付方式</span>
               <span class="value">
-                {{ item.paymentTypeName }}
+                {{ item.payChannelName || '--' }}
               </span>
             </div>
           </div>
@@ -99,22 +98,10 @@ const visible = computed({
 
 const activeTab = ref<'subscription' | 'records'>('subscription')
 
-const subscriptions = ref<any>({})
-const loadingSubscription = ref(false)
-const records = ref<any[]>([
-  {
-    id: '1',
-    title: '灵衍AI会员购买',
-    payAmount: 100,
-    payTime: '2026-03-23 10:00:00',
-    orderNo: '1234567890',
-    paymentTypeName: '支付宝',
-    orderType: 0,
-  },
-])
-const loadingRecords = ref(false)
-const loadingMoreRecords = ref(false)
-const hasMoreRecords = ref(true)
+const listData = ref<any[]>([])
+const loading = ref(false)
+const loadingMore = ref(false)
+const hasMore = ref(true)
 const scrollbarRef = ref<any>(null)
 
 // vue-tsc 不会把 template 里的 ref 当作“被读取”，这里在脚本侧补一次使用
@@ -125,35 +112,26 @@ const resetScroll = () => {
 
 // el-scrollbar 触底加载更多（购买记录 tab）
 const handleBodyScroll = ({ scrollTop }: { scrollTop: number }) => {
-  if (activeTab.value !== 'records') return
   const wrapEl: HTMLElement | undefined = scrollbarRef.value?.wrapRef
   if (!wrapEl) return
-  if (loadingRecords.value || loadingMoreRecords.value || !hasMoreRecords.value) return
 
   const distance = 100
   const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
-  if (reachBottom) loadMoreRecords()
+  if (!reachBottom) return
+
+  if (loading.value || loadingMore.value || !hasMore.value) return
+  loadMoreByTab(activeTab.value)
 }
 
-// 分页参数
 const pageParams = ref({
   current: 1,
   size: 20,
-  total: 0,
 })
+const getTypeByTab = (tab: 'subscription' | 'records'): 0 | 1 => (tab === 'subscription' ? 0 : 1)
 
-const hasActiveSubscription = computed(() => {
-  return (
-    subscriptions.value?.vipType != null &&
-    subscriptions.value?.vipLevel != null &&
-    subscriptions.value?.expirationDate != null &&
-    Object.keys(subscriptions.value || {}).length > 0
-  )
-})
-
-const membershipTypeText = computed(() => {
-  const vipType = Number(subscriptions.value?.vipType ?? 0) // 0 普通用户；1 月度；2 季度；3 年度
-  const vipLevel = Number(subscriptions.value?.vipLevel ?? 0) // 0 普通用户；1 基础；2 标准；3 高级
+const getMembershipTypeText = (sub: any) => {
+  const vipType = Number(sub?.vipType ?? 0) // 0 普通用户；1 月度；2 季度；3 年度
+  const vipLevel = Number(sub?.vipLevel ?? 0) // 0 普通用户；1 基础；2 标准；3 高级
 
   if (vipType === 0 && vipLevel === 0) return '免费版'
 
@@ -171,22 +149,14 @@ const membershipTypeText = computed(() => {
   const levelText = levelMap[vipLevel] || ''
   const periodText = periodMap[vipType] || ''
   return levelText && periodText ? `${levelText}-${periodText}` : '会员订阅'
-})
+}
 
 const loaderState = computed(() => {
-  if (activeTab.value === 'subscription') {
-    return {
-      loading: loadingSubscription.value,
-      hasMore: false,
-      dataLength: hasActiveSubscription.value ? 1 : 0,
-      emptyText: '暂无订阅',
-    }
-  }
   return {
-    loading: loadingRecords.value || loadingMoreRecords.value,
-    hasMore: hasMoreRecords.value,
-    dataLength: records.value.length,
-    emptyText: '暂无购买记录',
+    loading: loading.value || loadingMore.value,
+    hasMore: hasMore.value,
+    dataLength: listData.value.length,
+    emptyText: activeTab.value === 'subscription' ? '暂无订阅' : '暂无购买记录',
   }
 })
 
@@ -195,78 +165,44 @@ const loaderHasMore = computed(() => loaderState.value.hasMore)
 const loaderDataLength = computed(() => loaderState.value.dataLength)
 const loaderEmptyText = computed(() => loaderState.value.emptyText)
 
-// 获取订单类型名称
-const getOrderTypeName = (orderType: number | string | undefined) => {
-  const orderTypeMap: Record<string, string> = {
-    '0': '灵衍AI会员购买',
-    '1': '灵衍AI灵衍值充值',
-  }
-  return orderTypeMap[String(orderType)] || ''
-}
-
-const normalizeRecord = (item: any, index: number) => {
-  const orderType = Number(item?.orderType)
-  return {
-    id: String(item?.id ?? item?.orderId ?? item?.orderNo ?? `${pageParams.value.current}_${index}`),
-    title: String(item?.remark || getOrderTypeName(orderType) || '灵衍AI会员购买'),
-    payAmount: Number(item?.payAmount ?? item?.amount ?? 0),
-    payTime: String(item?.payTime || '--'),
-    orderNo: String(item?.orderNo || '--'),
-    paymentTypeName: String(item?.paymentTypeName || '--'),
-    orderType,
-  }
-}
-
-const loadRecords = async (isRefresh = false) => {
+const loadByTab = async (tab: 'subscription' | 'records', isRefresh = false) => {
   if (!userStore.isLoggedIn) return
 
   if (isRefresh) {
-    loadingRecords.value = true
+    loading.value = true
     pageParams.value.current = 1
-    records.value = []
-    hasMoreRecords.value = true
+    listData.value = []
+    hasMore.value = true
   } else {
-    if (loadingMoreRecords.value || !hasMoreRecords.value) return
-    loadingMoreRecords.value = true
+    if (loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
   }
 
   try {
     const res = await subscriptionApi.getOrderSubscribe({
       productKind: 'vip',
+      type: getTypeByTab(tab),
       currentPage: pageParams.value.current,
-      offset: pageParams.value.size,
+      pageSize: pageParams.value.size,
     })
     if (res.code === '0000') {
       const data: any = res.data || {}
-      const pageData: any = data?.orderVoPage || data
-
-      const rawRecords = pageData?.records || pageData?.list || []
-      const newRecords = rawRecords.map((item: any, index: number) => normalizeRecord(item, index))
-      const total = Number(pageData?.total || pageData?.totalCount || 0)
-
-      if (isRefresh) {
-        records.value = newRecords
-      } else {
-        records.value.push(...newRecords)
-      }
-
-      pageParams.value.total = total
-
-      // 判断是否还有更多数据
-      hasMoreRecords.value = records.value.length < total
+      const pageData: any = tab === 'subscription' ? data?.subscriptionPageVO : data?.paymentOrderPageVO
+      const rawList = Array.isArray(pageData?.list) ? pageData.list : []
+      if (isRefresh) listData.value = rawList
+      else listData.value.push(...rawList)
+      hasMore.value = Boolean(pageData?.hasNext)
     }
   } finally {
-    loadingRecords.value = false
-    loadingMoreRecords.value = false
+    loading.value = false
+    loadingMore.value = false
   }
 }
 
-// 加载更多购买记录
-const loadMoreRecords = async () => {
-  if (loadingMoreRecords.value || !hasMoreRecords.value) return
-
+const loadMoreByTab = async (tab: 'subscription' | 'records') => {
+  if (loadingMore.value || !hasMore.value) return
   pageParams.value.current++
-  await loadRecords(false)
+  await loadByTab(tab, false)
 }
 
 const handleClose = () => {
@@ -292,7 +228,7 @@ watch(
     if (val) {
       resetScroll()
       activeTab.value = 'subscription'
-      loadRecords(true)
+      loadByTab('subscription', true)
     }
   }
 )
@@ -301,9 +237,8 @@ watch(
 watch(
   () => activeTab.value,
   (val) => {
-    if (val === 'records' && records.value.length === 0) {
-      loadRecords(true)
-    }
+    resetScroll()
+    loadByTab(val, true)
   }
 )
 </script>

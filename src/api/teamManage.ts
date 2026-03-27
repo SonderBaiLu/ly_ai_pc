@@ -11,7 +11,7 @@ export const teamApi = {
     // 删除团队用户
     deleteUser(params: { itemUserId: string, }){return request.post(`/v1/user/removeBySonUser`, params) as unknown as Promise<ApiResponse<any>>},
     // 获取团队成员列表
-    getSonUserPage(params: { nickName?: string, currentPage: number, offset: number }) {
+    getSonUserPage(params: { nickName?: string, currentPage: number, pageSize: number }) {
         return request.post('/v1/user/getSonUserPage', params) as unknown as Promise<ApiResponse<any>>
     },
     // 编辑团队用户信息

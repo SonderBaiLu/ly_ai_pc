@@ -1,6 +1,18 @@
 import request from '@/utils/request'
 import type { ApiResponse } from '@/types'
+// 模型入参
+export type DoCalculationPointModelParam = {
+  /** 算法模型 id（后端：modelConfigId） */
+  modelConfigId: number
+  /** 算法模型 code（后端：modelConfigCode） */
+  modelConfigCode: string
+  /** 算法模型名称（后端：modelConfigName） */
+  modelConfigName: string
+  /** 功能模块code（后端：menuCode） */
+  menuCode: string
+}
 
+// 模型参数入参
 export type DoCalculationPointTemplateParam = {
   /** 模版入参主键（后端：modelConfigTemplateId） */
   modelConfigTemplateId: number
@@ -12,17 +24,59 @@ export type DoCalculationPointTemplateParam = {
   modelConfigTemplateType: string
 }
 
+// 灵衍值试算：请求参数
+export type DoCalculationPointTestParams = {
+  /** 算法模型配置ID（示例：1） */
+  modelConfigId: number
+  /** 算法模型编码（示例：LingImage_1.0） */
+  modelConfigCode: string
+  /** 算法模型名称（示例：LingImage 1.0） */
+  modelConfigName: string
+  /** 功能模块code（示例：fabric_design_concept） */
+  menuCode: string
+  templateParams: DoCalculationPointTemplateParam[]
+}
+
 export type DoCalculationPointPayload = {
   /** 算法模型 id（后端：modelConfigId） */
   modelConfigId: number
+  /** 灵衍值试算：算法模型编码（示例：LingImage_1.0） */
   /** 算法模型 code（后端：modelConfigCode） */
   modelConfigCode: string
+  /** 灵衍值试算：算法模型名称（示例：LingImage 1.0） */
   /** 算法模型名称（后端：modelConfigName） */
   modelConfigName: string
+  /** 灵衍值试算：功能菜单编码 */
   /** 功能模块 code（后端：menuCode） */
   menuCode: string
+  /** 需要操作的图片路径 */
+  image?: string
   /** 模版入参（后端：templateParams） */
   templateParams: DoCalculationPointTemplateParam[]
+
+  /** 灵感词参数集合 */
+  inspirationWordsParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** 描述词 */
+  creativeDescription?: string
+  /** 历史参数 */
+  historyParams?: Array<{ taskResultId: string; type: string }>
+
+  /** 线稿转实物-图片类型 / 面料创款-图片类型 */
+  imageTypeParams?: Array<{ id: number; configType: string; prentId: number; content: string }>
+  /** AI服装设计-创作款型 */
+  creationStyleParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** AI服装设计-设计特性 */
+  designFeaturesParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** 线稿转实物-线稿类型 */
+  sketchTypeParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** 线稿转实物-线稿风格 */
+  sketchStyleParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** 实物转线稿-款型 */
+  garmentStyleParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** 实物转线稿-线稿生成类型 */
+  sketchGenerationTypeParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
+  /** 实物转线稿-线稿生成风格 */
+  sketchGenerationStyleParams?: Array<{ id: string; configType: string; prentId: string; content: string }>
 }
 
 /**
@@ -46,11 +100,19 @@ export const buildTemplateParamsFromPopup = (paramList: any[] = []): DoCalculati
 
 export const algoApi = {
   /**
-   * 灵衍值计算接口
+   * 灵衍值计算接口（试算）
    * - POST /api/v1/algo/doCalculationPoint
    */
-  doCalculationPoint(payload: DoCalculationPointPayload) {
+  doCalculationPoint(payload: DoCalculationPointTestParams) {
     return request.post('/v1/algo/doCalculationPoint', payload) as unknown as Promise<ApiResponse<any>>
+  },
+
+  /**
+   * 灵衍值计算接口（提交）
+   * - POST /api/v1/algo/submit
+   */
+  submit(payload: DoCalculationPointPayload) {
+    return request.post('/v1/algo/submit', payload) as unknown as Promise<ApiResponse<any>>
   },
 
   /**
@@ -124,14 +186,14 @@ export const algoApi = {
    * - fileType: 生成类型 1图片 2视频 3音频 4音视频
    * - collectStatus: 收藏状态 0未收藏 1已收藏
    * - currentPage: 当前页码
-   * - offset: 每页数量
+   * - pageSize: 每页数量
    */
   queryAlgoResultPage(params: {
     menuCode: string
     fileType: string
     collectStatus: string
     currentPage: number
-    offset: number
+    pageSize: number
   }) {
     return request.get('/v1/algo/queryAlgoResultPage', { params }) as unknown as Promise<ApiResponse<any>>
   },
