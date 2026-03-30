@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 // 引入API接口
 import { loginBySmsCodeApi, loginByPwd, teamLogin, getUserDetailsApi, logout } from '@/api/userLogin'
 import { userApi } from '@/api/user'
+import router from "@/router";
 
 export interface UserInfo {
   userId?: string | number
@@ -141,6 +142,7 @@ export const useUserStore = defineStore('user', {
         // 无论接口是否成功，都先清理本地登录态，保证 UI 立即切回未登录
         this.setToken('')
         this.setUserInfo(null)
+        await router.push('/')
       }
     }
   }

@@ -5,7 +5,7 @@
 
       <h2 class="dialog-title">成员添加</h2>
 
-      <div class="info-section" v-if="isTeamAndUrl">
+      <div class="info-section" >
         <div class="info-row">
           <span class="label">团队：</span>
           <span class="value">{{ displayData.mainNickName || 'xxxxx' }}</span>
@@ -80,7 +80,10 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import teamApi from "@/api/teamManage.ts";
-// TODO: VITE_API_PROXY_TARGET 获取 URL
+import {useUserStore} from "@/stores/user.ts";
+// 1. 实例化 User Store
+const userStore = useUserStore()
+
 // --- Props & Emits ---
 const props = defineProps({
   visible: {
@@ -89,22 +92,26 @@ const props = defineProps({
   }
 })
 
+
 const emit = defineEmits(['update:visible', 'success'])
 
 // --- 状态数据 ---
 const isSuccess = ref(false)
 const loading = ref(false)
-const isTeamAndUrl = ref(false) // 这个和设计稿不一样 成员添加之前 是否显示网站 和 团队名字
 // 表单提交数据
 const form = reactive({
   userName: '',
   nickName: ''
 })
-
+// URL 地址
+const reactiveApiTarget = ref(import.meta.env.VITE_API_PROXY_TARGET)
 // 展示/返回的数据
 const displayData = reactive({
-  mainNickName: 'xxxxx',
-  url: 'https://www.lingyanaigc.com/',
+  // 这里的账户名 就是 团队名 中间有 **** 是后端返回数据本就如此
+  get mainNickName() {
+    return userStore.userInfo.userName
+  },
+  url: reactiveApiTarget.value,
   pwd: '',
   userName: '',
   nickName: ''
@@ -162,7 +169,6 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    isTeamAndUrl.value = false; // TODO: 是否显示名称 与 URL
     const res = await teamApi.sonUserRegister({
       userName: form.userName,
       nickName: form.nickName,
@@ -170,14 +176,13 @@ const handleSubmit = async () => {
     if(String((res as any).code) === '0000' && res.success === true ){
       ElMessage.success('添加成功')
       // 填充返回的数据
-      displayData.mainNickName = res.data.mainNickName
+      // displayData.mainNickName.get = res.data.mainNickName
       displayData.url = res.data.url
       displayData.pwd = res.data.pwd
       displayData.userName = res.data.userName
       displayData.nickName = res.data.nickName
       // 切换到【点击复制】状态
       isSuccess.value = true
-      isTeamAndUrl.value = true; // TODO: 是否显示名称 与 URL
 
     }
   } catch (e:any){

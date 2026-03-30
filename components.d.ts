@@ -62,6 +62,7 @@ declare module 'vue' {
     MediaPlayer: typeof import('./src/components/MediaPlayer.vue')['default']
     MembershipModal: typeof import('./src/components/MembershipModal.vue')['default']
     ModelSection: typeof import('./src/sections/home/ModelSection.vue')['default']
+    OpneTeamMember: typeof import('./src/components/TeamManagement/OpneTeamMember.vue')['default']
     PaymentModal: typeof import('./src/components/PaymentModal.vue')['default']
     PersonalSettingsModal: typeof import('./src/components/PersonalSettingsModal.vue')['default']
     ProductTutorialModal: typeof import('./src/components/ProductTutorialModal.vue')['default']

@@ -144,7 +144,6 @@
 </template>
 
 <script setup lang="ts">
-import {ref, reactive, computed, onMounted} from 'vue'
 import Header from '@/components/Header.vue'
 import {images} from '@/assets'
 import {useUserStore} from '@/stores/user'

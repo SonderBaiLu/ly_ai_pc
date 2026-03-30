@@ -148,7 +148,7 @@
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
                   :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError" />
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <img :src="showPersonalPwd ? iconEyesOpen : iconEyeClose" alt="" class="eye-img" />
+                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
                 </span>
               </div>
             </div>
@@ -210,8 +210,8 @@
           @success="handleBindSuccess"
           @close="dialogs.isVisible = false" />
 
-      <ResetPassword v-if="dialogs.isVisible" :open-id="openId" :mode="currentMode"
-        :confirmedInviteCode="confirmedInviteCode" @close="dialogs.isVisible = false" />
+<!--      <ResetPassword v-if="dialogs.isVisible" :open-id="openId" :mode="currentMode"-->
+<!--        :confirmedInviteCode="confirmedInviteCode" @close="dialogs.isVisible = false" />-->
     </Transition>
     <InvitationCode v-if="dialogs.invitation" @update:visible="dialogs.invitation = $event"
       @confirm="handleInviteConfirm" />
@@ -219,18 +219,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onUnmounted, onBeforeUnmount } from 'vue' // 补全了 onBeforeUnmount
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import iconEyesOpen from '@/assets/images/login_popup/eyes.png'
-import iconEyeClose from '@/assets/images/login_popup/eye_close.png'
 import { getSmsCodeApi, getUserWechat, getWechatQrCodeApi } from '@/api/userLogin'
 import { useUserStore } from "@/stores/user"
-import ResetPassword from '@/components/ResetPassword.vue'
-import InvitationCode from '@/components/InvitationCode.vue'
 import {images} from '@/assets'
-import router from "@/router";
 
 
 // ==========================================
@@ -250,7 +244,7 @@ const dialogs = reactive({
   invitation: false, // 邀请码弹窗
 })
 const currentMode = ref('0') // 忘记密码模式
-const openId = ref('0') // 这个变脸给ResetPassword页面的绑定手机号调用的接口使用，变量名和接口文档字段名称一样
+const openId = ref('0') // 这个变量给ResetPassword页面的绑定手机号调用的接口使用，变量名和接口文档字段名称一样
 
 // 统一关闭弹窗的方法
 const handleClose = () => {
@@ -704,7 +698,7 @@ const forgotPassword = () => {
       margin-bottom: 28px;
       font-size: 18px;
       color: rgba(255,255,255,1);
-      font-family: NotoSans-bold;
+      font-family: NotoSans-bold,serif;
       text-align: justify;
       font-weight: 700;
 

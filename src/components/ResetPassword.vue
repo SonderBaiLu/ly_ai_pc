@@ -188,8 +188,8 @@ const fetchSmsCode = async () => {
       ElMessage.success('验证码已发送')
       startCountdown()
     }
-  } catch (e) {
-    console.error('获取验证码失败', e)
+  } catch (e:any) {
+    ElMessage.error(e.message)
   }
 }
 
@@ -519,9 +519,7 @@ onUnmounted(() => {
     margin-top: 24px; /* 增加验证码和按钮之间的间距 */
     border-radius: 8px;
 
-    &:hover {
-      background: #222222;
-    }
+    &:hover { background: #222222; }
   }
 }
 </style>
