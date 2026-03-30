@@ -2,9 +2,33 @@ import axios from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import type { ApiResponse } from '@/types'
-import { useModalStore } from '@/stores/modal'
 
 type OSType = 'iOS' | 'Android' | 'HarmonyOS' | 'Web' | 'WeChatMini'
+
+// 全局错误提示去重：短时间内相同文案只弹一次，避免多个接口同时失败刷屏
+const ERROR_TOAST_TTL_MS = 2000
+const recentErrorToasts = new Map<string, number>()
+const originalElMessageError = ElMessage.error.bind(ElMessage)
+
+const extractMessageText = (input: any): string => {
+  if (typeof input === 'string') return input.trim()
+  if (input && typeof input === 'object' && typeof input.message === 'string') {
+    return input.message.trim()
+  }
+  return ''
+}
+
+ElMessage.error = ((options: any) => {
+  const text = extractMessageText(options)
+  if (!text) return originalElMessageError(options)
+
+  const now = Date.now()
+  const lastAt = recentErrorToasts.get(text) ?? 0
+  if (now - lastAt < ERROR_TOAST_TTL_MS) return undefined as any
+
+  recentErrorToasts.set(text, now)
+  return originalElMessageError(options)
+}) as typeof ElMessage.error
 
 // 防重复处理标志（参考主流应用的处理方式）
 let isHandlingAuthExpired = false
@@ -153,7 +177,7 @@ const handleAuthExpired = () => {
   if (isHandlingAuthExpired) return
   isHandlingAuthExpired = true
 
-  // 清理本地 token（按你们项目当前最简单的方式）
+  // 清理本地登录态
   try {
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
@@ -163,12 +187,13 @@ const handleAuthExpired = () => {
 
   if (authExpiredTimer) clearTimeout(authExpiredTimer)
   authExpiredTimer = setTimeout(() => {
-    // 102：打开登录弹窗（不跳转路由）
+    // 102：直接回到首页，让用户重新登录
     try {
-      const modalStore = useModalStore()
-      modalStore.openLoginModal()
+      if (typeof window !== 'undefined') {
+        window.location.replace('/')
+      }
     } catch {
-      // ignore（极端情况下 pinia 未初始化）
+      // ignore redirect failures
     }
     isHandlingAuthExpired = false
     authExpiredTimer = null
@@ -192,10 +217,10 @@ const handleAuthExpired = () => {
     const msg = String((data as any).msg ?? '')
 
     if (code !== '0000') {
-      // 102：需要打开登录弹窗
+      // 102：token 失效，清理登录态并回首页
       if (code === '102') {
         handleAuthExpired()
-        // 102：仅触发登录弹窗，不再携带任何提示文案，避免各页面 catch 再次弹接口错误提示
+        // 102：避免业务侧重复提示错误文案
         const authError: any = new Error('')
         authError.__AUTH_REQUIRED__ = true
         authError.code = code

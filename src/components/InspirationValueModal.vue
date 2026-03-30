@@ -43,39 +43,38 @@
     </el-tabs>
 
     <!-- 交易记录列表 -->
-    <div class="transaction-list">
-      <div v-if="!loading && transactions.length > 0">
+    <el-scrollbar ref="transactionScrollbarRef" class="transaction-list" height="400px"
+      @end-reached="loadMoreCoinRecords" @scroll="handleTransactionScroll">
+      <div v-if="transactions.length > 0">
         <div v-for="transaction in transactions" :key="transaction.id" class="transaction-item">
           <div class="transaction-left">
-            <img :src="transaction.headImgUrl || userInfo?.headImgUrl || images.avatarDefault" alt=""
-              class="transaction-avatar" />
+            <img :src="transaction.imgUrl || images.avatarDefault" alt="" class="transaction-avatar" />
             <div class="transaction-name">
-              {{ transaction.userName || transaction.nickname || userInfo?.nickname || userInfo?.userName || '' }}
+              {{ transaction.nickName || '--' }}
             </div>
           </div>
           <div class="transaction-info">
-            <div class="transaction-type">{{ getCoinRecordTitle(transaction) }}252</div>
+            <div class="transaction-type">{{ transaction.type }}</div>
             <div class="transaction-time">
               <img :src="images.time" alt="" srcset="" class="time-icon" />
-              {{ transaction.createTime || transaction.payTime || '' }}
+              {{ transaction.createTime || '' }}
             </div>
           </div>
           <div class="transaction-amount" :class="{
-            positive: Number(transaction.wavePoints ?? transaction.amount ?? 0) > 0,
-            negative: Number(transaction.wavePoints ?? transaction.amount ?? 0) < 0,
-          }">
-            {{
-              Number(transaction.wavePoints ?? transaction.amount ?? 0) > 0 ? '+' : ''
-            }}{{ Number(transaction.wavePoints ?? transaction.amount ?? 0).toFixed(2) }}
+            positive: Number(transaction.points ?? 0) > 0,
+            negative: Number(transaction.points ?? 0) < 0,
+          }">{{
+            Number(transaction.points ?? 0) > 0 ? '+' : ''
+          }}{{ Number(transaction.points ?? 0).toFixed(2) }}
           </div>
         </div>
       </div>
 
       <!-- 统一加载组件 -->
-      <InfiniteScrollLoader :loading="loading" :has-more="false" :data-length="transactions.length"
+      <InfiniteScrollLoader :loading="loading" :has-more="hasMore" :data-length="transactions.length"
         :show-empty-state="true" empty-text="暂无记录" :empty-image="images.noRecord" image-size="140px"
         empty-text-color="#474B64" empty-text-font-size="13px" />
-    </div>
+    </el-scrollbar>
 
     <!-- 底部说明 -->
     <div class="modal-footer">
@@ -87,11 +86,11 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
+import type { ScrollbarDirection } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { membershipApi } from '@/api/membership'
 import { useUserStore } from '@/stores/user'
 import { images } from '@/assets'
-import InfiniteScrollLoader from '@/components/InfiniteScrollLoader.vue'
 
 // Props
 interface Props {
@@ -123,22 +122,21 @@ const loading = ref(false)
 
 // 状态定义
 const tabIdx = ref(0)
-const currentTabType = ref('all')
+const currentTabType = ref('')
 
 // 处理标签切换
 const handleTabChange = (name: string | number) => {
   const index = typeof name === 'number' ? name : Number(name)
   tabIdx.value = index
-  currentTabType.value = tabsList.value[index]?.type || 'all'
-  // 重置分页并重新加载数据
-  pagination.value.current = 1
-  loadCoinRecords()
+  currentTabType.value = tabsList.value[index]?.type || ''
+  // 重置并重新加载数据
+  loadCoinRecords(true)
 }
 
 const tabsList = ref([
   {
     name: '全部',
-    type: 'all',
+    type: '',
   },
   {
     name: '消耗',
@@ -154,88 +152,100 @@ const tabsList = ref([
   },
 ])
 
-const getCoinRecordTitle = (item: any) => {
-  // 优先后端 remark
-  if (item?.remark) return String(item.remark)
-
-  // 再根据 orderType（如后端返回）
-  const orderType = item?.orderType
-  const orderTypeNum = orderType != null && orderType !== '' ? Number(orderType) : NaN
-  const orderTypeMap: Record<number, string> = {
-    0: '灵衍值消费',
-    1: '灵衍值购买',
-    2: '灵衍值获得',
-  }
-  if (!Number.isNaN(orderTypeNum) && orderTypeMap[orderTypeNum]) return orderTypeMap[orderTypeNum]
-
-  // 最后兜底：按当前 tab 显示标题
-  const tabMap: Record<string, string> = {
-    CONSUME: '灵衍值消费',
-    PURCHASE: '灵衍值购买',
-    EARN: '灵衍值获得',
-  }
-  return tabMap[currentTabType.value] || ''
-}
-
 // 交易记录数据（直接使用接口返回的数据）
-const transactions = ref<any[]>([{
-  id: 1,
-  headImgUrl: 'https://img.yzcdn.cn/vant/ipad.png',
-  userName: '张三',
-  nickname: '张三',
-  createTime: '2026-03-23 10:00:00',
-  payTime: '2026-03-23 10:00:00',
-  wavePoints: -106,
-}, {
-  id: 2,
-  headImgUrl: 'https://img.yzcdn.cn/vant/ipad.png',
-  userName: '李四',
-  nickname: '李四',
-  createTime: '2026-03-23 10:00:00',
-  payTime: '2026-03-23 10:00:00',
-  wavePoints: 50,
-}])
-
+const transactions = ref<any[]>([])
+const hasMore = ref(false)
+const loadingMore = ref(false)
+const transactionScrollbarRef = ref<any>(null)
 
 // 分页信息
 const pagination = ref({
   current: 1,
   size: 20,
-  total: 0,
 })
 
+// 当首屏数据不足以撑出滚动条时，主动继续拉取，直到可滚动或无下一页
+const tryAutoLoadNextPage = async () => {
+  if (loading.value || loadingMore.value || !hasMore.value) return
+  await nextTick()
+  const wrapEl = transactionScrollbarRef.value?.wrapRef as HTMLElement | undefined
+  if (!wrapEl) return
+  const noScrollbar = wrapEl.scrollHeight <= wrapEl.clientHeight + 1
+  if (!noScrollbar) return
+
+  await loadCoinRecords(false)
+  await tryAutoLoadNextPage()
+}
+
 // 加载灵衍值记录
-const loadCoinRecords = async () => {
+const loadCoinRecords = async (isRefresh = true) => {
   if (!userStore.isLoggedIn) return
 
+  if (!isRefresh) {
+    if (loading.value || loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+    pagination.value.current += 1
+  } else {
+    pagination.value.current = 1
+    transactions.value = []
+    hasMore.value = true
+  }
+
   try {
-    loading.value = true
+    if (isRefresh) {
+      loading.value = true
+    }
     // 构建请求参数
     const params: any = {
       // 后端分页字段：
       // - currentPage: 当前页码
-      // - offset: 每页数量
+      // - pageSize: 每页数量
       currentPage: pagination.value.current,
-      offset: pagination.value.size,
-    }
-
-    // 根据选中的tab添加类型过滤
-    if (currentTabType.value !== 'all') {
-      params.type = currentTabType.value
+      pageSize: pagination.value.size,
+      type: currentTabType.value // 灵衍值明细类型 【CONSUME 消耗，PURCHASE 购买，EARN 获得】
     }
 
     const response = await membershipApi.getCoinRecordList(params)
     if (response.code === '0000' && response.data) {
       // 直接使用接口返回的数据
-      const data: any = response.data
-      transactions.value = data.records || []
-      pagination.value.total = data.total || 0
+      const { list, hasNext }: any = response.data
+      const pageList = Array.isArray(list) ? list : []
+      hasMore.value = Boolean(hasNext)
+
+      if (isRefresh) {
+        transactions.value = pageList
+      } else {
+        transactions.value.push(...pageList)
+      }
+
+      if (isRefresh && hasMore.value) {
+        await tryAutoLoadNextPage()
+      }
     }
   } catch (error) {
+    if (!isRefresh) {
+      pagination.value.current = Math.max(1, pagination.value.current - 1)
+    }
     console.error('加载灵衍值记录失败:', error)
     ElMessage.error('加载灵衍值记录失败')
   } finally {
     loading.value = false
+    loadingMore.value = false
+  }
+}
+
+const loadMoreCoinRecords = async (direction: ScrollbarDirection) => {
+  console.log('loadMoreCoinRecords', direction)
+  if (direction !== 'bottom') return
+  await loadCoinRecords(false)
+}
+
+const handleTransactionScroll = async ({ scrollTop }: { scrollTop: number }) => {
+  const wrapEl = transactionScrollbarRef.value?.wrapRef as HTMLElement | undefined
+  if (!wrapEl) return
+  const remain = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight)
+  if (remain <= 16) {
+    await loadCoinRecords(false)
   }
 }
 
@@ -260,15 +270,17 @@ const showRules = () => {
 }
 
 // 监听弹窗打开状态，加载数据
-watch(visible, (newValue) => {
-  if (newValue) {
-    // 初始化当前标签类型
-    currentTabType.value = tabsList.value[tabIdx.value]?.type || 'all'
-    // 重置分页
-    pagination.value.current = 1
-    loadCoinRecords()
-  }
-})
+watch(
+  visible,
+  (newValue) => {
+    if (newValue) {
+      // 初始化当前标签类型
+      currentTabType.value = tabsList.value[tabIdx.value]?.type || ''
+      loadCoinRecords(true)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style lang="scss" scoped>
@@ -392,7 +404,7 @@ watch(visible, (newValue) => {
 
 // 交易记录列表
 .transaction-list {
-  max-height: 400px;
+  height: 400px;
   overflow-y: auto;
 
   .transaction-item {

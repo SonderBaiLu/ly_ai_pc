@@ -236,9 +236,9 @@
             </p>
 
             <p class="tip-sub">
-              如订阅周期内的会员灵衍消耗完，可额外
+              如订阅周期内的会员灵衍值消耗完，可额外
               <span class="link-text" @click="() => ((activeTab = 'tidecoins'), (showChangePlanDialog = false))">
-                购买灵衍
+                购买灵衍值
               </span>
             </p>
           </div>
@@ -505,7 +505,7 @@ const openPaymentForPlan = async (plan: any) => {
   } else {
     purchaseType.value = 'membership'
     payDialogTitle.value = getVipName(plan) || '会员购买'
-    initialPayAmount.value = Number(plan.productPrice) || 0
+    initialPayAmount.value = Number(plan.productDiscountPrice) || 0
   }
 
   try {
@@ -795,8 +795,18 @@ const scrollCards = (direction: 'left' | 'right') => {
   })
 }
 
+const refreshUserInfoIfLoggedIn = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    await userStore.getUserInfo()
+  } catch (error) {
+    console.error('刷新用户信息失败', error)
+  }
+}
+
 // 组件挂载
 onMounted(async () => {
+  await refreshUserInfoIfLoggedIn()
   console.log('Membership 组件挂载，当前用户信息:', userInfo.value)
 
   // 加载会员和灵衍套餐数据
@@ -809,6 +819,10 @@ onMounted(async () => {
 
   // 监听窗口大小变化，重新检查滚动模式
   window.addEventListener('resize', checkScrollMode)
+})
+
+onActivated(() => {
+  refreshUserInfoIfLoggedIn()
 })
 
 onBeforeUnmount(() => {
@@ -909,6 +923,7 @@ const getPurchaseButtonText = (plan: any) => {
   // 内容区域居中，最大宽度80%
   .main-inner {
     width: 80%;
+    // max-width: 1283px;
     margin-left: auto;
     margin-right: auto;
     padding-top: $spacing-xl;
@@ -1894,7 +1909,8 @@ const getPurchaseButtonText = (plan: any) => {
 .tidecoins-grid {
   display: grid;
   // 使用 auto-fit 和 minmax，确保卡片固定大小，放不下时自动换行
-  grid-template-columns: repeat(auto-fit, minmax(332px, 1fr));
+  // grid-template-columns: repeat(auto-fit, minmax(332px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 40px;
   padding: 0 118px 130px;
 
@@ -1902,19 +1918,19 @@ const getPurchaseButtonText = (plan: any) => {
   @media (max-width: 1600px) {
     padding: 0 60px 130px;
     gap: 30px;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(332px, 1fr));
   }
 
   @media (max-width: 1024px) {
     padding: 0 20px 130px;
     gap: 20px;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, 2fr);
   }
 
   @media (max-width: 600px) {
     padding: 0 10px 130px;
     gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(1, 1fr);
   }
 }
 
@@ -1938,8 +1954,9 @@ const getPurchaseButtonText = (plan: any) => {
     position: relative;
     height: 132px;
     padding: 28px 34px;
-    background: $color-bg-dark-secondary;
     border-radius: 0 0 12px 12px;
+    background: $color-bg-dark-secondary url('@/assets/images/logo_black.png') no-repeat right 3px bottom 0;
+    background-size: 132px 97px;
 
     .tidecoin-amount {
       display: flex;

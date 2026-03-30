@@ -13,7 +13,7 @@
       <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
         :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
         @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-        @show-history="emit('coming-soon')" @drop-file="(p: File) => emit('drop-file', p)" />
+        @show-history="emit('show-history')" @drop-file="(p: File) => emit('drop-file', p)" />
 
       <!-- 面料缩放设置（上传后展示；生成前会用 canvas 导出平铺+缩放后的纹理图） -->
       <div v-if="imageUrl" class="fabric-scale-card">
@@ -105,6 +105,7 @@ const emit = defineEmits<{
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
+  (e: 'show-history'): void
   (e: 'update:inspiration-words', words: any[]): void
 }>()
 

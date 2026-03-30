@@ -86,6 +86,23 @@ const firstNode = (list: CreationTreeNode[]) => list[0]
 const findByContent = (list: CreationTreeNode[], content?: string) =>
   list.find((item) => String(item.content || '') === String(content || ''))
 
+const findPathNodeIdsByValues = (pathValues: string[]) => {
+  const ids: string[] = []
+  let currentNodes: CreationTreeNode[] = Array.isArray(props.optionTree) ? props.optionTree : []
+  let depth = 0
+  while (currentNodes.length > 0 && depth < pathValues.length && depth < 20) {
+    const options =
+      currentNodes.length === 1 && getChildren(currentNodes[0]).length > 0
+        ? getChildren(currentNodes[0])
+        : currentNodes
+    const selectedNode = findByContent(options, pathValues[depth]) || firstNode(options)
+    ids.push(String(selectedNode?.id ?? ''))
+    currentNodes = getChildren(selectedNode)
+    depth += 1
+  }
+  return ids
+}
+
 const buildSectionsByPath = (pathValues: string[]) => {
   const result: DynamicSection[] = []
   let currentNodes: CreationTreeNode[] = Array.isArray(props.optionTree) ? props.optionTree : []
@@ -172,6 +189,7 @@ const handleConfirm = () => {
     kind: selectedPath.value[2] || '',
     subKind: selectedPath.value[selectedPath.value.length - 1] || '',
     pathValues: [...selectedPath.value],
+    pathNodeIds: findPathNodeIdsByValues(selectedPath.value),
     displayText: selectedPath.value.join('-'),
   })
   visible.value = false

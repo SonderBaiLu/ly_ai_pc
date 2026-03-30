@@ -36,14 +36,10 @@
       </div>
     </div>
     <!-- 试一试示例行 -->
-    <div v-if="showTryLine && currentExample" class="try-line">
+    <div v-if="showTryLine && displayTryText" class="try-line">
       <span class="try-label">试一试：</span>
-      <div class="try-marquee" @click="handleShuffle">
-        <div class="try-track">
-          <span class="try-text">{{ currentExample }}</span>
-          <span class="try-separator" aria-hidden="true"></span>
-          <span class="try-text">{{ currentExample }}</span>
-        </div>
+      <div class="try-noticebar" role="button" tabindex="0" @click="handleShuffle">
+        <ScrollText class="try-scroll" :text="displayTryText" :speed="10" />
       </div>
       <span class="try-refresh" title="换一换" @click="handleShuffle">
         <img :src="images.refreshTry" alt="" class="refresh-icon" />
@@ -55,6 +51,7 @@
 <script setup lang="ts">
 import { images } from '@/assets'
 import { algoApi } from '@/api/algo'
+import ScrollText from '@/components/ScrollText.vue'
 
 // 定义灵感词项接口
 interface InspirationItem {
@@ -111,6 +108,7 @@ interface Emits {
   (e: 'input', event: Event): void
   (e: 'focus', event: Event): void
   (e: 'blur', event: Event): void
+  (e: 'try-example', value: string): void
 }
 
 // 定义组件属性
@@ -120,7 +118,7 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '描述您想生成的页面内容',
   maxLength: 200,
   placeholderStyle: '',
-  inspirationWords: () => [{ id: '1', name: '灵感词1' }],
+  inspirationWords: () => [],
   optional: false,
   showBackground: true,
   showHeader: true,
@@ -129,11 +127,6 @@ const props = withDefaults(defineProps<Props>(), {
   showDescSection: true,
   showTitle: true,
   showTryLine: true,
-  tryExamples: () => [
-    '一位意大利时尚男模特（齐耳黑色短卷发，轮廓造型，超宽肩）',
-    '一件未来感银色机能风外套，带有多口袋与金属拉链细节，背景是霓虹灯城市夜景',
-    '一条法式复古碎花连衣裙，广角镜头拍摄，在夏日花园中自然摇曳',
-  ],
   tryIntervalMs: 10000,
 })
 
@@ -147,7 +140,8 @@ const isFocused = ref(false)
 
 // ===== 试一试推荐逻辑（点击触发接口，回填创意描述）=====
 const isFetchingTryPrompt = ref(false)
-const currentExample = ref<string>(props.tryExamples?.[0] || '')
+const displayTryText = ref<string>('')
+const hasFetchedTryPromptOnce = ref(false)
 
 // 监听外部传入的值变化
 watch(
@@ -207,59 +201,42 @@ const handleRemoveTag = (id: string): void => {
 }
 
 const handleShuffle = () => {
-  // 如果没有 menuId，则回退到本地示例轮换
-  const fallback = () => {
-    if (!props.tryExamples || props.tryExamples.length === 0) return
-    const idx = props.tryExamples.indexOf(currentExample.value)
-    const nextIdx = idx >= 0 ? (idx + 1) % props.tryExamples.length : 0
-    currentExample.value = props.tryExamples[nextIdx] || currentExample.value
-  }
-
-  const menuId = props.menuId
-  if (!menuId) {
-    fallback()
-    return
-  }
-
   if (isFetchingTryPrompt.value) return
+  if (!props.menuId) return
   isFetchingTryPrompt.value = true
-
   algoApi
-    .getFunctionPrompt({ menuId: String(menuId) })
+    .getFunctionPrompt({ menuId: String(props.menuId) })
     .then((res) => {
       if (res?.code !== '0000') {
-        fallback()
         return
       }
-
-      const data = (res as any)?.data
-
+      // 接口返回里通常直接包含：{ functionPromptId, prompt }
+      // 但也可能多包一层 data: { data: { prompt } }
+      const resAny = res as any
       const prompt =
-        (typeof data === 'string' ? data : null) ||
-        (typeof data?.prompt === 'string' ? data.prompt : null) ||
-        (typeof data?.functionPrompt === 'string' ? data.functionPrompt : null) ||
-        (typeof data?.content === 'string' ? data.content : null) ||
-        (Array.isArray(data) && typeof data[0] === 'string' ? data[0] : null) ||
-        ''
-
-      if (prompt) {
-        localDescription.value = prompt
-        currentExample.value = prompt
-      } else {
-        fallback()
-      }
-    })
-    .catch(() => {
-      fallback()
+        String(resAny?.data?.prompt ?? resAny?.data?.data?.prompt ?? '').trim()
+      if (prompt) displayTryText.value = prompt
+      hasFetchedTryPromptOnce.value = true
     })
     .finally(() => {
       isFetchingTryPrompt.value = false
     })
 }
-
 onMounted(() => {
-  // 默认显示第一条，不做自动轮播，避免滚动过程中自动换文案
+  if (props.menuId) {
+    handleShuffle()
+  }
 })
+
+watch(
+  () => props.menuId,
+  (v) => {
+    if (!v) return
+    if (props.tryExamples?.length) return
+    if (hasFetchedTryPromptOnce.value) return
+    handleShuffle()
+  }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -414,28 +391,34 @@ onMounted(() => {
       color: $color-text-white;
     }
 
-    .try-marquee {
+    .try-noticebar {
       flex: 1 1 auto;
       min-width: 0;
+      cursor: pointer;
       overflow: hidden;
+      user-select: none;
     }
 
-    .try-track {
-      display: inline-flex;
-      align-items: center;
+    .try-text {
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
-      will-change: transform;
-      transform: translate3d(0, 0, 0);
-      backface-visibility: hidden;
-      animation: tryMarquee 15s linear infinite;
       color: $color-text-tip;
       cursor: pointer;
     }
 
-    .try-separator {
+    .try-text-carousel {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .try-gap {
       display: inline-block;
-      flex: 0 0 auto;
       width: 32px;
+      flex: 0 0 auto;
     }
 
     .try-refresh {
@@ -447,16 +430,6 @@ onMounted(() => {
         width: 16px;
         height: 16px;
       }
-    }
-  }
-
-  @keyframes tryMarquee {
-    0% {
-      transform: translateX(0);
-    }
-
-    100% {
-      transform: translateX(-50%);
     }
   }
 }

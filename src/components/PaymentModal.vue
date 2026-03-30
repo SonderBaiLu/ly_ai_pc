@@ -656,20 +656,11 @@ onBeforeUnmount(() => {
 </style>
 
 <style lang="scss">
-// 支付弹窗样式
-// 提高 z-index，确保在任何详情弹窗/会员弹窗之上
-.vip-pay-dialog.el-dialog {
-  z-index: 2100 !important;
-}
-
-.vip-pay-dialog {
-  .el-dialog {
-    border-radius: 16px !important;
-    overflow: hidden;
-    background-color: #1A1A1A;
-    background-color: rgba(26, 26, 26, 1);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-  }
+.el-dialog.vip-pay-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+  background-color: rgba(26, 26, 26, 1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
 
   .el-dialog__header {
     padding: 25px 0 !important;
@@ -679,7 +670,7 @@ onBeforeUnmount(() => {
   .el-dialog__body {
     padding: 0 48px 22px !important;
     text-align: center;
-    background-color: rgba(26, 26, 26, 1);
+    background-color: rgba(26, 26, 26, 1) !important;
   }
 }
 </style>

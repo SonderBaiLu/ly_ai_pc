@@ -32,7 +32,7 @@
     <ImageUploadArea v-model:image-url="imageUrl" image-type="ref" image-name="reference" :show-actions="!!imageUrl"
       :clickable="true" placeholder-text="上传或拖拽参考图" :show-history-tip="true" :enable-history-replace="false"
       @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-      @drop-file="(p: File) => emit('drop-file', p)" />
+      @show-history="emit('show-history')" @drop-file="(p: File) => emit('drop-file', p)" />
 
     <!-- 上传之后的样式 -->
     <el-scrollbar>
@@ -48,7 +48,7 @@
       @update:inspiration-words="updateInspirationWords" />
 
     <!-- 底部参数以及生成按钮 -->
-    <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
+    <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="isGenerating" :loading="isGenerating"
       button-text="立即生成" @show-params="() => emit('show-params')" @generate="() => emit('generate')" />
 
     <!-- 设计特征弹窗 -->
@@ -73,6 +73,7 @@ const props = defineProps<{
   inspirationWords?: any[]
   coin?: number
   menuId?: string | number
+  defaultImageParams?: string[]
 }>()
 
 // 监听inspirationWords变化
@@ -95,10 +96,11 @@ const emit = defineEmits<{
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
+  (e: 'show-history'): void
   (e: 'update:inspiration-words', words: any[]): void
 }>()
 
-const prompt = ref('')
+const prompt = defineModel<string>('prompt', { default: '' })
 const inspirationWords = ref<any[]>([])
 
 const typeText = computed(() => {
@@ -154,9 +156,6 @@ const updateInspirationWords = (words: any[]) => {
   emit('update:inspiration-words', words)
 }
 
-// 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
-const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
-const coin = computed(() => Number(props.coin ?? 0))
 const isGenerating = ref(false)
 
 const selectedFeatures = computed(() => {

@@ -12,10 +12,16 @@ export const subscriptionApi = {
    *
    * 参数：
    * - productKind: 商品种类【vip 会员, Points 积分】
+   * - type: 分类查询【0 订阅, 1 购买】
    * - currentPage: 当前页码
-   * - offset: 每页数量
+   * - pageSize: 每页数量
    */
-  getOrderSubscribe(params: { productKind: 'vip' | 'Points'; currentPage: number; offset: number }) {
+  getOrderSubscribe(params: {
+    productKind: 'vip' | 'Points'
+    type: 0 | 1
+    currentPage: number
+    pageSize: number
+  }) {
     return request.post('/v1/payment/getOrderSubscribe', params) as unknown as Promise<ApiResponse<any>>
   },
 }

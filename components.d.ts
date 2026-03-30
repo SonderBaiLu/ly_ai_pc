@@ -50,8 +50,10 @@ declare module 'vue' {
     GradientProgress: typeof import('./src/components/GradientProgress.vue')['default']
     Header: typeof import('./src/components/Header.vue')['default']
     HeroSection: typeof import('./src/sections/home/HeroSection.vue')['default']
+    HistoryCreativeModal: typeof import('./src/components/HistoryCreativeModal.vue')['default']
     ImageItem: typeof import('./src/components/ImageItem.vue')['default']
     ImageParamPopup: typeof import('./src/components/ImageParamPopup.vue')['default']
+    ImagePreviewModal: typeof import('./src/components/ImagePreviewModal.vue')['default']
     ImageUploadArea: typeof import('./src/components/ImageUploadArea.vue')['default']
     InfiniteScrollLoader: typeof import('./src/components/InfiniteScrollLoader.vue')['default']
     InspirationLibrary: typeof import('./src/components/InspirationLibrary.vue')['default']
@@ -79,6 +81,7 @@ declare module 'vue' {
     WriteOffModal: typeof import('./src/components/WriteOffModal.vue')['default']
   }
   export interface GlobalDirectives {
+    vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

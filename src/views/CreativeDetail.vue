@@ -251,7 +251,8 @@
 
     <!-- 反馈弹窗 -->
     <FeedbackModal v-if="templateDetail" v-model="showFeedbackModal" :user-id="userStore.userInfo?.userId"
-      :task-id="templateDetail?.taskId || (templateDetail as any)?.algoOrderId" :task-result-id="templateDetail?.id || (templateDetail as any)?.algoOrderResultId"
+      :task-id="templateDetail?.taskId || (templateDetail as any)?.algoOrderId"
+      :task-result-id="templateDetail?.id || (templateDetail as any)?.algoOrderResultId"
       @success="handleFeedbackSuccess" />
 
     <!-- 会员购买弹窗 -->
@@ -1217,8 +1218,8 @@ const handleDownload = async () => {
 
     const currentItem =
       pageTypeRef.value === 'assets' &&
-      selectedThumbnail.value >= 0 &&
-      selectedThumbnail.value < thumbnailAssets.value.length
+        selectedThumbnail.value >= 0 &&
+        selectedThumbnail.value < thumbnailAssets.value.length
         ? thumbnailAssets.value[selectedThumbnail.value]
         : currentItemBase
 
@@ -1734,9 +1735,6 @@ onMounted(async () => {
             typeName: '线稿转实物',
             titleName: '线稿转实物',
             fileType: 1,
-            imageUrl: images.design4,
-            imgUrl: images.design4,
-            fileUrl: images.design4,
           },
         ]
       }
