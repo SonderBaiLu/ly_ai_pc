@@ -20,7 +20,8 @@
         <img class="logo-icon" :src="images.money" alt="Logo" />
         <span class="credits-text">{{ credits }}</span>
       </div>
-      <el-button type="primary" :disabled="disabled" :loading="loading" class="generate-btn" @click="handleGenerate">
+      <el-button type="primary" :disabled="disabled" :loading="loading"
+        :class="['generate-btn', { 'generate-btn--locked': disabled }]" @click="handleGenerate">
         {{ buttonText }}
       </el-button>
     </div>
@@ -64,7 +65,7 @@ interface Emits {
 withDefaults(defineProps<Props>(), {
   options: () => [],
   credits: 0,
-  paramsType: '视频',
+  paramsType: '图片',
   buttonText: '立即生成',
   showParamsVideo: true,
   disabled: true,
@@ -178,6 +179,10 @@ const handleGenerate = () => {
       height: 46px;
       font-weight: $font-weight-medium;
       font-size: $font-size-base;
+
+      &.generate-btn--locked {
+        background-color: rgba(0, 0, 0, 0.5);
+      }
     }
   }
 

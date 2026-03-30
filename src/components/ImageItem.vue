@@ -4,9 +4,7 @@
     <div class="image-container">
       <!-- 生成中状态 -->
       <div v-if="imageData.status === 1 || imageData.status === 2" class="status-overlay is-generating">
-        <el-icon class="is-loading status-icon">
-          <Loading />
-        </el-icon>
+        <LoadingSpinner :size="42" :thickness="5" class="status-spinner" />
         <span class="status-text">
           {{
             imageData.status === 1
@@ -75,12 +73,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
 import { COLLECT_TYPE, type CollectTypeValue } from '@/constants/collectType'
 import { algoApi } from '@/api/algo'
 import { useUserStore } from '@/stores/user'
 import images from '@/assets'
 import { useI18n } from 'vue-i18n'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 // 图片数据接口
 interface ImageData {
@@ -456,9 +454,8 @@ const handleItemClick = () => {
   z-index: 1;
   color: $color-primary;
 
-  .status-icon {
+  .status-spinner {
     margin-bottom: 7px;
-    font-size: $font-size-2xl;
   }
 
   .status-text {
@@ -467,8 +464,7 @@ const handleItemClick = () => {
 }
 
 .status-overlay.is-generating {
-  background: url('@/assets/images/generating_160.gif') no-repeat center center;
-  background-size: 100% 100%;
+  background: rgba(20, 30, 45, 0.9);
 }
 
 .status-fail-img {

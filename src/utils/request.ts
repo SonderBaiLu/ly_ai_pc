@@ -214,25 +214,10 @@ const handleAuthExpired = () => {
     }
 
     const code = String((data as any).code ?? '')
-    const msg = String((data as any).msg ?? '')
 
-    if (code !== '0000') {
-      // 102：token 失效，清理登录态并回首页
-      if (code === '102') {
-        handleAuthExpired()
-        // 102：避免业务侧重复提示错误文案
-        const authError: any = new Error('')
-        authError.__AUTH_REQUIRED__ = true
-        authError.code = code
-        authError.msg = ''
-        return Promise.reject(authError)
-      }
-
-      // 其他：统一弹 msg
-      // ElMessage.error(msg || '请求失败')
-      const bizError: any = new Error(msg || 'Request Failed')
-      bizError.code = code
-      return Promise.reject(bizError)
+    // 业务码由调用方根据 res.code 处理；此处仅在 HTTP 成功且 body 结构合法时 resolve
+    if (code === '102') {
+      handleAuthExpired()
     }
 
     return data as any

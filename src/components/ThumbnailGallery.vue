@@ -2,16 +2,16 @@
   <div class="thumbnail-gallery">
     <!-- 缩略图列表 -->
     <div ref="thumbnailListRef" class="thumbnail-list">
-      <div v-for="(asset, index) in assets" :key="asset.id || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`"
-        class="thumbnail-item" :class="[
+      <div v-for="(asset, index) in assets"
+        :key="asset.id || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`" class="thumbnail-item" :class="[
           { active: index === currentIndex },
           { generating: asset.status === 0 || asset.status === 1 || asset.status === 2 },
           { failed: asset.status === 4 },
-        ]" :draggable="!isVideo(asset)" @click="selectThumbnail(index)"
-        @dragstart="handleDragStart(asset, $event)">
+        ]" :draggable="!isVideo(asset)" @click="selectThumbnail(index)" @dragstart="handleDragStart(asset, $event)">
         <!-- 生成中状态 -->
         <div v-if="asset.status === 0 || asset.status === 1 || asset.status === 2" class="thumbnail-generating">
-          <!-- 使用动态图占位（缩略图尺寸） -->
+          <LoadingSpinner :size="16" :thickness="2" :arc-ratio="0.24" />
+          <span class="generating-text">生成中...</span>
         </div>
 
         <!-- 生成失败状态 -->
@@ -36,6 +36,7 @@
 // 自动导入：Vue API, Element Plus 图标
 import { type CreationResult } from '@/composables/useTaskPolling'
 import { images } from '@/assets'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 // 定义组件属性
 interface Props {
@@ -292,11 +293,21 @@ defineExpose({
   height: 100%;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   overflow: hidden;
+  border-radius: 8px;
   background: url('@/assets/images/generating_80.gif') no-repeat center center;
   background-size: 100% 100%;
+
+  .generating-text {
+    font-size: 10px;
+    line-height: 1;
+    color: #96ddff;
+    white-space: nowrap;
+  }
 }
 
 // 失败缩略图
