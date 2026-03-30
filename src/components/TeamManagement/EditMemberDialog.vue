@@ -256,6 +256,7 @@ const submit = async () => {
       }
 
       .arrow-circle {
+        transform: rotate(180deg);
         width: 24px;
         height: 24px;
         border-radius: 50%;
@@ -265,7 +266,7 @@ const submit = async () => {
         transition: transform 0.2s;
 
         &.is-open {
-          transform: rotate(180deg);
+          transform: rotate(360deg);
         }
       }
     }
@@ -282,7 +283,7 @@ const submit = async () => {
       z-index: 100;
       display: flex;
       flex-direction: column;
-      padding: 6px;
+      padding: 12px;
       box-sizing: border-box;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 

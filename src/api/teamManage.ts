@@ -28,6 +28,9 @@ export const teamApi = {
     changeSonUser(params: { itemUserId: string, }){
         return request.post('/v1/user/changeSonUserPwd',params) as unknown as Promise<ApiResponse<any>>
     },
-
+    // 团队用户开启
+    registerByMainUser(params: object) {
+        return request.post('/v1/user/registerByMainUser', params) as unknown as Promise<ApiResponse<any>>
+    }
 }
 export default teamApi

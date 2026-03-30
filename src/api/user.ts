@@ -49,7 +49,7 @@ export const userApi = {
   // 邀请有礼数据
   getUserInvitations() {
     return request.get('/v1/user/getUserInvitations') as unknown as Promise<ApiResponse<UserInvitationsData>>
-  }
+  },
 }
 
 export default userApi

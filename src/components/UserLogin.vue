@@ -4,7 +4,7 @@
       <div class="left-panel">
         <div class="brand-logo">
           <span class="logo-icon">
-            <img :src="images.lingyan" alt="" />
+            <img :src="images.lingyan" alt=""/>
           </span>
         </div>
         <h1 class="main-title">{{ t('LoginPopUpPage.mainTitle') }}</h1>
@@ -14,19 +14,19 @@
         </div>
         <ul class="feature-list">
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/layered.png" alt="" /></span>
+            <span class="icon"><img src="/src/assets/images/login_popup/layered.png" alt=""/></span>
             <span>{{ t('LoginPopUpPage.simplifyDesign') }}</span>
           </li>
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/clothes.png" alt="" /></span>
+            <span class="icon"><img src="/src/assets/images/login_popup/clothes.png" alt=""/></span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') }}</span>
           </li>
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/shopping.png" alt="" /></span>
+            <span class="icon"><img src="/src/assets/images/login_popup/shopping.png" alt=""/></span>
             <span>{{ t('LoginPopUpPage.loginRewards') }}</span>
           </li>
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/pen.png" alt="" /></span>
+            <span class="icon"><img src="/src/assets/images/login_popup/pen.png" alt=""/></span>
             <span>{{ t('LoginPopUpPage.backToEssence') }}</span>
           </li>
         </ul>
@@ -62,16 +62,17 @@
               </div>
 
               <img v-if="qrCodeImg && qrStatus !== 'loading' && qrStatus !== 'scanned'" :src="qrCodeImg"
-                class="qrcode-image" alt="微信登录二维码" />
+                   class="qrcode-image" alt="微信登录二维码"/>
               <div v-if="qrStatus === 'scanned'" class="qrcode-mask scanned-mask">
                 <!--                <img class="success-icon"  src=" " alt="二维码过期"/>-->
                 <div class="scanned-title">扫描成功</div>
                 <div class="scanned-desc">关注「灵衍 AI」即可登录</div>
               </div>
 
-              <div v-if="qrStatus === 'expired'" class="qrcode-mask expired-mask" @click="initQrCode" title="点击刷新二维码">
+              <div v-if="qrStatus === 'expired'" class="qrcode-mask expired-mask" @click="initQrCode"
+                   title="点击刷新二维码">
                 <div class="refresh-icon-wrapper">
-                  <img :src="images.recaptureQR" alt="" />
+                  <img :src="images.recaptureQR" alt=""/>
                 </div>
               </div>
             </div>
@@ -79,7 +80,7 @@
             <div class="qrcode-instruction" v-if="qrStatus !== 'scanned'">
               <div class="wechat-hint">
                 <span class="wechat-icon">
-                  <img src="@/assets/images/login_popup/weixin.png" alt="" />
+                  <img src="@/assets/images/login_popup/weixin.png" alt=""/>
                 </span>
                 <span>打开微信 扫一扫登录</span>
               </div>
@@ -101,7 +102,7 @@
                 <span class="country-code">+86</span>
                 <div class="divider"></div>
                 <input type="tel" v-model="formData.phone" :placeholder="t('LoginPopUpPage.enterPhoneNumber')"
-                  maxlength="11" @input="handlePhoneInput" />
+                       maxlength="11" @input="handlePhoneInput"/>
               </div>
               <div v-if="codeErrorMsg && phoneLoginType === 'code'" class="error-text">
                 {{ codeErrorMsg }}
@@ -117,13 +118,13 @@
 
               <div class="input-wrapper code-input-wrapper">
                 <input type="tel" maxlength="4" v-model="formData.code"
-                  :placeholder="t('LoginPopUpPage.enterTheVerificationCode')" />
+                       :placeholder="t('LoginPopUpPage.enterTheVerificationCode')"/>
                 <button @click="GetSmSCode" class="get-code-btn"
-                  :disabled="!formData.phone || isCounting || isGettingCode">
+                        :disabled="!formData.phone || isCounting || isGettingCode">
                   {{
                     isGettingCode ? '发送中...' :
-                      isCounting ? t('LoginPopUpPage.smsCountdown', { seconds: countdown }) :
-                        t('LoginPopUpPage.getVerificationCode')
+                        isCounting ? t('LoginPopUpPage.smsCountdown', {seconds: countdown}) :
+                            t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
 
@@ -147,9 +148,9 @@
               <!--              :class="{ 'has-error': pwdErrorMsg }" -->
               <div class="input-wrapper">
                 <input :type="showPersonalPwd ? 'text' : 'password'" v-model="formData.password"
-                  :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError" />
+                       :placeholder="t('LoginPopUpPage.passwordPlaceholder')" @input="clearPwdError"/>
                 <span class="eye-icon" @click="showPersonalPwd = !showPersonalPwd">
-                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img" />
+                  <img :src="showPersonalPwd ? images.eye : images.eyeClose" alt="" class="eye-img"/>
                 </span>
               </div>
             </div>
@@ -168,7 +169,7 @@
               <label class="block-label">{{ t('LoginPopUpPage.teamAccountLabel') }}</label>
               <div class="input-wrapper">
                 <input type="text" v-model="formData.teamAccount"
-                  :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')" />
+                       :placeholder="t('LoginPopUpPage.teamAccountPlaceholder')"/>
               </div>
             </div>
 
@@ -176,9 +177,9 @@
               <label class="block-label">{{ t('LoginPopUpPage.teamPasswordLabel') }}</label>
               <div class="input-wrapper" :class="{ 'has-error': teamErrorMsg }">
                 <input :type="showTeamPwd ? 'text' : 'password'" v-model="formData.teamPassword"
-                  :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" @input="clearTeamError" />
+                       :placeholder="t('LoginPopUpPage.teamPasswordPlaceholder')" @input="clearTeamError"/>
                 <span class="eye-icon" @click="showTeamPwd = !showTeamPwd">
-                  <img :src="showTeamPwd ? iconEyesOpen : iconEyeClose" alt="" class="eye-img" />
+                  <img :src="showTeamPwd ? images.eye : images.eyeClose" alt="" class="eye-img"/>
                 </span>
               </div>
               <div v-if="teamErrorMsg" class="error-text">
@@ -209,24 +210,19 @@
           :mode="currentMode"
           :confirmedInviteCode="confirmedInviteCode"
           @success="handleBindSuccess"
-          @close="dialogs.isVisible = false" />
-
-<!--      <ResetPassword v-if="dialogs.isVisible" :open-id="openId" :mode="currentMode"-->
-<!--        :confirmedInviteCode="confirmedInviteCode" @close="dialogs.isVisible = false" />-->
-      <ResetPassword v-if="dialogs.isVisible" :open-id="openId" :mode="currentMode"
-        :confirmedInviteCode="confirmedInviteCode" @success="handleBindSuccess" @close="dialogs.isVisible = false" />
+          @close="dialogs.isVisible = false"/>
     </Transition>
     <InvitationCode v-if="dialogs.invitation" @update:visible="dialogs.invitation = $event"
-      @confirm="handleInviteConfirm" />
+                    @confirm="handleInviteConfirm"/>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getSmsCodeApi, getUserWechat, getWechatQrCodeApi } from '@/api/userLogin'
-import { useUserStore } from "@/stores/user"
+import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
+import {ElMessage} from 'element-plus'
+import {getSmsCodeApi, getUserWechat, getWechatQrCodeApi} from '@/api/userLogin'
+import {useUserStore} from "@/stores/user"
 import {images} from '@/assets'
 import ResetPassword from '@/components/ResetPassword.vue'
 import InvitationCode from '@/components/InvitationCode.vue'
@@ -235,7 +231,7 @@ import InvitationCode from '@/components/InvitationCode.vue'
 // 1. 全局配置与基础状态
 // ==========================================
 const userStore = useUserStore()
-const { t } = useI18n()
+const {t} = useI18n()
 const router = useRouter()
 const emit = defineEmits(['close'])
 const accountType = ref<'personal' | 'team'>('personal') // 账号类型：个人 / 团队
@@ -259,7 +255,7 @@ const goAgreement = (type: 'USER_AGREEMENT' | 'PRIVACY_POLICY') => {
   handleClose()
   router.push({
     path: '/agreement',
-    query: { type },
+    query: {type},
   })
 }
 
@@ -312,59 +308,11 @@ const initQrCode = async () => {
   }
 }
 
-// const startPolling = () => {
-//   qrCodeTimer = setInterval(async () => {
-//     try {
-//       const res = await getUserWechat({ sceneId: sceneId.value })
-//       if (String((res as any).code) === '0000') {
-//         const apiStatus = res.data.status;
-//         console.log(apiStatus);
-//         if (apiStatus === 0) {
-//           qrStatus.value = 'waiting';
-//         } else if (apiStatus === 1) {
-//           // 扫码成功，清除定时器
-//           clearTimeout(qrCodeTimer!);
-//           qrCodeTimer = null;
-//           if (res.data.mobileStatus) {
-//             // 需要绑定手机号 弹出绑定手机号弹窗
-//             dialogs.isVisible = true;
-//             currentMode.value = '3' // 用户第一次登录 显示密码
-//             openId.value = res.data.openId
-//             ElMessage.success('扫码成功，请绑定手机号');
-//           } else{
-//             // 已关注/已绑定，直接登录成功
-//             const accessToken = res.data.accessToken
-//             if(accessToken){
-//               userStore.setToken(accessToken);
-//             }
-//             try{
-//               await userStore.getUserInfo(); // 触发获用户信息接口
-//               ElMessage.success('登录成功');
-//               emit('close');
-//               await router.push('/').catch(() => {});
-//             }catch (e:any){
-//               ElMessage.error(e.message);
-//             }
-//           }
-//
-//         } else if (apiStatus === -1) {
-//           clearTimeout(qrCodeTimer!);
-//           qrCodeTimer = null;
-//           qrStatus.value = 'expired';
-//         }
-//       }
-//     } catch (e) {
-//       console.error('查询状态异常', e);
-//     }
-//   }, 2000);
-// }
-
-
 const startPolling = () => {
   // 定义一个内部的异步轮询函数
   const poll = async () => {
     try {
-      const res = await getUserWechat({ sceneId: sceneId.value })
+      const res = await getUserWechat({sceneId: sceneId.value})
       if (String((res as any).code) === '0000') {
         const apiStatus = res.data.status;
         if (apiStatus === 0) {
@@ -387,7 +335,8 @@ const startPolling = () => {
               await userStore.getUserInfo();
               ElMessage.success('登录成功');
               emit('close');
-              await router.push('/').catch(() => { });
+              await router.push('/').catch(() => {
+              });
             } catch (e: any) {
               ElMessage.error(e.message);
             }
@@ -410,7 +359,6 @@ const startPolling = () => {
 }
 
 
-
 // 处理 ResetPassword 组件绑定成功后的回调 接收子组件传来的 mode 参数
 const handleBindSuccess = async (mode: string) => {
   try {
@@ -421,7 +369,8 @@ const handleBindSuccess = async (mode: string) => {
       await userStore.getUserInfo();
       ElMessage.success('登录成功');
       emit('close'); // 关闭整个登录大弹窗
-      await router.push('/').catch(() => { });
+      await router.push('/').catch(() => {
+      });
     } else {
       // 模式 0, 1, 2 (重置/修改密码) 成功后，不需要拉取用户信息！
       // 只需要引导用户回到密码登录界面即可
