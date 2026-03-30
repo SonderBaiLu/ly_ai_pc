@@ -261,6 +261,18 @@ const openConfirm = (type: 'disable' | 'resetPwd' | 'delete', row: any) => {
     confirmDialog.visible = true
   }
 }
+// 控制弹窗显示的变量
+const showResetPwdModal = ref(false)
+
+// 存放接口返回的数据
+const resetPwdData = ref({
+  team: '',
+  website: '',
+  accountName: '',
+  nickname: '',
+  password: ''
+})
+
 // 确认弹窗的提交操作
 const handleConfirm = async () => {
   if (!confirmDialog.targetRow) return
