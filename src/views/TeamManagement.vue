@@ -247,8 +247,8 @@ const openConfirm = (type: 'disable' | 'resetPwd' | 'delete', row: any) => {
     const isEnableAction = row.status === 0; // 默认是0
     confirmDialog.title = isEnableAction ? '启用账号确认' : '停用账号确认'
     confirmDialog.message = isEnableAction
-      ? `确定需要启用该账号吗？启用后该成员将恢复正常登录及使用权限。`
-      : `确定需要停用该账号吗？停用后将无法登录，请谨慎操作。`
+        ? `确定需要启用该账号吗？启用后该成员将恢复正常登录及使用权限。`
+        : `确定需要停用该账号吗？停用后将无法登录，请谨慎操作。`
     confirmDialog.visible = true
   } else if (type === 'resetPwd') {
     confirmDialog.title = '重置密码确认'
