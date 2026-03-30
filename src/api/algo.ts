@@ -49,8 +49,8 @@ export type DoCalculationPointPayload = {
   /** 灵衍值试算：功能菜单编码 */
   /** 功能模块 code（后端：menuCode） */
   menuCode: string
-  /** 需要操作的图片路径 */
-  image?: string
+  /** 需要操作的图片路径集合 */
+  image: string[]
   /** 模版入参（后端：templateParams） */
   templateParams: DoCalculationPointTemplateParam[]
 
@@ -118,10 +118,10 @@ export const algoApi = {
   /**
    * 查询算法生成（状态轮询）
    * - GET /api/v1/algo/query
-   * - algoOrderId[string] 生成订单ID
+   * - orderNo[string] 提交接口返回的订单号
    */
-  query(params: { algoOrderId: string; userId?: string }) {
-    return request.get('/v1/algo/query', { params }) as unknown as Promise<ApiResponse<any>>
+  query(params: { orderNo: string }) {
+    return request.get('/v1/algo/query', { params: { orderNo: params.orderNo } }) as unknown as Promise<ApiResponse<any>>
   },
 
   /**

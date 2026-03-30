@@ -39,7 +39,7 @@
           <span class="count">已选择 <span class="count-num">{{ selectedCount }}</span> 项特征</span>
           <el-button class="clear-btn" plain @click="clearAll">清空重选</el-button>
         </div>
-        <el-button type="primary" class="confirm-btn" @click="handleConfirm">确定</el-button>
+        <el-button type="primary" class="confirm-btn" :disabled="!canConfirm" @click="handleConfirm">确定</el-button>
       </div>
     </template>
   </el-dialog>
@@ -200,6 +200,8 @@ const selectedCount = computed(() => {
   return Object.values(local).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
 })
 
+const canConfirm = computed(() => selectedCount.value > 0)
+
 const clearAll = () => {
   Object.keys(local).forEach((k) => (local[k] = []))
 }
@@ -209,6 +211,7 @@ const handleClose = () => {
 }
 
 const handleConfirm = () => {
+  if (!canConfirm.value) return
   const normalized: DesignFeatureSelection = {}
   Object.entries(local).forEach(([k, arr]) => {
     const list = Array.isArray(arr) ? arr.filter((x) => String(x || '').trim()) : []

@@ -277,20 +277,24 @@ const handleImageLoad = () => {
 // 防抖：防止快速重复点击
 let uploadTimer: ReturnType<typeof setTimeout> | null = null
 
-// 处理上传
-const handleUpload = (type: string, position: string) => {
-  // 清除之前的定时器
-  if (uploadTimer) {
-    return
+// 打开本地文件选择器，并把结果透传为 drop-file
+const openLocalUploadPicker = (type: string, position: string) => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.multiple = false
+  input.onchange = (e: any) => {
+    const file: File | undefined = e?.target?.files?.[0]
+    if (!file) return
+    emit('drop-file', { file, type, position })
   }
+  input.click()
+}
 
-  // 立即触发上传事件
-  emit('upload', {
-    type,
-    position,
-  })
-
-  // 设置300ms防抖
+// 处理上传（本地上传）
+const handleUpload = (type: string, position: string) => {
+  if (uploadTimer) return
+  openLocalUploadPicker(type, position)
   uploadTimer = setTimeout(() => {
     uploadTimer = null
   }, 300)
@@ -299,11 +303,8 @@ const handleUpload = (type: string, position: string) => {
 // 处理替换下拉菜单命令
 const handleReplaceCommand = (command: string) => {
   if (command === 'upload') {
-    // 本地上传
-    emit('replace', {
-      type: props.imageType,
-      position: props.imageName,
-    })
+    // 本地上传（替换已上传图片）
+    openLocalUploadPicker(props.imageType, props.imageName)
   } else if (command === 'history' && props.enableHistoryReplace) {
     // 历史创作
     emit('show-history', {

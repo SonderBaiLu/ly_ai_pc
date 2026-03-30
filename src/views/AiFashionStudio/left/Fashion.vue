@@ -29,16 +29,22 @@
     </div>
 
     <div class="block-title">上传参考图<span class="required-mark">（非必传）</span></div>
-    <ImageUploadArea v-model:image-url="imageUrl" image-type="ref" image-name="reference" :show-actions="!!imageUrl"
-      :clickable="true" placeholder-text="上传或拖拽参考图" :show-history-tip="true" :enable-history-replace="false"
-      @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-      @show-history="emit('show-history')" @drop-file="(p: File) => emit('drop-file', p)" />
+    <ImageUploadArea :image-url="imageUrl?.[0] || ''" image-type="ref" image-name="slot-0"
+      :show-actions="String(imageUrl?.[0] ?? '').trim().length > 0" :clickable="true" placeholder-text="上传或拖拽参考图"
+      :show-history-tip="true" :enable-history-replace="true" @upload="emit('coming-soon')"
+      @replace="emit('coming-soon')" @delete="emit('delete')" @show-history="emit('show-history')"
+      @drop-file="(p: File) => emit('drop-file', p)" v-if="imageUrl.length == 0" />
 
     <!-- 上传之后的样式 -->
-    <el-scrollbar>
+    <el-scrollbar v-if="imageUrl.length > 0">
       <div class="scrollbar-flex-content">
-        <ImageUploadArea v-for="n in 5" :key="n" v-model:image-url="imageUrl" image-type="main" image-name="main"
-          placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px" />
+        <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
+          :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+          :enable-history-replace="true" @delete="emit('delete')" @show-history="emit('show-history')"
+          @drop-file="(p: any) => emit('drop-file', p)" />
+        <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+          :enable-history-replace="true" @delete="emit('delete')" @show-history="emit('show-history')"
+          @drop-file="(p: any) => emit('drop-file', p)" v-if="imageUrl.length < 6" />
       </div>
     </el-scrollbar>
 
@@ -48,8 +54,9 @@
       @update:inspiration-words="updateInspirationWords" />
 
     <!-- 底部参数以及生成按钮 -->
-    <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="isGenerating" :loading="isGenerating"
-      button-text="立即生成" @show-params="() => emit('show-params')" @generate="() => emit('generate')" />
+    <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="generateButtonDisabled"
+      :loading="submitting" button-text="立即生成" @show-params="() => emit('show-params')"
+      @generate="() => emit('generate')" />
 
     <!-- 设计特征弹窗 -->
     <DesignFeatureModal v-model="showFeatureModal" :selection="designFeatureSelection" :categories="featureCategories"
@@ -65,15 +72,18 @@ import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import DesignFeatureModal, { type DesignFeatureSelection } from '@/components/DesignFeatureModal.vue'
 
-const imageUrl = defineModel<string>('imageUrl', { default: '' })
+// ai服装设计：参考图最多 6 张（slot-0 ~ slot-5）
+const imageUrl = defineModel<string[]>('imageUrl', { default: () => [] })
 
 const props = defineProps<{
-  taskResultId?: string | number
+  taskResultId?: string | number | Array<string | number>
   creationTypeSelection?: Partial<CreationTypeSelection>
   inspirationWords?: any[]
   coin?: number
   menuId?: string | number
   defaultImageParams?: string[]
+  /** 父级提交生成中（与 index loading 同步） */
+  submitting?: boolean
 }>()
 
 // 监听inspirationWords变化
@@ -98,6 +108,11 @@ const emit = defineEmits<{
   (e: 'inspiration-library'): void
   (e: 'show-history'): void
   (e: 'update:inspiration-words', words: any[]): void
+  /**
+   * ai服装设计：将“设计特性”确认后的后端参数结构上抛
+   * 用于 payload.designFeaturesParams
+   */
+  (e: 'update:design-features-params', params: Array<{ id: string; configType: string; prentId: string; content: string }>): void
 }>()
 
 const prompt = defineModel<string>('prompt', { default: '' })
@@ -109,16 +124,41 @@ const typeText = computed(() => {
   return `${s.category}-${s.clothType}-${s.subKind}`
 })
 
+/** 创作款型（必选）已选满三级 */
+const isCreationTypeReady = computed(() => Boolean(typeText.value))
+
+/** 默认不可点；选完款型后可点；提交中不可点 */
+const generateButtonDisabled = computed(() => !isCreationTypeReady.value || Boolean(props.submitting))
+
 const showFeatureModal = ref(false)
 const designFeatureSelection = ref<DesignFeatureSelection>({})
 const featureCategories = ref<Array<{ key: string; label: string; options: string[] }>>([])
+type DesignFeatureOptionMeta = { id: string; configType: string; prentId: string; content: string }
+// featureOptionMetaMap[categoryKey][optionLabel] => 后端 payload 必填字段
+const featureOptionMetaMap = ref<Record<string, Record<string, DesignFeatureOptionMeta>>>({})
 
 const handleFeatureConfirm = (v: DesignFeatureSelection) => {
   designFeatureSelection.value = v
+
+  // 把用户选择转换为后端需要的 designFeaturesParams 结构
+  const params: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+  for (const [categoryKey, labels] of Object.entries(v || {})) {
+    if (!Array.isArray(labels)) continue
+    const metaByLabel = featureOptionMetaMap.value[categoryKey] || {}
+    for (const label of labels) {
+      const m = metaByLabel[label]
+      if (!m) continue
+      params.push({ id: m.id, configType: m.configType, prentId: m.prentId, content: m.content })
+    }
+  }
+
+  emit('update:design-features-params', params)
 }
 
 const normalizeFeatureCategories = (list: any[] = []) => {
-  return list
+  const nextMetaMap: Record<string, Record<string, DesignFeatureOptionMeta>> = {}
+
+  const normalized = list
     .map((item: any) => ({
       key: String(item?.code ?? item?.typeCode ?? item?.id ?? ''),
       label: String(item?.title ?? item?.typeName ?? item?.content ?? ''),
@@ -127,6 +167,28 @@ const normalizeFeatureCategories = (list: any[] = []) => {
         .filter(Boolean),
     }))
     .filter((item: { key: string; label: string }) => item.key && item.label)
+
+  // 同步构建 meta map（用于把选中 label 映射到后端必填字段）
+  for (const item of list) {
+    const categoryKey = String(item?.code ?? item?.typeCode ?? item?.id ?? '')
+    if (!categoryKey) continue
+    const words = item?.wordsList || item?.children || []
+    for (const w of words) {
+      const label = String(w?.name ?? w?.wordsName ?? w?.content ?? '').trim()
+      if (!label) continue
+      const meta: DesignFeatureOptionMeta = {
+        id: String(w?.id ?? w?.wordsId ?? w?.code ?? ''),
+        configType: String(w?.configType ?? 'words'),
+        prentId: String(w?.prentId ?? w?.parentId ?? item?.id ?? categoryKey ?? ''),
+        content: String(w?.content ?? w?.name ?? w?.wordsName ?? label),
+      }
+      nextMetaMap[categoryKey] = nextMetaMap[categoryKey] || {}
+      nextMetaMap[categoryKey][label] = meta
+    }
+  }
+
+  featureOptionMetaMap.value = nextMetaMap
+  return normalized
 }
 
 const fetchDesignFeatures = async () => {
@@ -155,8 +217,6 @@ const updateInspirationWords = (words: any[]) => {
   inspirationWords.value = words
   emit('update:inspiration-words', words)
 }
-
-const isGenerating = ref(false)
 
 const selectedFeatures = computed(() => {
   const result: Array<{ key: string; categoryKey: string; label: string }> = []

@@ -38,7 +38,7 @@
     <!-- 试一试示例行 -->
     <div v-if="showTryLine && displayTryText" class="try-line">
       <span class="try-label">试一试：</span>
-      <div class="try-noticebar" role="button" tabindex="0" @click="handleShuffle">
+      <div class="try-noticebar" role="button" tabindex="0" @click="handleApplyTryText">
         <ScrollText class="try-scroll" :text="displayTryText" :speed="10" />
       </div>
       <span class="try-refresh" title="换一换" @click="handleShuffle">
@@ -200,27 +200,39 @@ const handleRemoveTag = (id: string): void => {
   emit('update:inspirationWords', newWords)
 }
 
-const handleShuffle = () => {
+const handleShuffle = async () => {
   if (isFetchingTryPrompt.value) return
   if (!props.menuId) return
   isFetchingTryPrompt.value = true
-  algoApi
-    .getFunctionPrompt({ menuId: String(props.menuId) })
-    .then((res) => {
-      if (res?.code !== '0000') {
-        return
-      }
-      // 接口返回里通常直接包含：{ functionPromptId, prompt }
-      // 但也可能多包一层 data: { data: { prompt } }
-      const resAny = res as any
-      const prompt =
-        String(resAny?.data?.prompt ?? resAny?.data?.data?.prompt ?? '').trim()
-      if (prompt) displayTryText.value = prompt
-      hasFetchedTryPromptOnce.value = true
-    })
-    .finally(() => {
-      isFetchingTryPrompt.value = false
-    })
+  try {
+    const res = await algoApi.getFunctionPrompt({ menuId: String(props.menuId) })
+    if (res?.code !== '0000') return
+
+    // 接口返回里通常直接包含：{ functionPromptId, prompt }
+    // 但也可能多包一层 data: { data: { prompt } }
+    const resAny = res as any
+    const prompt = String(resAny?.data?.prompt ?? resAny?.data?.data?.prompt ?? '').trim()
+    if (prompt) displayTryText.value = prompt
+    hasFetchedTryPromptOnce.value = true
+    return displayTryText.value
+  } finally {
+    isFetchingTryPrompt.value = false
+  }
+}
+
+const handleApplyTryText = async () => {
+  if (isFetchingTryPrompt.value) return
+
+  if (!displayTryText.value) {
+    const next = await handleShuffle()
+    if (!next) return
+    localDescription.value = next
+    emit('try-example', next)
+    return
+  }
+
+  localDescription.value = displayTryText.value
+  emit('try-example', displayTryText.value)
 }
 onMounted(() => {
   if (props.menuId) {

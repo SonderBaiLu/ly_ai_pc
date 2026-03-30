@@ -60,6 +60,7 @@ declare module 'vue' {
     InspirationValueModal: typeof import('./src/components/InspirationValueModal.vue')['default']
     InvitationCode: typeof import('./src/components/InvitationCode.vue')['default']
     LazyImage: typeof import('./src/components/LazyImage.vue')['default']
+    LoadingSpinner: typeof import('./src/components/LoadingSpinner.vue')['default']
     MainImageDisplay: typeof import('./src/components/MainImageDisplay.vue')['default']
     MediaPlayer: typeof import('./src/components/MediaPlayer.vue')['default']
     MembershipModal: typeof import('./src/components/MembershipModal.vue')['default']

@@ -20,15 +20,16 @@
         <!-- 资产列表 -->
         <div class="assets-list">
           <!-- 资产项 -->
-          <div v-for="(asset, index) in assets" :key="asset.id || asset.algoOrderId || asset.algoUuId || `creation-${index}`"
-            class="asset-item" :class="[
+          <div v-for="(asset, index) in assets"
+            :key="asset.id || asset.algoOrderId || asset.algoUuId || `creation-${index}`" class="asset-item" :class="[
               { active: index === currentIndex },
               asset.status === 0 || asset.status === 1 || asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
             ]" @click="selectAsset(index)">
 
             <!-- 生成中状态（使用动态图占位；不展示进度条） -->
-            <div v-if="asset.status === 0 || asset.status === 1 || asset.status === 2" class="asset-placeholder generating">
-              <div class="status-spinner" aria-hidden="true"></div>
+            <div v-if="asset.status === 0 || asset.status === 1 || asset.status === 2"
+              class="asset-placeholder generating">
+              <LoadingSpinner :size="72" :thickness="8" />
               <div class="status-text">正在生成中...</div>
               <GradientProgress :percentage="getProgressValue(asset)" />
             </div>
@@ -127,9 +128,10 @@
 // 自动导入：Vue API, Element Plus 图标
 import { type CreationResult } from '@/composables/useTaskPolling'
 import { ElMessage } from 'element-plus'
-import { ArrowUp } from '@element-plus/icons-vue'
+import { ArrowUp, Loading } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import GradientProgress from './GradientProgress.vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
 
@@ -141,6 +143,10 @@ interface Props {
   hasMoreData?: boolean
   loading?: boolean // 加载中（自动判断是首次加载还是加载更多）
   loadingMore?: boolean // 加载更多标志，防止重复请求
+  // 右侧顶部导航（用于展示“一级菜单 + 收藏”）
+  contentTabs?: Array<{ key: string; label: string; fileType?: number }>
+  // 父层控制：用于让右侧 el-tabs 默认/切换时保持同一 key
+  activeTabKey?: string
   // 下载中状态（用于按钮展示 loading/禁用）
   downloadingAssetKeys?: Array<string | number>
   // 会员状态
@@ -169,9 +175,11 @@ const props = withDefaults(defineProps<Props>(), {
   hasMoreData: false,
   loading: false,
   loadingMore: false,
+  contentTabs: () => [],
   downloadingAssetKeys: () => [],
   isVip: false,
   removeWatermarkEnabled: false,
+  activeTabKey: '',
 })
 
 const emit = defineEmits<Emits>()
@@ -193,7 +201,7 @@ watch(
 // 响应式数据
 const mainContentRef = ref<HTMLElement>()
 const scrollbarRef = ref<any>(null)
-const activeContentTab = ref('all')
+const activeContentTab = ref(props.activeTabKey || 'all')
 const downloadMenuVisibleIndex = ref<number | null>(null)
 
 // 回到顶部相关
@@ -275,15 +283,49 @@ void currentAsset
 const mediaFrameClass = computed(() => '')
 void mediaFrameClass
 
-// 内容标签
-const contentTabs = ref<Array<{ key: string; label: string; fileType?: number }>>([
+// 默认内容标签（历史/兜底用；若父级传入 contentTabs 则以父级为准）
+const defaultContentTabs = [
   { key: 'all', label: '全部' },
   { key: 'images', label: '图片', fileType: 1 },
   { key: 'videos', label: '视频', fileType: 2 },
   { key: 'fashion', label: '服装设计', fileType: 3 },
   { key: 'fabric', label: 'AI面料', fileType: 4 },
   { key: 'favorites', label: '收藏' },
-])
+]
+
+// 内容标签：优先使用父级传入
+const contentTabs = computed(() => {
+  return Array.isArray(props.contentTabs) && props.contentTabs.length ? props.contentTabs : defaultContentTabs
+})
+
+// activeContentTab 若不在 tabs 列表中，则切换到第一个 tab
+watch(
+  contentTabs,
+  (tabs) => {
+    if (!tabs?.length) return
+    const hasActive = tabs.some((t) => t.key === activeContentTab.value)
+    const hasExternal = props.activeTabKey && tabs.some((t) => t.key === props.activeTabKey)
+    if (hasExternal) {
+      activeContentTab.value = props.activeTabKey
+    } else if (!hasActive) {
+      activeContentTab.value = tabs[0].key
+    }
+  },
+  { immediate: true },
+)
+
+// 父层 activeTabKey 变化时，同步切换
+watch(
+  () => props.activeTabKey,
+  (next) => {
+    if (!next) return
+    const tabs = contentTabs.value
+    if (!tabs?.length) return
+    if (tabs.some((t) => t.key === next)) {
+      activeContentTab.value = next
+    }
+  },
+)
 
 // 计算属性：空状态提示文字
 const emptyDescription = computed(() => {
@@ -921,23 +963,6 @@ defineExpose({
     background-color: $color-bg-dark-secondary;
     background: url('@/assets/images/generating.gif') no-repeat center center;
     background-size: 100% 100%;
-
-    /* ========== 加载中圈圈 ========== */
-    .status-spinner {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: 8px solid #2d4655;
-      border-top-color: #96ddff;
-      animation: spin 1.5s linear infinite;
-      box-sizing: border-box;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
 
     .status-text {
       margin: $spacing-md 0;

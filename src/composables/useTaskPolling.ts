@@ -196,11 +196,8 @@ export function useTaskPolling(
       pollCount++
 
       try {
-        // 获取用户ID（转换为字符串）
-        const userId = String(userInfo.value?.userId || '')
-
-        // 使用 algo/query 轮询算法生成状态
-        const res = await algoApi.query({ algoOrderId: taskId, userId })
+        // 使用 algo/query 轮询算法生成状态（参数名：orderNo）
+        const res = await algoApi.query({ orderNo: taskId })
 
         if (res.code === '0000' && res.data) {
           const { status, progress, successfulCount, failedCount } = res.data
