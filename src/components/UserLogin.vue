@@ -33,7 +33,7 @@
       </div>
 
       <div class="right-panel">
-        <button class="close-btn" @click="handleClose">✕</button>
+        <button  class="close-btn" @click="handleClose">✕</button>
 
         <div class="account-type-switch" :class="accountType">
           <div class="switch-item" :class="{ active: accountType === 'personal' }" @click="accountType = 'personal'">
@@ -119,7 +119,7 @@
               <div class="input-wrapper code-input-wrapper">
                 <input type="tel" maxlength="4" v-model="formData.code"
                        :placeholder="t('LoginPopUpPage.enterTheVerificationCode')"/>
-                <button @click="GetSmSCode" class="get-code-btn"
+                <button type="button" @click.prevent="GetSmSCode" class="get-code-btn"
                         :disabled="!formData.phone || isCounting || isGettingCode">
                   {{
                     isGettingCode ? '发送中...' :
@@ -159,7 +159,7 @@
                 {{ confirmedInviteCode ? `邀请码: ${confirmedInviteCode}` : t('LoginPopUpPage.inviteFill') }}
               </a>
             </div>
-            <button class="submit-btn" @click="handleSubmit" :disabled="isSubmitting">
+            <button class="submit-btn" @click.prevent="handleSubmit" :disabled="isSubmitting">
               {{ t('LoginPopUpPage.loginOrRegister') }}
             </button>
           </div>
@@ -187,7 +187,7 @@
               </div>
             </div>
 
-            <button class="submit-btn team-submit-btn" @click="handleTeamSubmit" :disabled="isTeamSubmitting">
+            <button class="submit-btn team-submit-btn" @click.prevent="handleTeamSubmit" :disabled="isTeamSubmitting">
               {{ t('LoginPopUpPage.teamLoginButton') }}
             </button>
           </div>
@@ -466,11 +466,7 @@ const GetSmSCode = async () => {
         }
       }, 1000)
     } else {
-      if((res as any).msg === 'sms.sending.failure') {
-        ElMessage.error("验证码发送失败")
-        return
-      }
-      ElMessage.error((res as any).msg || '发送失败')
+      ElMessage.error("验证码发送失败")
     }
   } catch (e) {
     console.error('getSmsCode error', e)
@@ -486,13 +482,22 @@ const handleSubmit = async () => {
   try {
     if (phoneLoginType.value === 'code') {
       if (!formData.code) return ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
-       await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode.value)
-      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
-      emit('close')
+      const res = await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode.value)
+      if (String((res as any).code) === '0000') {
+        ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+        emit('close')
+      } else {
+        codeErrorMsg.value = res as any
+      }
     } else {
       if (!formData.password) return ElMessage.error(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
-      await userStore.loginWithPassword(formData.phone, formData.password)
-      emit('close')
+      const res = await userStore.loginWithPassword(formData.phone, formData.password)
+      if (String((res as any).code) === '0000') {
+        ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+        emit('close')
+      } else {
+        pwdErrorMsg.value = res as any
+      }
     }
   } catch (e: any) {
     const errorMsg = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'

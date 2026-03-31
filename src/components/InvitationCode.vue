@@ -58,6 +58,8 @@ const handleConfirm = async () => {
       emit('confirm', inviteCode.value)
       // 成功后自动关闭弹窗
       emit('update:visible', false)
+    }else{
+      ElMessage.error((res as any).msg)
     }
   } catch (err: any) {
     ElMessage.error(err.message || err.msg)

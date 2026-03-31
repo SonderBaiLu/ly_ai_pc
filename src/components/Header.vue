@@ -758,17 +758,20 @@ const teamChildRef = ref<InstanceType<typeof OpneTeamMember> | null>(null)
 const handleClick = () => {
   // 1. 关闭右上角的头像下拉菜单
   closeUserMenu()
-  // 1. 如果是主账号 或者 是 管理员 就直接跳转团队管理页面
-  if (userStore.userInfo.mainAccount || userStore.userInfo.mainAdmin === true) {
-    router.push('/team-management')
-    return
-  }
-  // 2. 只有非主账号，调起子组件的弹窗
-  if (teamChildRef.value) {
-    console.log(userStore.userInfo)
-    console.log(userStore.userInfo.mainAdmin)
-    teamChildRef.value.openModal()
-  }
+     console.log(userStore.userInfo)
+    if (userStore.userInfo.teamStatus === false || userStore.userInfo.teamStatus === 'false') {
+      if (teamChildRef.value) {
+        teamChildRef.value.openModal()
+      }
+      return
+    }
+    // 状态 2：已经开通了团队协作
+    if (userStore.userInfo.teamStatus === true || userStore.userInfo.teamStatus === 'true') {
+      // 主账号/管理员 -> 去团队管理页面
+      if (userStore.userInfo.mainAccount || userStore.userInfo.mainAdmin === true) {
+        router.push('/team-management')
+      }
+    }
 }
 
 const modalStore = useModalStore()

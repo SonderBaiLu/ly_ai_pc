@@ -74,7 +74,7 @@
   </el-dialog>
   <Teleport to="body">
     <Transition name="modal">
-      <ResetPassword v-if="isVisible" :mode="currentMode" :is-from-settings="true" @close="isVisible = false" />
+      <ResetPassword :is-set-password="!hasPassword"  v-if="isVisible" :mode="currentMode" :is-from-settings="true" @close="isVisible = false" />
     </Transition>
   </Teleport>
 
@@ -90,7 +90,6 @@ import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
 import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 import { images } from '@/assets'
-import ResetPassword from '@/components/ResetPassword.vue'
 
 interface Props {
   modelValue: boolean
@@ -220,7 +219,7 @@ watch(
           headImgUrl: userInfo.headImgUrl || '',
           nickname: userInfo.nickname || userInfo.nickName || '',
           introduction: userInfo.desc || userInfo.introduction || '',
-          userName: userInfo.userName || '',
+          userName: userInfo.mobile || '',
         }
       }
       // 监视密码是否有修改 是否有设置

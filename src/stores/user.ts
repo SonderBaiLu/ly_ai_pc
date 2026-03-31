@@ -107,19 +107,27 @@ export const useUserStore = defineStore('user', {
     // 短信验证码登录
     async loginWithSms(mobile: string, verifyCode: string, confirmedInviteCode: string) {
       const res = await loginBySmsCodeApi({ mobile, verifyCode, confirmedInviteCode })
+      if(String((res as any).code) === '0000'){
         const tokenStr = res.data?.accessToken
         this.setToken(tokenStr)
         await this.getUserInfo()
-        return
+        return res
+      } else {
+        return res.msg
+      }
     },
 
     // 密码登录
     async loginWithPassword(mobile: string, pwd: string) {
       const res = await loginByPwd({ mobile, pwd })
+      if(String((res as any).code) === '0000'){
         const tokenStr = res.data?.accessToken
         this.setToken(tokenStr)
         await this.getUserInfo()
-        return
+        return res
+      } else {
+        return res.msg
+      }
     },
 
     // 团队密码登录

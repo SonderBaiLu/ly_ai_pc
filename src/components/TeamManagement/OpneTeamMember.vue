@@ -57,11 +57,8 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 import teamApi from "@/api/teamManage.ts";
-import {useUserStore} from "@/stores/user"
-import router from "@/router";
 import {ElMessage} from "element-plus";
 
-const userStore = useUserStore()
 
 // 控制弹窗显示状态
 const showCollabModal = ref(false)
@@ -98,7 +95,7 @@ defineExpose({
   openModal
 })
 
-// 复制密码逻辑（模拟）
+// 复制密码逻辑
 const handleCopyPassword = async () => {
   const copyText = (
       `团队：${from.value.Account}

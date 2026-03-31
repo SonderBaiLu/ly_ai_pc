@@ -2,8 +2,8 @@
   <div class="modal-overlay">
     <div class="modal-content">
       <button class="close-btn" @click="closeModal">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M14 2L2 14M2 2L14 14" stroke="#999999" stroke-width="2" stroke-linecap="round" />
+        <svg fill="none" height="16" viewBox="0 0 16 16" width="16">
+          <path d="M14 2L2 14M2 2L14 14" stroke="#999999" stroke-linecap="round" stroke-width="2"/>
         </svg>
       </button>
 
@@ -14,20 +14,20 @@
       <div class="form-area">
         <div class="form-group">
           <label>{{ t('bindPhoneModal.phoneLabel') }}</label>
-          <div class="input-wrapper" :class="{ 'has-error': phoneErr }">
+          <div :class="{ 'has-error': phoneErr }" class="input-wrapper">
             <span class="prefix">+86</span>
             <div class="divider"></div>
-            <input v-model="phone" type="tel" :placeholder="t('bindPhoneModal.phonePlaceholder')" maxlength="11" />
+            <input v-model="phone" :placeholder="t('bindPhoneModal.phonePlaceholder')" maxlength="11" type="tel"/>
           </div>
           <span class="error-text">{{ phoneErr }}</span>
         </div>
 
         <div class="form-group">
           <label>{{ t('bindPhoneModal.codeLabel') }}</label>
-          <div class="input-wrapper code-wrapper" :class="{ 'has-error': codeErr }">
-            <input v-model="code" type="text" :placeholder="t('bindPhoneModal.codePlaceholder')" maxlength="4" />
-            <button class="get-code-btn" :class="{ disabled: isCounting }" :disabled="isCounting"
-              @click="handleGetCode">
+          <div :class="{ 'has-error': codeErr }" class="input-wrapper code-wrapper">
+            <input v-model="code" :placeholder="t('bindPhoneModal.codePlaceholder')" maxlength="4" type="text"/>
+            <button :class="{ disabled: isCounting }" :disabled="isCounting" class="get-code-btn"
+                    @click="handleGetCode">
               {{ countText }}
             </button>
           </div>
@@ -42,15 +42,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useForm, useField } from "vee-validate"; // 记得导入 useField
-import { codeLoginSchema } from "@/utils/validationSchemas.ts";
+<script lang="ts" setup>
+import {computed, ref} from 'vue';
+import {useI18n} from 'vue-i18n';
+import {useField, useForm} from "vee-validate"; // 记得导入 useField
+import {codeLoginSchema} from "@/utils/validationSchemas.ts";
 
-const { t } = useI18n();
+const {t} = useI18n();
 //表单验证初始化
-const { handleSubmit, validateField } = useForm({
+const {handleSubmit, validateField} = useForm({
   validationSchema: codeLoginSchema,
   initialValues: {
     phone: '',
@@ -58,8 +58,8 @@ const { handleSubmit, validateField } = useForm({
   }
 });
 // 字段绑定
-const { value: phone, errorMessage: phoneErr } = useField('phone');
-const { value: code, errorMessage: codeErr } = useField('code');
+const {value: phone, errorMessage: phoneErr} = useField('phone');
+const {value: code, errorMessage: codeErr} = useField('code');
 
 // 提交
 const onSubmit = handleSubmit((values: { phone: string; code: string }) => {
@@ -74,13 +74,13 @@ const countdown = ref(120);
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const countText = computed(() =>
-  isCounting.value
-    ? t('bindPhoneModal.countdown', { seconds: countdown.value })
-    : t('bindPhoneModal.getCode')
+    isCounting.value
+        ? t('bindPhoneModal.countdown', {seconds: countdown.value})
+        : t('bindPhoneModal.getCode')
 );
 
 const handleGetCode = async () => {
-  const { valid } = await validateField('phone');
+  const {valid} = await validateField('phone');
 
   if (!valid) return; // 如果手机号校验没通过，不往下走
 
@@ -102,7 +102,7 @@ const closeModal = () => {
 };
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 @use "sass:color";
 // 定义 SCSS 变量
 $primary-black: #000000;

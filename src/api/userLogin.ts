@@ -59,7 +59,7 @@ export const changePwdBySms = (payload: {
 }
 // 登录成功后  获取用户信息
 export const getUserDetailsApi = () => {
-    return request.get('/v1/user/getUserDetails')
+    return  request.get('/v1/user/getUserDetails')
 }
 // 用户登出
 export const logout = () => {

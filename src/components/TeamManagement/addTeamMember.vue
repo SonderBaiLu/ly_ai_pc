@@ -241,7 +241,7 @@ const handleCopy = async () => {
       emit('success')
     }, 1000)
 
-  } catch (e:any) {
+  } catch {
     ElMessage.error('复制失败')
   }
 }
@@ -505,10 +505,6 @@ const handleCopy = async () => {
 
     &:hover {
       background-color: #1c8de0;
-    }
-
-    &.is-copied {
-      background-color: #52c41a;
     }
   }
 }
