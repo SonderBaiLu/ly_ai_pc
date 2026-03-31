@@ -372,7 +372,7 @@ const handleBindSuccess = async (mode: string) => {
       await router.push('/').catch(() => {
       });
     } else {
-      // 模式 0, 1, 2 (重置/修改密码) 成功后，不需要拉取用户信息！
+      // 模式 0, 1, 2 (重置/修改密码) 成功后，不需要拉取用户信息
       // 只需要引导用户回到密码登录界面即可
       loginMethod.value = 'phone';
       phoneLoginType.value = 'password';
@@ -466,6 +466,10 @@ const GetSmSCode = async () => {
         }
       }, 1000)
     } else {
+      if((res as any).msg === 'sms.sending.failure') {
+        ElMessage.error("验证码发送失败")
+        return
+      }
       ElMessage.error((res as any).msg || '发送失败')
     }
   } catch (e) {
@@ -482,7 +486,7 @@ const handleSubmit = async () => {
   try {
     if (phoneLoginType.value === 'code') {
       if (!formData.code) return ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
-      await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode.value)
+       await userStore.loginWithSms(formData.phone, formData.code, confirmedInviteCode.value)
       ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
       emit('close')
     } else {
@@ -531,7 +535,6 @@ const handleTeamSubmit = async () => {
   }
 }
 
-// ==========================================
 // 5. 邀请码与其他辅助模块
 // ==========================================
 const confirmedInviteCode = ref('') // 保存用户填写的邀请码

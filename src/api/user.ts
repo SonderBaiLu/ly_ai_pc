@@ -40,6 +40,7 @@ export const userApi = {
   },
   // 修改密码 - 有旧密码的情况下
   changePwdByOldPwd(params: any) {
+    console.log(params)
     return request.post("/v1/pwd/changePwdByOldPwd", params) as unknown as Promise<ApiResponse<any>>
   },
   // 验证邀请码

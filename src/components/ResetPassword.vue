@@ -92,7 +92,7 @@ import {ref, reactive, computed, watch, onUnmounted} from 'vue'
 import {images} from '@/assets'
 import {useI18n} from 'vue-i18n'
 import {ElMessage} from 'element-plus'
-import {changePwdBySms, doUserWechatLogin, getSmsCodeApi} from "@/api/userLogin"
+import {changePwdBySms, doUserWechatLogin, getSmsCodeApi, logout} from "@/api/userLogin"
 import userApi from '@/api/user'
 import {useUserStore} from '@/stores/user'
 import { userLanguageToI18nLocale } from '@/i18n'
@@ -187,6 +187,8 @@ const fetchSmsCode = async () => {
     if (String((res as any).code) === '0000') {
       ElMessage.success('验证码已发送')
       startCountdown()
+    }else {
+      ElMessage.error(res.msg)
     }
   } catch (e:any) {
     ElMessage.error(e.message)
@@ -228,27 +230,41 @@ const handleSubmit = async () => {
     // 据模式执行对应 API
     switch (modeType.value) {
       case '0': // 找回/重置密码 (短信验证)
-        if (!formData.phone) return ElMessage.error("请输入手机号")
+        { if (!formData.phone) return ElMessage.error("请输入手机号")
         if (!formData.code) return ElMessage.error("请输入验证码")
-        await changePwdBySms({
+        const res =  await changePwdBySms({
           mobile: formData.phone,
           verifyCode: Number(formData.code),
           newPwd: formData.newPassword,
           newPwdAgain: formData.confirmPassword
         })
-        ElMessage.success('密码重置成功')
-        break
+        if(String((res as any).code) === '0000') {
+          ElMessage.success('密码重置成功')
+        } else{
+          ElMessage.error(res as any)
+        }
+
+        break }
 
       case '1': // 个人修改密码 (旧密码验证)
-        if (!formData.phone) return ElMessage.error("请输入手机号")
+        { if (!formData.phone) return ElMessage.error("请输入手机号")
         if (!formData.oldPassword) return ElMessage.error("请输入旧密码")
-        await userApi.changePwdByOldPwd({
-          oldPwd: Number(formData.oldPassword),
+        const res = await userApi.changePwdByOldPwd({
+          oldPwd: formData.oldPassword,
           newPwd: formData.newPassword,
           newPwdAgain: formData.confirmPassword,
         })
-        ElMessage.success('修改密码成功')
+          if (String((res as any).code) === '0000') {
+            ElMessage.success('修改密码成功')
+            setTimeout(async () => {
+              await logout() // 修改成功后退出登录
+            }, 1500); // 等待1.5秒防止卡顿
+          }else {
+            ElMessage.error(res.msg)
+          }
+
         break
+        }
 
       case '2': // 团队修改密码
         if (!formData.oldPassword) return ElMessage.error("请输入旧密码")
@@ -268,14 +284,15 @@ const handleSubmit = async () => {
           openId: props.openId, // 绑定手机号登录接口需要用到的 openId 在扫码登陆那边传过来的 d
           invitationsCode: props.confirmedInviteCode,  // 邀请验证码
         })
-        if (res.data && res.data.accessToken) {
+        if (String((res as any).code) === '0000') {
           userStore.setToken(res.data.accessToken)
+          ElMessage.success('手机号绑定成功')
+        }else{
+          ElMessage.error(res.msg)
         }
-        ElMessage.success('手机号绑定成功')
         break
       }
     }
-
     // 成功后统一关闭弹窗 or 报错
     emit('success', modeType.value)
     emit('close')
@@ -302,7 +319,6 @@ onUnmounted(() => {
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.6);
   z-index: 3119;
-  backdrop-filter: blur(2px);
 }
 
 /* 基础模态框样式 */

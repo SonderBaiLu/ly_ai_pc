@@ -80,7 +80,7 @@ export const doUserWechatLogin = (data: {
     openId: string;
     invitationsCode?: string;
 }) => {
-    return request.post('/v1/login/doUserWechatLogin', data)
+    return request.post('/v1/login/doUserWechatLogin', data) as unknown as Promise<ApiResponse<any>>
 }
 
 

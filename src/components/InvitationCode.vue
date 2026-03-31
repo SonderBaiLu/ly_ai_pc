@@ -47,7 +47,7 @@ const closeModal = () => {
 // 点击确认
 const handleConfirm = async () => {
   if (!inviteCode.value.trim()) {
-    alert('请输入邀请码')
+    ElMessage.error("请输入邀请码")
     return
   }
   try {

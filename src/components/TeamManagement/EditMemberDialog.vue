@@ -13,7 +13,7 @@
       <div class="form-container">
         <div class="form-group">
           <label class="form-label">昵称编辑</label>
-          <input type="text" v-model="form.nickName" class="input-box" placeholder="请输入昵称"/>
+          <input maxlength="20" type="text" v-model="form.nickName" class="input-box" placeholder="请输入昵称"/>
         </div>
 
         <div class="form-group role-group">

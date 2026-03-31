@@ -1,86 +1,111 @@
 <template>
   <div class="custom-dialog-mask" v-if="visible">
-    <div class="custom-dialog-content">
+    <div class="custom-dialog-content" :class="isSuccess ? 'is-success-mode' : 'is-form-mode'">
       <button class="close-btn" @click="closeDialog">✕</button>
 
-      <h2 class="dialog-title">成员添加</h2>
+      <h2 class="dialog-title" :class="{ 'success-title': isSuccess }">
+        {{ isSuccess ? '默认密码' : '成员添加' }}
+      </h2>
 
-      <div class="info-section" >
-        <div class="info-row">
-          <span class="label">团队：</span>
-          <span class="value">{{ displayData.mainNickName || 'xxxxx' }}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">网站：</span>
-          <span class="value">{{ displayData.url || 'https://www.lingyanaigc.com/' }}</span>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-item">
-          <div class="item-header">
-            <span class="label">账号名</span>
-            <span class="hint">4-16个字母组成</span>
+      <template v-if="!isSuccess">
+        <div class="info-section">
+          <div class="info-row">
+            <span class="label">团队：</span>
+            <span class="value">{{ displayData.mainNickName || 'xxxxx' }}</span>
           </div>
-          <input
-              type="text"
-              v-model="form.userName"
-              placeholder="请输入账号名"
-              class="custom-input"
-              :disabled="isSuccess"
-          />
-        </div>
-
-        <div class="form-item">
-          <div class="item-header">
-            <span class="label">昵称</span>
+          <div class="info-row">
+            <span class="label">网站：</span>
+            <span class="value">{{ displayData.url || 'https://www.lingyanaigc.com/' }}</span>
           </div>
-          <input
-              type="text"
-              v-model="form.nickName"
-              placeholder="请输入昵称"
-              class="custom-input"
-              maxlength="20"
-              :disabled="isSuccess"
-          />
         </div>
-      </div>
 
-      <div class="success-section" v-if="isSuccess">
-        <div class="pwd-row">
-          <span class="label">默认登录密码：</span>
-          <span class="value bold">{{ displayData.pwd }}</span>
+        <div class="form-section">
+          <div class="form-item">
+            <div class="item-header">
+              <span class="label">账号名</span>
+              <span class="hint">4-16个字母组成</span>
+            </div>
+            <input
+                type="text"
+                v-model="form.userName"
+                placeholder="请输入账号名"
+                class="custom-input"
+                :disabled="isSuccess"
+                maxlength="16"
+            />
+          </div>
+
+          <div class="form-item">
+            <div class="item-header">
+              <span class="label">昵称</span>
+            </div>
+            <input
+                type="text"
+                v-model="form.nickName"
+                placeholder="请输入昵称"
+                class="custom-input"
+                maxlength="20"
+                :disabled="isSuccess"
+            />
+          </div>
         </div>
-        <div class="hint-msg">登录后请及时变更密码</div>
-      </div>
 
-      <div class="dialog-footer">
-        <button
-            v-if="!isSuccess"
-            class="action-btn submit-btn"
-            :class="{ 'is-loading': loading  }"
-            :disabled="loading"
-            @click="handleSubmit"
-        >
-          {{ loading ? '添加中...' : '确认添加' }}
-        </button>
+        <div class="dialog-footer">
+          <button
+              class="action-btn submit-btn"
+              :class="{ 'is-loading': loading  }"
+              :disabled="loading"
+              @click="handleSubmit"
+          >
+            {{ loading ? '添加中...' : '确认添加' }}
+          </button>
+        </div>
+      </template>
 
-        <button
-            v-else
-            class="action-btn copy-btn"
-            @click="handleCopy"
-        >
-          点击复制
-        </button>
-      </div>
+      <template v-else>
+        <div class="success-content">
+          <div class="info-row">
+            <span class="label">团队：</span>
+            <span class="value">{{ displayData.mainNickName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">网站：</span>
+            <span class="value">{{ displayData.url }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">账号名：</span>
+            <span class="value">{{ displayData.userName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">昵称：</span>
+            <span class="value">{{ displayData.nickName }}</span>
+          </div>
+          <div class="info-row password-row">
+            <span class="label-pwd">默认登录密码：</span>
+            <span class="value fw-bold">{{ displayData.pwd }}</span>
+          </div>
+          <div class="warning-text">登录后请及时变更密码</div>
+
+          <button
+              class="copy-btn"
+              :class="{ 'is-copied': isCopied }"
+              @click="handleCopy"
+          >
+            {{ copyBtnText }}
+          </button>
+        </div>
+      </template>
+
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import teamApi from "@/api/teamManage.ts";
 import {useUserStore} from "@/stores/user.ts";
+
 // 1. 实例化 User Store
 const userStore = useUserStore()
 
@@ -92,12 +117,16 @@ const props = defineProps({
   }
 })
 
-
 const emit = defineEmits(['update:visible', 'success'])
 
 // --- 状态数据 ---
 const isSuccess = ref(false)
 const loading = ref(false)
+
+// 复制相关状态
+const isCopied = ref(false)
+const copyBtnText = ref('点击复制')
+
 // 表单提交数据
 const form = reactive({
   userName: '',
@@ -107,10 +136,7 @@ const form = reactive({
 const reactiveApiTarget = ref(import.meta.env.VITE_API_PROXY_TARGET)
 // 展示/返回的数据
 const displayData = reactive({
-  // 这里的账户名 就是 团队名 中间有 **** 是后端返回数据本就如此
-  get mainNickName() {
-    return userStore.userInfo.userName
-  },
+  mainNickName: userStore.userInfo.userName, // 修复了之前的报错
   url: reactiveApiTarget.value,
   pwd: '',
   userName: '',
@@ -131,6 +157,8 @@ const resetState = () => {
   displayData.pwd = ''
   isSuccess.value = false
   loading.value = false
+  isCopied.value = false
+  copyBtnText.value = '点击复制'
 }
 
 // 监听弹窗打开，重置状态
@@ -165,9 +193,7 @@ const validateForm = () => {
 // 确认添加
 const handleSubmit = async () => {
   if (!validateForm()) return
-
   loading.value = true
-
   try {
     const res = await teamApi.sonUserRegister({
       userName: form.userName,
@@ -175,15 +201,15 @@ const handleSubmit = async () => {
     })
     if(String((res as any).code) === '0000' && res.success === true ){
       ElMessage.success('添加成功')
-      // 填充返回的数据
-      // displayData.mainNickName.get = res.data.mainNickName
+      displayData.mainNickName = res.data.mainNickName
       displayData.url = res.data.url
       displayData.pwd = res.data.pwd
       displayData.userName = res.data.userName
       displayData.nickName = res.data.nickName
-      // 切换到【点击复制】状态
+      // 切换到成功状态
       isSuccess.value = true
-
+    } else {
+      ElMessage.error(res.msg)
     }
   } catch (e:any){
     const errorMsg =  e.message || '添加失败'
@@ -195,21 +221,28 @@ const handleSubmit = async () => {
 
 // 点击复制
 const handleCopy = async () => {
+  if (isCopied.value) return; // 防止重复点击
+
   const copyText =
       ` 团队：${displayData.mainNickName}
-        网站：${displayData.url}
-        账号名：${displayData.userName}
-        昵称：${displayData.nickName}
-        默认登录密码：${displayData.pwd}`
+网站：${displayData.url}
+账号名：${displayData.userName}
+昵称：${displayData.nickName}
+默认登录密码：${displayData.pwd}`
 
   try {
-    // 使用剪贴板
     await navigator.clipboard.writeText(copyText)
-    ElMessage.success('复制成功')
-    closeDialog()
-    emit('success')
+    isCopied.value = true
+    copyBtnText.value = '复制成功'
+
+    // 延迟 1 秒后关闭，让用户看到“复制成功”的提示
+    setTimeout(() => {
+      closeDialog()
+      emit('success')
+    }, 1000)
+
   } catch (e:any) {
-    ElMessage.error(e.success)
+    ElMessage.error('复制失败')
   }
 }
 </script>
@@ -226,34 +259,49 @@ const handleCopy = async () => {
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  background-color: rgba(11, 15, 25, 0.6);
 }
 
-/* 弹窗容器 */
+/* 弹窗容器基础样式 */
 .custom-dialog-content {
   position: relative;
   width: 407px;
-  height: 463px;
   background: #FFFFFF;
   border-radius: 12px;
-  padding: 30px 55px;
   box-sizing: border-box;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: height 0.3s ease, padding 0.3s ease;
+
+  /* 表单模式的尺寸 */
+  &.is-form-mode {
+    height: 463px;
+    padding: 30px 55px;
+  }
+
+  /* 成功模式的尺寸 (对齐重置密码UI) */
+  &.is-success-mode {
+    height: 360px;
+    border: 1px solid rgba(187,187,187,1);
+    border-radius: 24px; /* 成功状态变为更圆润的设计 */
+  }
 }
 
 /* 关闭按钮 */
 .close-btn {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  right: 16px;
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: 20px;
   color: #999;
   cursor: pointer;
+  padding: 4px;
   transition: color 0.3s;
+  z-index: 10;
 
   &:hover {
-    color: #333;
+    color: #666;
   }
 }
 
@@ -261,38 +309,47 @@ const handleCopy = async () => {
 .dialog-title {
   font-size: 30px;
   font-weight: 800;
-  color: $color-bg-dark;
+  color: rgba(17,24,39,1);
   text-align: center;
   font-family: Inter-black,serif;
-  margin: 0 0 30px 0;
+  margin: 0;
+
+  /* 表单状态下的间距 */
+  &:not(.success-title) {
+    margin-bottom: 30px;
+  }
+  /* 成功状态下的间距 (精准对齐) */
+  &.success-title {
+    padding-top: 44px;
+    line-height: 1;
+    letter-spacing: 1px;
+    font-weight: 900;
+  }
 }
 
-/* 基本信息区 */
+/* ================== 模式1: 表单原有样式 ================== */
 .info-section {
-  /* 成员 网站 title  */
   margin-bottom: 20px;
   font-size: 14px;
   line-height: 1.8;
-  color: $color-bg-dark;
-  font-weight: 500;
+  color: rgba(17,24,39,1);
+  font-weight: 800;
   font-family: Inter-bold,serif;
 
   .info-row {
+    font-size: 11px;
+    color: rgba(17,24,39,1);
     display: flex;
     align-items: center;
-    .label {
-      font-weight: 500;
-    }
     .value {
-      color: $color-bg-dark;
+      color: rgba(17,24,39,1);
       font-family: Inter-bold,serif;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 800;
     }
   }
 }
 
-/* 表单区 */
 .form-section {
   .form-item {
     margin-bottom: 20px;
@@ -303,15 +360,15 @@ const handleCopy = async () => {
       margin-bottom: 8px;
 
       .label {
+        color: rgba(107,114,128,1);
         font-weight: 800;
-        color: $color-text-placeholder;
         font-size: 11px;
         text-align: justify;
         font-family: Inter-bold,serif;
       }
       .hint {
+        color: rgba(156,163,175,1);
         margin-left: 10px;
-        color: $color-text-gray;
         font-size: 11px;
         text-align: justify;
         font-family: Inter-regular,serif;
@@ -325,64 +382,30 @@ const handleCopy = async () => {
       padding: 0 12px;
       font-size: 14px;
       background: #FFFFFF;
-      color: $color-text-dark;
+      color: #333;
       border: 1px solid rgba(55,65,81,1);
-      font-family: -regular,serif;
       box-sizing: border-box;
       outline: none;
       transition: border-color 0.2s;
 
       &::placeholder {
-        color: $color-text-gray;
+        color: #ccc;
         font-size: 14px;
-        font-family: PingFangSC-regular,serif;
       }
 
       &:focus {
         border-color: #207ab7;
       }
-
-      &:disabled {
-        background-color: #f5f7fa;
-        color: #606266;
-        cursor: not-allowed;
-      }
     }
   }
 }
 
-/* 成功后的密码提示区 */
-.success-section {
-  margin-top: -5px;
-  margin-bottom: 20px;
-  font-size: 14px;
-
-  .pwd-row {
-    color: #333;
-    margin-bottom: 8px;
-
-    .label {
-      font-weight: 500;
-    }
-    .value.bold {
-      font-weight: bold;
-      color: #1a1a1a;
-    }
-  }
-
-  .hint-msg {
-    font-size: 12px;
-    color: #999;
-  }
-}
-
-/* 底部操作区 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   position: absolute;
-  bottom: 30px; /* 对应父容器 custom-dialog-content 的 padding-bottom */
-  right: 55px;  /* 对应父容器 custom-dialog-content 的 padding-right */
+  bottom: 30px;
+  right: 55px;
 
   .action-btn {
     width: 89px;
@@ -391,8 +414,7 @@ const handleCopy = async () => {
     font-size: 14px;
     cursor: pointer;
     border: none;
-    color: $color-text-white;
-
+    color: #fff;
     font-weight: 800;
     transition: opacity 0.3s;
 
@@ -404,21 +426,90 @@ const handleCopy = async () => {
       cursor: not-allowed;
       opacity: 0.7;
     }
-     /* TODO:: 禁用按钮样式  */
-
-    //&.disabled{
-    //  cursor: not-allowed;
-    //  background-color: rgba(16,16,16,0.3);
-    //}
   }
 
   .submit-btn {
     background-color: #1575A2;
   }
+}
+
+/* ================== 模式2: ================== */
+.success-content {
+  margin-top: 30px;
+  padding-left: 65px;
+  text-align: left;
 
 
+  .info-row {
+    margin-bottom: 14px;
+    display: flex;
+    align-items: flex-start;
+    color: rgba(16,16,16,1);
+    font-size: 11px;
+    text-align: justify;
+    font-family: Inter-bold,serif;
+    font-weight: 600;
+
+
+    .label {
+      color: rgba(16,16,16,1);
+      font-size: 11px;
+      text-align: justify;
+      font-family: Inter-bold,serif;
+      font-weight: 800;
+    }
+    .label-pwd{
+      color: rgba(107,114,128,1);
+    }
+
+    .value {
+      color: rgba(16,16,16,1);
+      font-size: 11px;
+      text-align: justify;
+      font-family: Inter-bold,serif;
+      font-weight: 800;
+
+      &.fw-bold {
+        font-weight: bold;
+      }
+    }
+  }
+
+  .password-row {
+    margin-top: 20px;
+  }
+
+  .warning-text {
+    margin-top: 8px;
+    line-height: 1.5;
+    color: rgba(107,114,128,1);
+    font-size: 11px;
+    text-align: justify;
+    font-family: Inter-regular,serif;
+  }
+
+  /* 复制按钮 */
   .copy-btn {
-    background-color: #00a0e9;
+    display: block;
+    margin-top: 5px;
+    margin-left: 191px;
+    background-color: rgba(23,160,225,1);
+    color: rgba(255,255,255,1);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 15px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: #1c8de0;
+    }
+
+    &.is-copied {
+      background-color: #52c41a;
+    }
   }
 }
 </style>

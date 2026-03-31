@@ -23,25 +23,26 @@
           <span class="value">{{ userInfo.nickname }}</span>
         </div>
         <div class="info-row password-row">
-          <span class="label">重置后密码：</span>
+          <span class="label-pwd">重置后密码：</span>
           <span class="value fw-bold">{{ userInfo.password }}</span>
         </div>
         <div class="warning-text">登录后请及时变更密码</div>
-      </div>
 
-      <button
-          class="copy-btn"
-          :class="{ 'is-copied': isCopied }"
-          @click="handleCopy"
-      >
-        {{ copyBtnText }}
-      </button>
+        <button
+            class="copy-btn"
+            :class="{ 'is-copied': isCopied }"
+            @click="handleCopy"
+        >
+          {{ copyBtnText }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { ElMessage } from 'element-plus';
 
 // 定义展示数据的 TypeScript 接口
 interface UserInfo {
@@ -77,18 +78,24 @@ const handleCopy = async () => {
   if (isCopied.value) return; // 防止重复点击
 
   try {
-    await navigator.clipboard.writeText(props.userInfo.password);
+    const copyText = `团队：${props.userInfo.team}
+网站：${props.userInfo.website}
+账号名：${props.userInfo.accountName}
+昵称：${props.userInfo.nickname}
+重置后密码：${props.userInfo.password}`;
+
+    await navigator.clipboard.writeText(copyText);
     isCopied.value = true;
     copyBtnText.value = '复制成功';
 
-    // 2秒后恢复默认状态
+    // 1秒后恢复默认状态
     setTimeout(() => {
       isCopied.value = false;
       copyBtnText.value = '点击复制';
-    }, 2000);
+    }, 1000);
   } catch (err) {
     console.error('复制失败:', err);
-    ElMessage.error('复制失败')
+    ElMessage.error('复制失败');
   }
 };
 
@@ -109,7 +116,7 @@ const handleClose = () => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(11, 15, 25, 0.6); // 半透明深色背景
+  background-color: rgba(11, 15, 25, 0.6);
   z-index: 999;
 
   /* 弹窗主容器 */
@@ -117,13 +124,10 @@ const handleClose = () => {
     width: 407px;
     height: 360px;
     background-color: rgba(255,255,255,1);
-    color: rgba(16,16,16,1);
     border-radius: 24px;
     position: relative;
     box-sizing: border-box;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    text-align: center;
-    font-family: PingFangSC-regular,serif;
     border: 1px solid rgba(187,187,187,1);
 
     /* 关闭按钮 */
@@ -148,12 +152,12 @@ const handleClose = () => {
     .modal-title {
       text-align: center;
       font-size: 30px;
-      line-height: 60px;
       margin: 0;
-      padding-top: 40px;
+      padding-top: 44px;
+      line-height: 1;
       color: rgba(17,24,39,1);
       letter-spacing: 1px;
-      font-family: Inter-black,serif;
+      font-family: Inter-black, sans-serif;
       font-weight: 900;
     }
 
@@ -161,31 +165,31 @@ const handleClose = () => {
     .modal-content {
       margin-top: 30px;
       padding-left: 65px;
+      text-align: left;
 
       .info-row {
-        margin-bottom: 12px;
+        margin-bottom: 14px;
         display: flex;
-        align-items: center;
-        font-weight: bold;
+        align-items: flex-start;
         color: rgba(16,16,16,1);
         font-size: 11px;
-        text-align: justify;
         font-family: Inter-bold;
-
+        font-weight: 600;
 
         .label {
           font-weight: bold;
-          color: rgba(16,16,16,1);
-          font-size: 11px;
-          text-align: justify;
-
+        }
+        .label-pwd{
+          color: rgba(107,114,128,1);
+          font-size: 11px
         }
 
         .value {
-          font-weight: bold;
           color: rgba(16,16,16,1);
           font-size: 11px;
-          text-align: justify;
+          font-family: Inter-bold;
+          font-weight: 600;
+
 
           &.fw-bold {
             font-weight: bold;
@@ -193,39 +197,37 @@ const handleClose = () => {
         }
       }
 
+      /* 针对密码行拉开些许间距 */
       .password-row {
         margin-top: 20px;
       }
 
       /* 提示文案 */
       .warning-text {
-        color: #888888;
         margin-top: 8px;
-        line-height: 17px;
+        line-height: 1.5;
         color: rgba(107,114,128,1);
-        font-size: 11px;
-        text-align: justify;
-        font-family: Inter-regular;
+        font-size: 12px;
       }
-    }
 
-    /* 复制按钮 */
-    .copy-btn {
-      position: absolute;
-      bottom: 49px;
-      right: 57px;
-      background-color: rgba(23,160,225,1);
-      color: rgba(255,255,255,1);
-      border: none;
-      border-radius: 4px;
-      padding: 10px 24px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      /* 复制按钮 */
+      .copy-btn {
+        display: block;
+        margin-top: 15px;
+        margin-left: 191px;
+        background-color: rgba(23,160,225,1);
+        color: rgba(255,255,255,1);
+        border: none;
+        border-radius: 4px;
+        padding: 5px 14px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
 
-      &:hover {
-        background-color: #1c8de0;
+        &:hover {
+          background-color: #1c8de0;
+        }
       }
     }
   }

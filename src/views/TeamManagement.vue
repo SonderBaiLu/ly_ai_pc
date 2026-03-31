@@ -185,7 +185,7 @@ const canOperate = (row: any) => {
     // 目标如果是同级管理员 (role: 1) -> 不能碰
     const isTargetAdmin = row.role === 1 || String(row.role) === '1'
     // 只有既不是主账号，也不是管理员的普通成员，才放行
-    return !isTargetMain && !isTargetAdmin
+     return !isTargetMain && !isTargetAdmin
   }
   // 其他情况无权限
   return false

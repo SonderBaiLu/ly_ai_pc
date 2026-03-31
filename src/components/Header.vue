@@ -758,8 +758,8 @@ const teamChildRef = ref<InstanceType<typeof OpneTeamMember> | null>(null)
 const handleClick = () => {
   // 1. 关闭右上角的头像下拉菜单
   closeUserMenu()
-  // 1. 如果是主账号，直接跳转
-  if (userStore.userInfo.mainAccount || userStore.userInfo.mainAdmin === 'true') {
+  // 1. 如果是主账号 或者 是 管理员 就直接跳转团队管理页面
+  if (userStore.userInfo.mainAccount || userStore.userInfo.mainAdmin === true) {
     router.push('/team-management')
     return
   }
