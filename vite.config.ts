@@ -4,6 +4,9 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
+import type { Plugin } from 'vite'
+import http from 'http'
+import https from 'https'
 import devEnv from './env.development'
 import prodEnv from './env.production'
 
@@ -14,6 +17,70 @@ export default defineConfig(({ mode }) => {
   const apiBaseUrl = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL
   const appVersion = process.env.VITE_APP_VERSION || env.VITE_APP_VERSION
 
+  // 文件代理中间件：统一使用 /file-proxy
+  const fileProxyPlugin = (): Plugin => {
+    const mountProxy = (server: any, mountPath: string) => {
+      server.middlewares.use(mountPath, (req: any, res: any) => {
+        const rawPath = req.url || ''
+        // 支持格式：/<protocol>/<domain>/<path>
+        const match = rawPath.match(/^\/(https?)\/([^/]+)(\/.*)$/)
+        if (!match) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' })
+          res.end('Not Found: Invalid proxy path format')
+          return
+        }
+
+        const protocol = match[1]
+        const domain = match[2]
+        const actualPath = match[3]
+        const targetUrl = `${protocol}://${domain}${actualPath}`
+        const client = protocol === 'https' ? https : http
+
+        const proxyReq = client.request(
+          targetUrl,
+          {
+            method: req.method,
+            headers: {
+              ...req.headers,
+              host: domain,
+            },
+            rejectUnauthorized: false,
+            timeout: 30000,
+          },
+          (proxyRes) => {
+            res.writeHead(proxyRes.statusCode || 200, {
+              ...proxyRes.headers,
+              'access-control-allow-origin': '*',
+              'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'access-control-allow-headers': '*',
+            })
+            proxyRes.pipe(res)
+          },
+        )
+
+        proxyReq.on('error', (err) => {
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' })
+            res.end(`Proxy Error: ${err.message}`)
+          }
+        })
+
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          req.pipe(proxyReq)
+        } else {
+          proxyReq.end()
+        }
+      })
+    }
+
+    return {
+      name: 'file-proxy',
+      configureServer(server) {
+        mountProxy(server, '/file-proxy')
+      },
+    }
+  }
+
   return {
     define: {
       // 让业务代码里可以直接用 import.meta.env.VITE_API_BASE_URL
@@ -23,6 +90,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       vue(),
+      fileProxyPlugin(),
       // 自动导入 Vue/Router/Pinia 等 API + Element Plus 相关函数
       AutoImport({
         imports: ['vue', 'vue-router', 'pinia'],

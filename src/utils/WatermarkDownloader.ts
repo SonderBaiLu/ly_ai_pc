@@ -93,14 +93,16 @@ class WatermarkDownloader {
         throw new Error('下载URL不能为空')
       }
 
-      const prefix = 'chaotuishou'
+      const prefix = 'lingyan'
 
       // 2. 单个文件：直接下载
       if (urlArray.length === 1) {
         const url = urlArray[0]
+        const normalizedName = this.extractFilename(url).replace(/\s+/g, '_') || 'download'
+        const extension = this.getFileExtension(url)
         const filename =
           options?.filename ||
-          `${prefix}_${this.extractFilename(url).replace(/\s+/g, '_') || 'download'}`
+          `${prefix}_${normalizedName}${extension ? '.' + extension : ''}`
 
         // 统一下载：水印/无水印由上层在传入 url 时决定（此处只负责下载）
         await downloadFile(url, filename)

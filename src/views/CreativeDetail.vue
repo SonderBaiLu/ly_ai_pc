@@ -8,20 +8,28 @@
       <div ref="mediaContainerRef" class="media-container"
         :style="{ scrollBehavior: isInitialLoad ? 'auto' : 'smooth' }">
         <!--左侧返回按钮  -->
-        <el-button class="back-button" type="default" @click="handleBack">
+        <!-- <el-button class="back-button" type="default" @click="handleBack">
           <el-icon :size="20">
             <Back />
           </el-icon>
-        </el-button>
+        </el-button> -->
         <!-- 左侧视频/图片展示区 - 可滚动显示多个模板 -->
         <div class="media-scroll-wrapper">
           <div v-for="(item, index) in relatedTemplates" :key="item.id" class="media-item"
             :class="{ active: selectedThumbnail === index }">
             <div class="media-player flex-col-center" @click="handleImagePreview(index, item)">
+              <!-- 生成中/失败：不展示媒体内容，显示占位提示 -->
+              <div v-if="Number((item as any).status) === 2" class="media-status-placeholder generating">
+                <LoadingSpinner :size="72" :thickness="8" />
+                <div class="status-text">正在生成中...</div>
+              </div>
+              <div v-else-if="Number((item as any).status) === 4" class="media-status-placeholder failed">
+                <img :src="images.fail" class="placeholder-icon" alt="生成失败" />
+                <div class="status-text">生成失败</div>
+              </div>
               <!-- 媒体播放器 - 自动判断显示视频或图片 -->
-              <!-- :poster="item.imageUrl || item.imgUrl" -->
-              <MediaPlayer :ref="(el: any) => setMediaPlayerRef(el, index)" :src="item.fileUrl"
-                poster="https://chao-tryon-dev.chaotuishou.com/images/2026/03/t2i_t2i_085ab023-51b7-4e92-a8e1-1c5664eca137_20260318_160916_0798b151.jpg"
+              <MediaPlayer v-else :ref="(el: any) => setMediaPlayerRef(el, index)" :src="(item as any).url"
+                :poster="(item as any).url || (item as any).thumbUrl"
                 :autoplay="isVideoType(item) && selectedThumbnail === index" :loop="true" :controls="isVideoType(item)"
                 :muted="true" :minimal-controls="true" :image-only="isImageType(item)" object-fit="contain"
                 poster-fit="contain" class="video-player" />
@@ -34,7 +42,29 @@
       </div>
 
       <!-- 右侧信息面板 -->
-      <div class="info-panel">
+      <!-- 1）未完成：展示简版状态面板，避免出现“暂无内容”空白 -->
+      <div v-if="templateDetail && detailStatus !== 3" class="info-panel info-panel--pending">
+        <div class="info-header">
+          <div class="info-title-row">
+            <h2 class="info-title">{{ detailStatus === 4 ? '生成失败' : '作品生成中' }}</h2>
+          </div>
+        </div>
+        <div class="info-body pending-body">
+          <p class="pending-text">
+            <template v-if="detailStatus === 4">
+              生成失败，失败记录不会展示，请稍后查看潮币余额是否回退。
+            </template>
+            <template v-else>
+              当前作品仍在处理或刚刚生成完成，详情数据尚未同步。
+              <br />
+              请稍候片刻后，在右侧缩略图中重新进入详情查看完整信息。
+            </template>
+          </p>
+        </div>
+      </div>
+
+      <!-- 2）正常详情面板 -->
+      <div v-else class="info-panel">
         <!-- 顶部操作图标 -->
         <div class="info-actions">
           <el-popover placement="bottom" :width="146" trigger="click" popper-class="download-menu-popper">
@@ -60,8 +90,8 @@
               </div>
             </div>
           </el-popover>
-          <img :src="templateDetail?.isCollect === 1 ? images.collectActive : images.collectNo" class="btn-icon" alt=""
-            @click="handleAssetsCollect" />
+          <img :src="Number((templateDetail as any)?.collectStatus) === 1 ? images.collectActive : images.collectNo"
+            class="btn-icon" alt="" @click="handleAssetsCollect" />
           <el-dropdown trigger="click" @command="handleMoreCommand">
             <img :src="images.more" class="btn-icon" alt="" />
             <template #dropdown>
@@ -80,9 +110,9 @@
         </div>
 
         <!-- 我的创作详情 -->
-        <div v-if="pageTypeRef == 'assets'">
+        <div>
           <div class="section-title">
-            {{ isAiFashionStudioAssetsDetail ? studioModuleName : templateDetail?.typeName }}
+            {{ studioModuleName }}
           </div>
 
           <!-- AI工作台（4类型）详情：完全使用四个左侧页面的展示结构（仅保留必要模块） -->
@@ -91,22 +121,21 @@
             <template v-if="detailModule === 'sketchToReal'">
               <div class="section-title">线稿图</div>
               <div v-if="requestParams" class="video-thumb-row">
-                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
-                <img v-for="item in requestParams.imageUrls" :key="item" :src="item" />
+                <img v-for="(item, idx) in requestParams.imageUrls" :key="`sketch-${idx}`" :src="item" />
               </div>
             </template>
 
             <template v-if="detailModule === 'realToSketch'">
               <div class="section-title">实物图</div>
               <div v-if="requestParams" class="video-thumb-row">
-                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
+                <img v-for="(item, idx) in requestParams.imageUrls" :key="`real-${idx}`" :src="item" />
               </div>
             </template>
 
             <template v-if="detailModule === 'fabricCreative'">
               <div class="section-title">面料图</div>
               <div v-if="requestParams" class="video-thumb-row">
-                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
+                <img v-for="(item, idx) in requestParams.imageUrls" :key="`fabric-${idx}`" :src="item" />
               </div>
             </template>
 
@@ -173,17 +202,13 @@
               </div>
             </template>
 
-            <template
-              v-if="(requestParams?.imageUrl || (Array.isArray(requestParams?.imageUrls) && requestParams.imageUrls.length)) && detailModule == 'aiFashion'">
+            <template v-if="requestParams?.imageUrls?.length && detailModule == 'aiFashion'">
               <div class="section-title">参考图</div>
               <div v-if="requestParams && isAiFashionStudioAssetsDetail" class="video-thumb-row">
-                <img v-if="requestParams.imageUrl" :src="requestParams.imageUrl" />
-                <img v-for="item in requestParams.imageUrls" :key="item" :src="item" />
+                <img v-for="(item, idx) in requestParams.imageUrls" :key="`ref-${idx}`" :src="item" />
               </div>
             </template>
           </template>
-
-
 
           <!-- 创意描述 -->
           <div v-if="creativeDescription" class="creative-description">
@@ -197,26 +222,9 @@
             </p>
           </div>
 
-          <div v-if="
-            requestParams &&
-            (requestParams.algorithmName ||
-              requestParams.duration ||
-              requestParams.resolution ||
-              requestParams.aspectRatio ||
-              requestParams.quality)
-          " class="tag-row">
-            <span v-if="requestParams.algorithmName" class="params-tag">
-              {{ requestParams.algorithmName }}
-            </span>
-            <span v-if="requestParams.duration" class="params-tag">{{ requestParams.duration }}秒</span>
-            <span v-if="requestParams.resolution" class="params-tag">
-              {{ requestParams.resolution }}
-            </span>
-            <span v-if="requestParams.aspectRatio" class="params-tag">
-              {{ requestParams.aspectRatio }}
-            </span>
-            <span v-if="requestParams.quality" class="params-tag">
-              {{ requestParams.quality }}
+          <div v-if="modelParamTags.length" class="tag-row">
+            <span v-for="(tag, idx) in modelParamTags" :key="`model-param-${idx}-${tag}`" class="params-tag">
+              {{ tag }}
             </span>
             <span class="params-tag">{{ isVideoType(templateDetail) ? '视频' : '图片' }}</span>
           </div>
@@ -229,16 +237,17 @@
         <div class="action-section">
           <div v-if="isImageType(templateDetail)" class="action-item">
             <div class="section-title">生成</div>
-            <div class="flex-between">
-              <el-button class="action-btn" @click="handleAgainEdit">
+            <!-- <div class="flex-between"> -->
+            <!-- <el-button class="action-btn" @click="handleAgainEdit">
                 <img :src="images.againEdit" alt="" class="action-icon" />
                 重新生成
-              </el-button>
-              <el-button class="action-btn" @click="handleAgainGenerate">
-                <img :src="images.againGenerate" alt="" class="action-icon" />
-                再次生成
-              </el-button>
-            </div>
+              </el-button> -->
+            <!-- :loading="isSubmittingAgain" -->
+            <el-button class="action-btn" :disabled="isSubmittingAgain" @click="handleAgainGenerate">
+              <img :src="images.againGenerate" alt="" class="action-icon" />
+              再次生成
+            </el-button>
+            <!-- </div> -->
           </div>
         </div>
       </div>
@@ -251,8 +260,8 @@
 
     <!-- 反馈弹窗 -->
     <FeedbackModal v-if="templateDetail" v-model="showFeedbackModal" :user-id="userStore.userInfo?.userId"
-      :task-id="templateDetail?.taskId || (templateDetail as any)?.algoOrderId"
-      :task-result-id="templateDetail?.id || (templateDetail as any)?.algoOrderResultId"
+      :algo-order-id="(templateDetail as any)?.algoOrderId"
+      :algo-order-result-id="templateDetail?.id || (templateDetail as any)?.algoOrderResultId"
       @success="handleFeedbackSuccess" />
 
     <!-- 会员购买弹窗 -->
@@ -269,39 +278,35 @@
 // Vue API 已自动导入
 import { images } from '@/assets'
 import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus'
-import { Loading, Back } from '@element-plus/icons-vue'
+import { Loading, } from '@element-plus/icons-vue'
+// Back
 import ThumbnailGallery from '@/components/ThumbnailGallery.vue'
 import type { CreationResult } from '@/composables/useTaskPolling'
 import { algoApi } from '@/api/algo'
-import { userApi } from '@/api/user'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import { useUserStore } from '@/stores/user'
 import { useTemplateStore } from '@/stores/template'
 import { useModalStore } from '@/stores/modal'
 import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import type { CreativeTemplate } from '@/types'
 import { copyToClipboard } from '@/utils/clipboard'
+import { APP_MENU_CODES } from '@/constants/appMenuCode'
 
 // Props 定义（支持弹窗模式）
 interface Props {
   id?: string | number
-  pageType?: string
   cateId?: string
   cateTitle?: string
-  sourceTab?: string
   collectId?: string
-  isCollect?: number
   // 是否是弹窗模式
   isModal?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   id: undefined,
-  pageType: undefined,
   cateId: undefined,
   cateTitle: undefined,
-  sourceTab: undefined,
   collectId: undefined,
-  isCollect: undefined,
   isModal: false,
 })
 
@@ -339,7 +344,9 @@ const showFeedbackModal = ref(false) // 反馈弹窗显示状态
 const showCoinInsufficient = ref(false) // 会员购买弹窗
 const coinErrorType = ref('up_vip') // 错误类型
 const isDownloading = ref(false) // 下载状态
+const isSubmittingAgain = ref(false) // 再次生成提交状态
 const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
+const isUnmountedRef = ref(false)
 
 const removeWatermarkEnabled = computed(() => {
   // 仅会员才展示“去除水印”开启状态；避免会员到期仍回显旧的 watermarkStatus=1
@@ -365,16 +372,39 @@ const persistWatermarkStatus = async (enabled: boolean) => {
 type PendingAction = { type: 'download' } | { type: 'toggle' } | { type: 'brandWatermark' }
 const pendingAfterVipAction = ref<PendingAction | null>(null)
 
-// 页面类型：assets-我的资产详情 | template-创意模板详情 | like-我的喜欢详情
-const pageTypeRef = ref<string>('template')
-// 来源标签（用于 assets 页面，标识从哪个列表跳转过来）
-const sourceTabRef = ref<string>('')
 // 是否初始加载（用于控制滚动行为）
 const isInitialLoad = ref(true)
 
-// AI 工作台（AiFashionStudio）进入的资产详情：仅展示 4 种类型需要的信息，隐藏其它业务类型的多余回显
+// 详情状态（0初始化 1待请求 2处理中 3完成 4失败）
+const detailStatus = computed(() => {
+  const current = relatedTemplates.value[selectedThumbnail.value] as any
+  const s = Number(current?.status ?? (templateDetail.value as any)?.status)
+  return Number.isFinite(s) ? s : 3
+})
+
+// 右侧详情面板状态优先跟随当前选中缩略图，避免“左侧已切到生成中，但右侧仍显示旧完成态”
+watch(
+  [selectedThumbnail, relatedTemplates],
+  () => {
+    const current = relatedTemplates.value[selectedThumbnail.value] as any
+    if (!current) return
+    const status = Number(current?.status)
+    if (status === 2 || status === 4 || status === 1 || status === 0) {
+      templateDetail.value = { ...current } as any
+    }
+  },
+  { deep: true }
+)
+
+// 详情是否属于 AI 工作台四模块（以详情返回的 menuCode 为准）
 const isAiFashionStudioAssetsDetail = computed(() => {
-  return pageTypeRef.value === 'assets' && sourceTabRef.value === 'aiFashionStudio'
+  const menuCode = String((templateDetail.value as any)?.menuCode || '')
+  return (
+    menuCode === APP_MENU_CODES.AI_FASHION_DESIGN ||
+    menuCode === APP_MENU_CODES.LINE_DRAW_TO_PHYS_OBJ ||
+    menuCode === APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW ||
+    menuCode === APP_MENU_CODES.FABRIC_DESIGN_CONCEPT
+  )
 })
 
 // AI 工作台详情模块名（固定 4 类型）
@@ -426,166 +456,411 @@ const loadingRelated = ref(false)
 // 数据是否已初始化完成（用于避免初始渲染时的闪烁）
 const isDataReady = ref(false)
 
-// 解析 requestParam（资产详情返回的参数内容）
+const getAlgoResultId = (item: any): string | number | null => {
+  if (!item) return null
+  return (
+    item.id ??
+    item.algoOrderResultId ??
+    item.algoResulId ??
+    item.algoResultId ??
+    null
+  )
+}
+
+// 统一参数：只使用详情接口 webRequest 字段
 const requestParams = computed(() => {
-  if (!templateDetail.value || !(templateDetail.value as any).requestParam) {
-    return null
-  }
+  const d: any = templateDetail.value
+  if (!d) return null
 
-  try {
-    const requestParamStr = (templateDetail.value as any).requestParam
-    if (typeof requestParamStr === 'string') {
-      // 仅在需要时调试打印，避免频繁访问 computed 导致控制台刷屏
-      // console.log('[CreativeDetail] requestParams:', JSON.parse(requestParamStr))
-      return JSON.parse(requestParamStr)
+  const res: any = {}
+
+  const wrRaw = d?.webRequest
+  let src: any = null
+  if (wrRaw && typeof wrRaw === 'object') {
+    src = wrRaw
+  } else if (typeof wrRaw === 'string') {
+    try {
+      src = JSON.parse(wrRaw)
+    } catch (e) {
+      console.warn('[CreativeDetail] 解析 webRequest 失败:', e)
+      src = null
     }
-    return requestParamStr
-  } catch (error) {
-    console.warn('解析 requestParam 失败:', error)
-    return null
   }
+  if (!src) return res
+
+  // 创意描述
+  res.creativeDescription = String(src.creativeDescription ?? '')
+
+  // 参考图：只取 webRequest.image（数组）
+  res.imageUrls = src.image
+
+  // aiFashion：ai服装设计-创作款型
+  if (Array.isArray(src.creationStyleParams)) {
+    const values = src.creationStyleParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+    res.category = values?.[0] || ''
+    res.clothType = values?.[1] || ''
+    res.subKind = values?.[3] || ''
+  }
+  // aiFashion：ai服装设计-设计特征
+  if (Array.isArray(src.designFeaturesParams)) {
+    res.features = src.designFeaturesParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+  }
+
+  // sketchToReal：线稿转实物-线稿类型
+  if (Array.isArray(src.sketchTypeParams)) {
+    const values = src.sketchTypeParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+    res.sketchType = values?.[0] || ''
+  }
+
+  // sketchToReal：线稿转实物-线稿风格
+  if (Array.isArray(src.sketchStyleParams)) {
+    const values = src.sketchStyleParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+    res.sketchStyle = values?.[0] || ''
+  }
+
+  // sketchToReal：线稿转实物-图片类型
+  if (Array.isArray(src.imageTypeParams)) {
+    const values = src.imageTypeParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+    // 详情页里“生成图片类型”字段名是 outputType
+    res.outputType = values?.[0] || ''
+  }
+
+  // realToSketch：实物转线稿-线稿生成类型
+  if (Array.isArray(src.sketchGenerationTypeParams)) {
+    const values = src.sketchGenerationTypeParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+    res.lineType = values?.[0] || ''
+  }
+
+  // realToSketch：实物转线稿-线稿生成风格
+  if (Array.isArray(src.sketchGenerationStyleParams)) {
+    const values = src.sketchGenerationStyleParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
+    res.lineStyle = values?.[0] || ''
+  }
+
+  // fabricCreative：模板里使用 outputType（由 imageTypeParams 映射）
+
+  return res
 })
 
-// 判断是否为面料创拍类型（用于模块路由跳转）
-const isFabricShoot = computed(() => {
-  if (!templateDetail.value) return false
-  const typeName = String((templateDetail.value as any).typeName || '')
-  const titleName = String((templateDetail.value as any).titleName || '')
-  return `${typeName} ${titleName}`.includes('面料创拍')
-})
+// 左侧大图/预览：展示“生成结果输出图/视频”
+const getLeftImagePreviewUrl = (_index: number, item: any): string => {
+  // 图片预览：只用接口 url
+  return String(item?.url || '')
+}
 
-// 统一判断是否为视频类型（根据页面类型使用不同字段）
-// 创意模板和做同款详情：使用 type 字段（type==0是视频，type==1是图片）
-// 我的资产：使用 fileType 字段（fileType==1是图片，fileType==2是视频）
+// 统一判断是否为视频类型（创作详情页仅使用 fileType）
 const isVideoType = (item: any): boolean => {
   if (!item) return false
 
-  // 我的资产页面：使用 fileType 字段
-  if (pageTypeRef.value === 'assets') {
-    if (item.fileType !== undefined && item.fileType !== null) {
-      // fileType: 2视频 / 4音视频
-      return item.fileType === 2 || item.fileType === 4
-    }
-    // 如果 fileType 不存在，根据是否有 fileUrl 判断（有 fileUrl 通常是视频）
-    return !!item.fileUrl
-  }
-
-  // 创意模板和做同款详情：使用 type 字段
-  // pageType 为 'template' 或 'like' 时使用 type
-  if (item.type !== undefined && item.type !== null) {
-    return item.type === 0 // type === 0 表示视频
-  }
-
-  // 兼容旧数据：如果没有 type，尝试使用 fileType
-  if (item.fileType !== undefined && item.fileType !== null) {
-    return item.fileType === 2
-  }
-
-  // 如果都没有，根据是否有 fileUrl 判断（有 fileUrl 通常是视频）
-  return !!item.fileUrl
+  // fileType: 2 视频 / 4 音视频
+  const ft = Number(item.fileType)
+  return ft === 2 || ft === 4
 }
 
-// 统一判断是否为图片类型
+// 统一判断是否为“封面图模式”（非视频则走 poster）
 const isImageType = (item: any): boolean => {
   return !isVideoType(item)
 }
 
-// （已移除）与 4 类型无关的模板 imageSetList/穿戴/热门穿搭/模特视频等详情渲染逻辑
-
+// 详情所属模块：AI服装设计三模块 + 面料创拍一模块（用于“重新生成/再次生成”跳转）
 type DetailModule = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
 // 详情所属模块：AI服装设计三模块 + 面料创拍一模块（用于“重新生成/再次生成”跳转）
 const detailModule = computed<DetailModule>(() => {
   if (!templateDetail.value) return 'aiFashion'
 
-  // 优先按 titleCode/titleName 判定“面料创拍”
-  if (isFabricShoot.value) return 'fabricCreative'
-
-  const typeName = String((templateDetail.value as any).typeName || '')
-  const titleName = String((templateDetail.value as any).titleName || '')
-  const combined = `${typeName} ${titleName}`
-
-  if (combined.includes('线稿转实物')) return 'sketchToReal'
-  if (combined.includes('实物转线稿')) return 'realToSketch'
-  if (combined.includes('面料')) return 'fabricCreative'
+  const menuCode = String((templateDetail.value as any)?.menuCode || '')
+  if (menuCode === APP_MENU_CODES.AI_FASHION_DESIGN) return 'aiFashion'
+  if (menuCode === APP_MENU_CODES.LINE_DRAW_TO_PHYS_OBJ) return 'sketchToReal'
+  if (menuCode === APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW) return 'realToSketch'
+  if (menuCode === APP_MENU_CODES.FABRIC_DESIGN_CONCEPT) return 'fabricCreative'
 
   return 'aiFashion'
 })
 
-const getDetailMainImageUrl = () => {
-  const d: any = templateDetail.value as any
-  return (
-    d?.noWatermarkUrl ||
-    d?.imageUrl ||
-    d?.imgUrl ||
-    d?.lessenImg ||
-    d?.fileUrl ||
-    ''
-  )
-}
-
 // 重新生成：跳转到 AiFashionStudio 对应模块，并带上当前详情图
-const handleAgainEdit = () => {
-  const url = getDetailMainImageUrl()
-  router.push({
-    name: 'AiFashionStudio',
-    query: {
-      mode: detailModule.value,
-      refImageUrl: url,
-      taskResultId: String((templateDetail.value as any)?.id ?? ''),
-      from: 'detail',
-      action: 'againEdit',
-    },
-  })
-}
+// const handleAgainEdit = () => {
+//   router.push({
+//     name: 'AiFashionStudio',
+//     query: {
+//       mode: detailModule.value,
+//       refImageUrl: url,
+//       taskResultId: String((templateDetail.value as any)?.id ?? ''),
+//       from: 'detail',
+//       action: 'againEdit',
+//     },
+//   })
+// }
 
 // 再次生成：同上（预留 action 让目标页后续可区分不同入口）
-const handleAgainGenerate = () => {
-  const url = getDetailMainImageUrl()
-  router.push({
-    name: 'AiFashionStudio',
-    query: {
-      mode: detailModule.value,
-      refImageUrl: url,
-      taskResultId: String((templateDetail.value as any)?.id ?? ''),
-      from: 'detail',
-      action: 'againGenerate',
-    },
-  })
-}
-
-// 统一的创意描述文本（用于复制等功能）
-const descriptionText = computed(() => {
-  const params: any = requestParams.value
-  if (!params) return ''
-
-  // 优先使用 description / prompt / creativityDesc 字段
-  if (params.description) return params.description
-  if (params.prompt) return params.prompt
-  if (params.creativityDesc) return params.creativityDesc
-
-  // 其次尝试从 prompts 数组中拼接 value 字段
-  if (Array.isArray(params.prompts)) {
-    return params.prompts
-      .map((item: any) => item?.value)
-      .filter((v: any) => !!v)
-      .join('\n')
+const handleAgainGenerate = async () => {
+  if (isSubmittingAgain.value) return
+  const d: any = templateDetail.value
+  if (!d) {
+    ElMessage.warning('详情数据不存在')
+    return
   }
 
-  return ''
+  const wrRaw = d?.webRequest
+  let payload: any = null
+  if (wrRaw && typeof wrRaw === 'object') {
+    payload = wrRaw
+  } else if (typeof wrRaw === 'string') {
+    try {
+      payload = JSON.parse(wrRaw)
+    } catch (e) {
+      console.warn('[handleAgainGenerate] 解析 webRequest 失败:', e)
+      payload = null
+    }
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    ElMessage.warning('缺少可提交的 webRequest 参数')
+    return
+  }
+
+  try {
+    isSubmittingAgain.value = true
+    const resp = await algoApi.submit(payload as any)
+    if ((resp as any)?.code === '0000') {
+      const data = (resp as any)?.data
+      const orderNo = String(
+        (typeof data === 'string' || typeof data === 'number'
+          ? data
+          : data?.orderNo ?? data?.algoOrderNo ?? data?.taskId ?? data?.algoOrderId ?? '') || ''
+      )
+      if (!orderNo) {
+        ElMessage.warning('提交成功，但未返回任务编号')
+        return
+      }
+      ElMessage.success('已提交再次生成任务，正在生成中')
+      prependGeneratingPlaceholder(orderNo, payload)
+      await pollAgainGenerateResult(orderNo)
+      return
+    }
+    ElMessage.error((resp as any)?.msg || '再次生成提交失败')
+  } catch (error) {
+    console.error('[handleAgainGenerate] submit failed:', error)
+    ElMessage.error('再次生成提交失败，请稍后重试')
+  } finally {
+    isSubmittingAgain.value = false
+  }
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+
+const prependGeneratingPlaceholder = (orderNo: string, payload: any) => {
+  const now = new Date().toISOString()
+  const placeholder: any = {
+    id: `pending-${orderNo}`,
+    algoOrderId: orderNo,
+    menuCode: String((templateDetail.value as any)?.menuCode || ''),
+    fileType: Number((templateDetail.value as any)?.fileType ?? 1),
+    status: 2,
+    prompt: String(payload?.creativeDescription ?? creativeDescription.value ?? '生成中...'),
+    createTime: now,
+    url: '',
+    thumbUrl: '',
+    originalUrl: '',
+    collectStatus: 0,
+  }
+
+  const existed = relatedTemplates.value.findIndex(
+    (x: any) => String(x?.algoOrderId || '') === String(orderNo) || String(x?.id || '') === String(placeholder.id)
+  )
+  if (existed >= 0) {
+    relatedTemplates.value[existed] = { ...(relatedTemplates.value[existed] as any), ...placeholder }
+  } else {
+    relatedTemplates.value = [placeholder, ...relatedTemplates.value] as any[]
+  }
+
+  selectedThumbnail.value = 0
+  previousThumbnailIndex.value = 0
+  templateDetail.value = { ...placeholder } as any
+  nextTick(() => syncMediaContainerToSelected(true))
+}
+
+const patchAgainGeneratePlaceholder = (orderNo: string, patch: Record<string, any>) => {
+  const idx = relatedTemplates.value.findIndex(
+    (x: any) => String(x?.algoOrderId || '') === String(orderNo) || String(x?.id || '') === `pending-${orderNo}`
+  )
+  if (idx < 0) return
+  relatedTemplates.value[idx] = {
+    ...(relatedTemplates.value[idx] as any),
+    ...patch,
+    algoOrderId: String((relatedTemplates.value[idx] as any)?.algoOrderId || orderNo),
+  } as any
+
+  if (selectedThumbnail.value === idx) {
+    templateDetail.value = { ...(relatedTemplates.value[idx] as any) }
+  }
+}
+
+const prependGeneratedResults = (records: any[], orderNo?: string) => {
+  if (!Array.isArray(records) || records.length === 0) return null
+  const normalized = records
+    .map((item: any) => {
+      const id = getAlgoResultId(item)
+      return {
+        ...item,
+        id: id != null ? String(id) : '',
+      }
+    })
+    .filter((item: any) => !!item?.id)
+
+  if (normalized.length === 0) return null
+
+  const idSet = new Set(normalized.map((x: any) => String(x.id)))
+  const merged = [
+    ...normalized,
+    ...relatedTemplates.value.filter((x: any) => {
+      const sameId = idSet.has(String(x?.id))
+      const sameOrderPlaceholder =
+        !!orderNo &&
+        Number((x as any)?.status) === 2 &&
+        String((x as any)?.algoOrderId || '') === String(orderNo)
+      return !sameId && !sameOrderPlaceholder
+    }),
+  ]
+  relatedTemplates.value = merged as any[]
+
+  const first = normalized[0]
+  selectedThumbnail.value = 0
+  previousThumbnailIndex.value = 0
+  templateDetail.value = { ...first } as any
+  nextTick(() => syncMediaContainerToSelected(true))
+  return first
+}
+
+const pollAgainGenerateResult = async (orderNo: string) => {
+  const maxPolls = 120
+  const intervalMs = 3000
+
+  for (let i = 0; i < maxPolls; i++) {
+    if (isUnmountedRef.value) return
+    try {
+      const queryResp = await algoApi.query({ orderNo })
+      if ((queryResp as any)?.code !== '0000' || !(queryResp as any)?.data) {
+        await sleep(intervalMs)
+        continue
+      }
+      const data: any = (queryResp as any).data
+      const status = Number(data?.status)
+      const orderResultVOS = Array.isArray(data?.orderResultVOS) ? data.orderResultVOS : []
+
+      // 1未开始 2进行中 3完成 4失败
+      if (status === 3) {
+        const first = prependGeneratedResults(orderResultVOS, orderNo)
+        if (!first) {
+          ElMessage.warning('生成完成，但未返回结果')
+          return
+        }
+        const firstId = getAlgoResultId(first)
+        if (firstId) {
+          await loadDetailOnce(firstId)
+        }
+        // 生成成功后刷新一次服务端列表，确保新增结果和列表数据一致
+        const snapshotList = [...relatedTemplates.value] as any[]
+        const snapshotSelected = selectedThumbnail.value
+        const snapshotDetail = templateDetail.value ? { ...(templateDetail.value as any) } : null
+        await loadRelatedTemplates(true)
+        // 防御：若刷新异常导致列表被清空，回滚到刷新前，避免页面“全没了”
+        if (!relatedTemplates.value.length) {
+          relatedTemplates.value = snapshotList as any[]
+          selectedThumbnail.value = Math.max(0, Math.min(snapshotSelected, relatedTemplates.value.length - 1))
+          templateDetail.value = snapshotDetail as any
+          nextTick(() => syncMediaContainerToSelected(true))
+        }
+        ElMessage.success('再次生成完成')
+        return
+      }
+
+      if (status === 4) {
+        // 失败时把顶部占位卡切换为失败态，便于查看失败样式
+        patchAgainGeneratePlaceholder(orderNo, {
+          status: 4,
+          prompt: '生成失败',
+          thumbUrl: '',
+          url: '',
+          originalUrl: '',
+        })
+        selectedThumbnail.value = 0
+        previousThumbnailIndex.value = 0
+        const top = relatedTemplates.value[0] as any
+        if (top) templateDetail.value = { ...top }
+        nextTick(() => syncMediaContainerToSelected(true))
+        ElMessage.error('再次生成失败')
+        return
+      }
+    } catch (error) {
+      console.error('[pollAgainGenerateResult] query failed:', error)
+    }
+    await sleep(intervalMs)
+  }
+
+  ElMessage.warning('再次生成超时，请稍后在列表查看')
+}
+
+// 获取创意描述文本：灵感词(inspirationWordsParams[].content) + creativeDescription
+const creativeDescription = computed(() => {
+  const d: any = templateDetail.value
+  if (!d) return ''
+
+  const wrRaw = d?.webRequest
+  let wr: any = null
+  if (wrRaw && typeof wrRaw === 'object') {
+    wr = wrRaw
+  } else if (typeof wrRaw === 'string') {
+    try {
+      wr = JSON.parse(wrRaw)
+    } catch {
+      wr = null
+    }
+  }
+  if (!wr) return ''
+
+  const words = Array.isArray(wr.inspirationWordsParams)
+    ? wr.inspirationWordsParams
+      .map((x: any) => String(x?.content ?? '').trim())
+      .filter(Boolean)
+    : []
+  const creative = String(wr.creativeDescription ?? '').trim()
+
+  return [...words, creative].filter(Boolean).join(' ')
 })
 
-// 获取创意描述文本（优先级：description > prompt > creativityDesc）
-const creativeDescription = computed(() => {
-  if (!requestParams.value) return ''
-  return (
-    requestParams.value.description ||
-    requestParams.value.prompt ||
-    requestParams.value.creativityDesc ||
-    requestParams.value.productPrompt ||
-    requestParams.value.creativeDescription ||
-    ''
-  )
+// 模型参数展示：优先使用详情接口 webRequest 中的模型信息
+// - 模型名：modelConfigName
+// - 参数项：templateParams[*].modelConfigTemplateName
+const modelParamTags = computed<string[]>(() => {
+  const d: any = templateDetail.value
+  if (!d) return []
+
+  const wrRaw = d?.webRequest
+  let wr: any = null
+  if (wrRaw && typeof wrRaw === 'object') {
+    wr = wrRaw
+  } else if (typeof wrRaw === 'string') {
+    try {
+      wr = JSON.parse(wrRaw)
+    } catch {
+      wr = null
+    }
+  }
+
+  const src = wr || requestParams.value || d
+  const tags: string[] = []
+
+  const modelName = String(src?.modelConfigName ?? d?.modelConfigName ?? '').trim()
+  if (modelName) tags.push(modelName)
+
+  const templateParams = Array.isArray(src?.templateParams) ? src.templateParams : []
+  templateParams.forEach((item: any) => {
+    const name = String(item?.modelConfigTemplateName ?? '').trim()
+    if (name) tags.push(name)
+  })
+
+  return Array.from(new Set(tags))
 })
 
 // 详情请求并发控制：
@@ -594,324 +869,157 @@ const creativeDescription = computed(() => {
 const detailRequestToken = ref(0)
 const currentDetailTargetId = ref<string | number | null>(null)
 
-// 获取详情数据（根据 pageType 调用不同接口）
+// 获取详情数据（固定调用 getAlgoResultDetails）
 const loadTemplateDetail = async (
   id?: string | number,
   options?: { token: number; expectedId?: string | number },
 ) => {
   if (!id) return
 
-  if (pageTypeRef.value === 'assets' && sourceTabRef.value === 'aiFashionStudio') {
-    // AI 工作台（AiFashionStudio）进入“创作详情”：
-    // 1) 先用缓存/列表项兜底渲染
-    // 2) 再请求 /api/v1/algo/getAlgoResultDetails 补全右侧展示字段
-    const fallback = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
-
-    if (fallback) {
-      templateDetail.value = {
-        ...(templateDetail.value || ({} as any)),
-        ...fallback,
-      }
-    }
-
-    try {
-      const algoResulId = String(id)
-      const response = await algoApi.getAlgoResultDetails({ algoResulId })
-      const detailData = (response as any)?.data ?? response
-
-      // 回填到当前详情
-      templateDetail.value = {
-        ...(templateDetail.value || ({} as any)),
-        ...(detailData as any),
-      }
-
-      // 同步回写到缩略图列表对应项（避免左右不一致）
-      const idx = relatedTemplates.value.findIndex((x: any) => String(x?.id) === algoResulId)
-      if (idx >= 0) {
-        relatedTemplates.value[idx] = {
-          ...(relatedTemplates.value[idx] as any),
-          ...(detailData as any),
-        }
-      }
-
-      lastLoadedDetailId.value = options?.expectedId ?? id
-    } catch (e) {
-      // 详情拉取失败：保留兜底缓存渲染，避免页面空白
-      console.warn('[CreativeDetail] getAlgoResultDetails failed:', e)
-      lastLoadedDetailId.value = options?.expectedId ?? id
-    }
-
+  const myToken = options?.token
+  const expectedId = options?.expectedId ?? id
+  // 丢弃过期请求：防止接口返回乱序覆盖当前选中项
+  if (myToken != null && myToken !== detailRequestToken.value) return
+  if (
+    expectedId != null &&
+    currentDetailTargetId.value != null &&
+    String(expectedId) !== String(currentDetailTargetId.value)
+  )
     return
-  }
 
-  // 其它情况：避免接入旧接口（creative.ts / asset.ts）
-  // 仅保留基本回填，确保 UI 不因空数据崩溃。
-  const fallback = relatedTemplates.value.find((x: any) => String(x?.id) === String(id))
+  // 1) 先用缓存/列表项兜底渲染
+  // 2) 再请求 /api/v1/algo/getAlgoResultDetails 补全右侧展示字段
+  const fallback = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
   if (fallback) {
     templateDetail.value = {
       ...(templateDetail.value || ({} as any)),
-      ...(fallback as any),
+      ...fallback,
     }
-    lastLoadedDetailId.value = options?.expectedId ?? id
   } else {
     templateDetail.value = null
   }
-}
 
-// 获取相关模板/资产（统一加载逻辑）
-const loadRelatedTemplates = async (isRefresh = false) => {
-  if (loadingRelated.value) return
-
-  if (isRefresh) {
-    relatedPageParams.value.current = 1
-    relatedTemplates.value = []
-    hasMoreRelated.value = true
+  // 进行中/失败：不调用详情接口（右侧直接使用列表项展示）
+  if (!shouldFetchDetailForId(id)) {
+    // 只有最新请求才更新“已加载标记”
+    if (myToken != null && myToken === detailRequestToken.value) {
+      lastLoadedDetailId.value = expectedId
+    }
+    return
   }
 
   try {
-    loadingRelated.value = true
+    const algoResulId = String(id)
+    const response = await algoApi.getAlgoResultDetails({ algoResulId })
+    const detailData = (response as any)?.data ?? response
 
-    if (pageTypeRef.value === 'assets') {
-      // assets 页面：加载相关资产
-      const userId = userStore.userInfo?.userId
-      if (!userId) {
-        return
-      }
+    // 二次校验：请求过程中可能已经切换到别的 item
+    if (myToken != null && myToken !== detailRequestToken.value) return
+    if (
+      expectedId != null &&
+      currentDetailTargetId.value != null &&
+      String(expectedId) !== String(currentDetailTargetId.value)
+    )
+      return
 
-      // 根据来源标签决定加载什么数据
-      const params: any = {
-        userId: String(userId),
-        size: relatedPageParams.value.size,
-        current: relatedPageParams.value.current,
-      }
+    // 回填到当前详情
+    templateDetail.value = {
+      ...(templateDetail.value || ({} as any)),
+      ...(detailData as any),
+    }
 
-      // 根据来源标签对照接口字段获取对应的接口参数
-      // 来源标签：all, image, video, favorite（兼容：images, videos, favorites）
-      const sourceTabMap: Record<string, { isCollect?: number; fileType?: number }> = {
-        favorite: { isCollect: 1 },
-        favorites: { isCollect: 1 },
-        image: { fileType: 1 },
-        images: { fileType: 1 },
-        video: { fileType: 2 },
-        videos: { fileType: 2 },
-        all: { isCollect: 0 }, // 全部列表：isCollect = 0 显示全部
-      }
-
-      const tabConfig = sourceTabMap[sourceTabRef.value]
-      if (tabConfig) {
-        Object.assign(params, tabConfig)
-        // 如果详情有类型且没有设置 fileType，可以根据详情类型设置
-        if (!tabConfig.fileType && templateDetail.value?.fileType) {
-          params.fileType = templateDetail.value.fileType
-        }
-      } else if (templateDetail.value?.fileType) {
-        // 如果没有来源标签，默认显示全部（isCollect = 0）并使用当前资产类型
-        params.isCollect = 0
-        params.fileType = templateDetail.value.fileType
-      } else {
-        // 如果既没有来源标签也没有详情类型，默认显示全部
-        params.isCollect = 0
-      }
-
-      // 旧接口 asset.ts 已下线：当前项目对该页面仅做 AiFashionStudio mock + latest algo 字段适配
-      const response: any = { code: '9999', msg: '暂未接入', data: null }
-
-      if (response.code === '0000' && response.data) {
-        const { records, total } = response.data as any
-
-        // 处理数据，确保有 imgUrl 字段
-        const processedRecords = records.map((item: any) => ({
-          ...item,
-          imgUrl: item.imageUrl || item.imgUrl,
-        }))
-
-        if (isRefresh) {
-          // 先设置列表数据
-          relatedTemplates.value = processedRecords
-
-          // 尝试从缓存获取索引
-          const cachedListData = templateStore.getTemplateListData()
-          let currentIndex = -1
-
-          // 如果缓存数据中有索引且列表数据匹配，优先使用缓存索引
-          if (
-            cachedListData &&
-            cachedListData.currentIndex !== undefined &&
-            cachedListData.currentIndex >= 0 &&
-            cachedListData.list &&
-            cachedListData.list.length > 0 &&
-            cachedListData.list.length === processedRecords.length
-          ) {
-            // 检查缓存列表的第一个和最后一个ID是否匹配，如果匹配则使用缓存索引
-            const firstMatches = cachedListData.list[0]?.id === processedRecords[0]?.id
-            const lastMatches =
-              cachedListData.list[cachedListData.list.length - 1]?.id ===
-              processedRecords[processedRecords.length - 1]?.id
-            if (firstMatches && lastMatches) {
-              currentIndex = cachedListData.currentIndex
-            }
-          }
-
-          // 如果缓存索引无效，通过ID查找
-          if (currentIndex < 0) {
-            const currentAssetId = templateDetail.value?.id
-            currentIndex = processedRecords.findIndex((item: any) => item.id === currentAssetId)
-          }
-
-          if (currentIndex >= 0 && currentIndex < processedRecords.length) {
-            // 当前资产在列表中，设置为选中并更新详情
-            selectedThumbnail.value = currentIndex
-            templateDetail.value = {
-              ...processedRecords[currentIndex],
-              ...templateDetail.value, // 保留详情接口返回的额外字段
-            }
-          } else {
-            // 如果当前资产不在当前页，将其插入到列表开头并选中
-            if (templateDetail.value) {
-              const currentAsset = {
-                ...templateDetail.value,
-                imgUrl: templateDetail.value.imageUrl || templateDetail.value.imgUrl,
-              }
-              relatedTemplates.value = [currentAsset, ...processedRecords]
-              selectedThumbnail.value = 0
-            } else {
-              // 如果没有详情数据，默认选中第一项
-              if (processedRecords.length > 0) {
-                selectedThumbnail.value = 0
-                templateDetail.value = processedRecords[0] as CreativeTemplate
-              }
-            }
-          }
-        } else {
-          relatedTemplates.value.push(...processedRecords)
-        }
-
-        // 根据总数和当前页数据判断是否还有更多数据
-        const currentTotal = relatedTemplates.value.length
-        hasMoreRelated.value = currentTotal < total
-      }
-    } else if (pageTypeRef.value === 'like') {
-      // 我的喜欢页面：加载用户点赞的模板
-      const userId = userStore.userInfo?.userId
-      if (!userId) {
-        return
-      }
-
-      const response = await userApi.getUserLikesPage({
-        userId: String(userId),
-        size: relatedPageParams.value.size,
-        current: relatedPageParams.value.current,
-      })
-
-      if (response.code === '0000' && response.data) {
-        let { records, total } = response.data as any
-
-        // 处理数据格式，确保有正确的字段
-        const processedRecords = records.map((item: any) => {
-          // 如果返回的是点赞记录，需要提取模板信息
-          if (item.creativeTemplate) {
-            return {
-              ...item.creativeTemplate,
-              likeId: item.id, // 保留点赞记录ID
-            }
-          }
-          return item
-        })
-
-        if (isRefresh) {
-          // 找到当前模板在列表中的位置
-          const currentTemplateId = templateDetail.value?.id
-          let foundIndex = -1
-
-          if (currentTemplateId) {
-            foundIndex = processedRecords.findIndex(
-              (item: any) =>
-                item.id === currentTemplateId || item.creativeTemplate?.id === currentTemplateId
-            )
-          }
-
-          if (foundIndex >= 0) {
-            // 当前模板在列表中，使用列表数据并设置正确的索引
-            relatedTemplates.value = processedRecords
-            selectedThumbnail.value = foundIndex
-            // 使用列表中的数据更新详情（确保数据一致）
-            templateDetail.value = {
-              ...processedRecords[foundIndex],
-              ...templateDetail.value, // 保留详情接口返回的额外字段
-            }
-          } else {
-            // 如果当前模板不在列表中，将其插入到列表开头并选中
-            if (templateDetail.value) {
-              relatedTemplates.value = [templateDetail.value as any, ...processedRecords]
-              selectedThumbnail.value = 0
-            } else {
-              // 如果没有详情数据，使用列表数据
-              relatedTemplates.value = processedRecords
-              if (processedRecords.length > 0) {
-                selectedThumbnail.value = 0
-                templateDetail.value = processedRecords[0] as CreativeTemplate
-              }
-            }
-          }
-        } else {
-          relatedTemplates.value.push(...processedRecords)
-        }
-
-        // 根据总数和当前页数据判断是否还有更多数据
-        const currentTotal = relatedTemplates.value.length
-        hasMoreRelated.value = currentTotal < total
-      }
-    } else {
-      // 其他页面（template）：加载相关模板
-      // 旧接口 creative.ts 已下线：当前项目对该页面仅做 AiFashionStudio mock + latest algo 字段适配
-      const response: any = { code: '9999', msg: '暂未接入', data: null }
-
-      if (response.code === '0000') {
-        let { records, total } = (response.data as any) || {}
-
-        if (isRefresh) {
-          // 找到当前模板在列表中的位置
-          const currentTemplateId = templateDetail.value?.id
-          let foundIndex = -1
-
-          if (currentTemplateId) {
-            foundIndex = records.findIndex((item: any) => item.id === currentTemplateId)
-          }
-
-          if (foundIndex >= 0) {
-            // 当前模板在列表中，使用列表数据并设置正确的索引
-            relatedTemplates.value = records
-            selectedThumbnail.value = foundIndex
-            // 使用列表中的数据更新详情（确保数据一致）
-            templateDetail.value = {
-              ...records[foundIndex],
-              ...templateDetail.value, // 保留详情接口返回的额外字段
-            }
-          } else {
-            // 如果当前模板不在列表中，将其插入到列表开头并选中
-            if (templateDetail.value) {
-              relatedTemplates.value = [templateDetail.value as any, ...records]
-              selectedThumbnail.value = 0
-            } else {
-              // 如果没有详情数据，使用列表数据
-              relatedTemplates.value = records
-              if (records.length > 0) {
-                selectedThumbnail.value = 0
-                templateDetail.value = records[0] as CreativeTemplate
-              }
-            }
-          }
-        } else {
-          relatedTemplates.value.push(...records)
-        }
-
-        // 根据总数和当前页数据判断是否还有更多数据
-        const currentTotal = relatedTemplates.value.length
-        hasMoreRelated.value = currentTotal < total
+    // 同步回写到缩略图列表对应项（避免左右不一致）
+    const idx = relatedTemplates.value.findIndex((x: any) => String(x?.id) === algoResulId)
+    if (idx >= 0) {
+      relatedTemplates.value[idx] = {
+        ...(relatedTemplates.value[idx] as any),
+        ...(detailData as any),
       }
     }
+
+    lastLoadedDetailId.value = expectedId
+  } catch (e) {
+    // 详情拉取失败：保留兜底缓存渲染，避免页面空白
+    console.warn('[CreativeDetail] getAlgoResultDetails failed:', e)
+    if (myToken != null && myToken === detailRequestToken.value) {
+      lastLoadedDetailId.value = expectedId
+    }
+  }
+}
+
+// 获取相关创作结果列表（调用 /v1/algo/queryAlgoResultPage）
+const loadRelatedTemplates = async (isRefresh = false) => {
+  if (loadingRelated.value) return
+
+  const d: any = templateDetail.value
+  // 列表筛选优先使用路由/缓存里传入的一级 modeCode，避免误用详情里的二级 menuCode
+  const modeCodeFromQuery = String(route.query.modeCode || '').trim()
+  const modeCodeFromCache = String(templateStore.getTemplateListData()?.modeCode || '').trim()
+  const menuCode = String(modeCodeFromQuery || modeCodeFromCache || d?.menuCode || '').trim()
+  if (!menuCode) {
+    console.warn('[loadRelatedTemplates] 缺少 menuCode，跳过列表请求')
+    return
+  }
+
+  const requestPage = isRefresh ? 1 : relatedPageParams.value.current
+
+  try {
+    loadingRelated.value = true
+    const params = {
+      menuCode,
+      fileType: '', // 1图片 2视频 3音频 4音视频 空是全部的意思
+      collectStatus: '', // 0未收藏 1已收藏（不筛选时按后端约定调整） 空是全部的意思
+      currentPage: requestPage,
+      pageSize: relatedPageParams.value.size,
+    }
+    const resp = await algoApi.queryAlgoResultPage(params)
+    if (resp.code !== '0000' || !resp.data) {
+      console.warn('[loadRelatedTemplates] queryAlgoResultPage 响应异常:', resp)
+      return
+    }
+
+    const data: any = resp.data || {}
+    const rawList = Array.isArray(data?.list) ? data.list : []
+    const total = Number(data?.total ?? data?.totalCount ?? rawList.length ?? 0)
+
+    let processed = (rawList as any[])
+      .map((item) => {
+        const normalizedId = getAlgoResultId(item)
+        return {
+          ...item,
+          id: normalizedId != null ? String(normalizedId) : item?.id,
+        }
+      })
+      .filter((x) => !!x?.id)
+
+    if (isRefresh) {
+      // 首次刷新：确保当前详情这条记录在列表中且排在第一位，避免刷新后大图指向其他记录导致“黑屏”
+      const currentId = templateDetail.value ? String(getAlgoResultId(templateDetail.value as any)) : ''
+      if (currentId) {
+        const idx = processed.findIndex((x: any) => String(x.id) === currentId)
+        if (idx >= 0) {
+          const currentItem = processed[idx]
+          processed = [currentItem, ...processed.slice(0, idx), ...processed.slice(idx + 1)]
+        } else {
+          processed = [templateDetail.value as any, ...processed]
+        }
+        selectedThumbnail.value = 0
+      }
+
+      relatedTemplates.value = processed as any[]
+      relatedPageParams.value.current = 1
+      hasMoreRelated.value = true
+    } else {
+      relatedTemplates.value = [...relatedTemplates.value, ...processed] as any[]
+    }
+
+    const currentTotal = relatedTemplates.value.length
+    hasMoreRelated.value = currentTotal < Number(total || 0)
+    if (hasMoreRelated.value) {
+      relatedPageParams.value.current += 1
+    }
   } catch (error) {
-    console.error('获取相关数据失败:', error)
+    console.error('[loadRelatedTemplates] 获取相关列表失败:', error)
   } finally {
     loadingRelated.value = false
   }
@@ -942,13 +1050,19 @@ const handleThumbnailGalleryClick = (index: number) => {
 const selectThumbnail = async (index: number, template: CreativeTemplate) => {
   // 设置标志：表示是用户主动点击触发的（必须在最开始设置，防止滚动事件提前触发）
   isUserClickingThumbnail.value = true
+  clickingTargetIndex.value = index
+  scrollSyncResumeAt.value = Date.now() + 600
+  suppressScrollDetailLoadUntil.value = Date.now() + 1200
   // 取消滚动停顿触发的详情请求，避免“刚滚动完 + 立刻点击”产生多次详情请求
   clearScrollDetailTimer()
+  // 保留旧选中索引：用于计算滚动完成等待时间
+  const fromIndex = previousThumbnailIndex.value
 
   // 验证索引有效性
   if (index < 0 || index >= relatedTemplates.value.length) {
     console.warn('[selectThumbnail] 无效的索引:', index, '列表长度:', relatedTemplates.value.length)
     isUserClickingThumbnail.value = false
+    clickingTargetIndex.value = null
     return
   }
 
@@ -985,9 +1099,10 @@ const selectThumbnail = async (index: number, template: CreativeTemplate) => {
   }
 
   // 立即调用详情接口获取完整数据（不等待滚动完成）
-  if (currentTemplate?.id) {
+  const currentId = getAlgoResultId(currentTemplate) ?? getAlgoResultId(template)
+  if (currentId) {
     // 异步加载详情，不阻塞滚动
-    loadDetailOnce(currentTemplate.id).catch((err) => {
+    loadDetailOnce(currentId).catch((err) => {
       console.error('[selectThumbnail] 加载详情失败:', err)
       // 即使加载失败，也要确保页面显示基本数据
       if (!templateDetail.value) {
@@ -1000,23 +1115,23 @@ const selectThumbnail = async (index: number, template: CreativeTemplate) => {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       // 双重 requestAnimationFrame 确保在下一个渲染周期执行
-      syncMediaContainerToSelected()
+      // 点击后立即对齐滚动位置，避免 smooth 滚动过程中滚动监听把选中态“改回去”
+      syncMediaContainerToSelected(true)
 
-      // 滚动完成后，延迟重置标志（确保所有滚动事件处理完成）
-      // 根据滚动距离计算延迟时间：每个项大约需要 100-200ms，从第1个到第5个需要更多时间
-      const scrollDistance = Math.abs(index - (previousThumbnailIndex.value || 0))
-      const delay = Math.max(500, scrollDistance * 150) // 每个项150ms，最少500ms
+      // 标志短暂保持：阻止滚动监听在“点击对齐”期间覆盖选中态/详情
+      const delay = 300
 
       setTimeout(() => {
         // 延迟重置标志，确保滚动事件处理完成
         isUserClickingThumbnail.value = false
+        clickingTargetIndex.value = null
         console.log('[缩略图点击] 标志已重置，允许滚动触发详情加载')
       }, delay)
     })
   })
 
   console.log('缩略图切换:', {
-    from: previousThumbnailIndex.value,
+    from: fromIndex,
     to: index,
     currentTemplate: currentTemplate || template,
     templateType: isVideoType(currentTemplate || template) ? '视频' : '图片',
@@ -1024,17 +1139,17 @@ const selectThumbnail = async (index: number, template: CreativeTemplate) => {
 }
 
 // 返回上一页
-const handleBack = () => {
-  if (props.isModal) {
-    emit('close')
-  } else {
-    router.back()
-  }
-}
+// const handleBack = () => {
+//   if (props.isModal) {
+//     emit('close')
+//   } else {
+//     router.back()
+//   }
+// }
 
 // 复制描述
 const copyDescription = async (text?: string) => {
-  const textToCopy = text || descriptionText.value
+  const textToCopy = text || creativeDescription.value
   if (!textToCopy) {
     ElMessage.warning('暂无可复制的描述')
     return
@@ -1055,7 +1170,7 @@ const handleImagePreview = (_index: number, item: any) => {
   }
 
   // 获取当前图片URL
-  const imageUrl = item.imageUrl || item.imgUrl || item.fileUrl
+  const imageUrl = getLeftImagePreviewUrl(_index, item)
   if (!imageUrl) {
     ElMessage.warning('图片地址不存在')
     return
@@ -1064,7 +1179,7 @@ const handleImagePreview = (_index: number, item: any) => {
   // 收集所有图片类型的URL用于预览列表
   const imageUrls = relatedTemplates.value
     .filter((t) => isImageType(t)) // 只包含图片类型
-    .map((t) => t.imageUrl || t.imgUrl || t.fileUrl)
+    .map((t) => (t as any).url)
     .filter((url) => url) // 过滤空值
 
   // 如果当前图片不在列表中，添加到列表开头
@@ -1210,18 +1325,13 @@ const handleDownload = async () => {
   try {
     isDownloading.value = true
     // 优先使用最新映射后的缩略图数据（ThumbnailGallery 使用的字段：thumbUrl/url/originalUrl）
-    // 只在“我的资产”页启用；其它页面保持原逻辑
     const currentItemBase =
       selectedThumbnail.value >= 0 && selectedThumbnail.value < relatedTemplates.value.length
         ? relatedTemplates.value[selectedThumbnail.value]
         : templateDetail.value
 
-    const currentItem =
-      pageTypeRef.value === 'assets' &&
-        selectedThumbnail.value >= 0 &&
-        selectedThumbnail.value < thumbnailAssets.value.length
-        ? thumbnailAssets.value[selectedThumbnail.value]
-        : currentItemBase
+    // 下载使用“生成结果”的输出链接（url/originalUrl/fileUrl），不要使用 webRequest 输入图字符串
+    const currentItem = currentItemBase as any
 
     // 根据文件类型选择下载 URL（与资产列表逻辑一致）
     const isVideo = isVideoType(currentItem)
@@ -1242,10 +1352,10 @@ const handleDownload = async () => {
       }
     }
 
-    let downloadUrl = isVideo ? currentItem.url : currentItem.url || currentItem.thumbUrl
+    let downloadUrl = isVideo ? currentItem.url : currentItem.fileUrl || currentItem.noWatermarkUrl
 
     // 如果需要去除水印，优先使用 originalUrl（无水印链接）
-    if (pageTypeRef.value === 'assets' && wantRemoveWatermark && isUserVip.value) {
+    if (wantRemoveWatermark && isUserVip.value) {
       const noWatermarkUrl = await ensureNoWatermarkUrlForAsset(currentItem)
       if (noWatermarkUrl) downloadUrl = noWatermarkUrl
     }
@@ -1266,28 +1376,16 @@ const handleDownload = async () => {
       return
     }
 
-    // 文件名生成（与资产列表逻辑一致）
-    const filePrefix = 'chaotuishou'
-    const namePart =
-      currentItem?.prompt ||
-      templateDetail.value?.prompt ||
-      (isVideo ? 'video' : 'image')
-
-    // 文件扩展名：视频 mp4，图片 png（与资产列表逻辑一致）
-    const fileExtension = isVideo ? 'mp4' : 'png'
-
     try {
-      await watermarkDownloader.download([downloadUrl], {
-        filename: `${filePrefix}_${namePart}_${Date.now()}.${fileExtension}`,
-        silent: false,
-      })
+      // 统一下载：只传 URL，文件名和后缀由 WatermarkDownloader 根据 URL 自动生成
+      await watermarkDownloader.download(downloadUrl, { silent: false })
     } catch (err) {
       console.warn('[下载] 跨域或网络限制，使用跳转方式下载', err)
       const link = document.createElement('a')
       link.href = downloadUrl
       link.target = '_blank'
       link.rel = 'noopener'
-      link.download = `${filePrefix}_${namePart}_${Date.now()}.${fileExtension}`
+      // 兜底下载也不强行改后缀，交给浏览器和 URL 自己决定
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -1305,6 +1403,12 @@ const handleDownload = async () => {
 
 // 标志：是否是用户主动点击缩略图触发的滚动（此时不应在滚动事件中加载详情）
 const isUserClickingThumbnail = ref(false)
+// 点击触发滚动期间锁定目标索引，避免滚动中间态引发选中错位
+const clickingTargetIndex = ref<number | null>(null)
+// 点击后的短暂保护期：忽略滚动事件对选中项/详情的反向覆盖
+const scrollSyncResumeAt = ref(0)
+// 点击跨大跨度切换（如首尾）后的请求保护期，避免滚动中间态触发大量详情请求
+const suppressScrollDetailLoadUntil = ref(0)
 
 // 滚动触发的详情加载定时器（避免滚动过程频繁请求）
 let scrollDetailTimer: number | undefined
@@ -1320,19 +1424,71 @@ const lastLoadedDetailId = ref<string | number | null>(null)
 // 当前正在请求中的详情 ID（同一 ID 的并发请求直接跳过）
 const inFlightDetailId = ref<string | number | null>(null)
 
+// 调试开关：URL 带 ?debugDetailFlow=1 或 localStorage.debugDetailFlow='1' 时开启
+const isDetailFlowDebugEnabled = () => {
+  try {
+    const fromQuery = String(route.query.debugDetailFlow || '') === '1'
+    const fromStorage = window?.localStorage?.getItem('debugDetailFlow') === '1'
+    return fromQuery || fromStorage
+  } catch {
+    return false
+  }
+}
+
+const logDetailFlow = (stage: string, payload?: Record<string, unknown>) => {
+  if (!isDetailFlowDebugEnabled()) return
+  console.log(`[CreativeDetail][detail-flow] ${stage}`, payload || {})
+}
+
+const shouldFetchDetailForId = (id?: string | number) => {
+  if (id === undefined || id === null) {
+    logDetailFlow('shouldFetchDetailForId:skip-empty-id', { id })
+    return false
+  }
+  const target = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
+  const status = Number(target?.status)
+  // status: 0初始化 1待请求 2处理中 3完成 4失败
+  // 进行中/失败：不调用详情接口（右侧直接展示列表项即可）
+  if (status === 0 || status === 1 || status === 2 || status === 4) {
+    logDetailFlow('shouldFetchDetailForId:skip-by-status', { id, status })
+    return false
+  }
+  // 完成：才需要补全详情字段
+  const shouldFetch = status === 3 || !Number.isFinite(status)
+  logDetailFlow('shouldFetchDetailForId:result', { id, status, shouldFetch })
+  return shouldFetch
+}
+
 const loadDetailOnce = async (id?: string | number) => {
-  if (!id) return
-  // 只要 id 相同且已成功回写过，就不重复请求
-  if (lastLoadedDetailId.value != null && String(lastLoadedDetailId.value) === String(id)) return
+  if (!id) {
+    logDetailFlow('loadDetailOnce:skip-empty-id', { id })
+    return
+  }
+  if (!shouldFetchDetailForId(id)) {
+    logDetailFlow('loadDetailOnce:skip-shouldFetch=false', { id })
+    return
+  }
   // 同一 id 正在请求中，直接跳过（避免滚动 + 点击触发重复请求）
-  if (inFlightDetailId.value != null && String(inFlightDetailId.value) === String(id)) return
+  if (inFlightDetailId.value != null && String(inFlightDetailId.value) === String(id)) {
+    logDetailFlow('loadDetailOnce:skip-in-flight', { id, inFlightDetailId: inFlightDetailId.value })
+    return
+  }
 
   // 设置当前目标 id，用于丢弃过期响应
   currentDetailTargetId.value = id
   const token = ++detailRequestToken.value
   inFlightDetailId.value = id
+  logDetailFlow('loadDetailOnce:request-start', { id, token })
   try {
     await loadTemplateDetail(id, { token, expectedId: id })
+    logDetailFlow('loadDetailOnce:request-success', { id, token, lastLoadedDetailId: lastLoadedDetailId.value })
+  } catch (error) {
+    logDetailFlow('loadDetailOnce:request-error', {
+      id,
+      token,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    throw error
   } finally {
     // 只清理由本次请求设置的 inFlight（防止快速切换时误清空）
     if (inFlightDetailId.value != null && String(inFlightDetailId.value) === String(id)) {
@@ -1341,35 +1497,73 @@ const loadDetailOnce = async (id?: string | number) => {
   }
 }
 
+const scheduleDetailLoadByIndex = (index: number, delay = 200) => {
+  if (index < 0 || index >= relatedTemplates.value.length) {
+    logDetailFlow('scheduleDetailLoadByIndex:skip-invalid-index', {
+      index,
+      total: relatedTemplates.value.length,
+    })
+    return
+  }
+  const targetTemplate = relatedTemplates.value[index]
+  const targetId = getAlgoResultId(targetTemplate)
+  if (!targetId) {
+    logDetailFlow('scheduleDetailLoadByIndex:skip-no-id', { index, targetTemplate })
+    return
+  }
+  clearScrollDetailTimer()
+  logDetailFlow('scheduleDetailLoadByIndex:scheduled', { index, targetId, delay })
+  scrollDetailTimer = window.setTimeout(() => {
+    logDetailFlow('scheduleDetailLoadByIndex:timer-fire', { index, targetId })
+    loadDetailOnce(targetId).catch(() => { })
+  }, delay)
+}
+
 // 左侧媒体容器滚动监听 - 同步选中项和右侧缩略图
 const handleMediaContainerScroll = async (event: Event) => {
-  // 每次滚动先清理待触发的详情请求
-  clearScrollDetailTimer()
-
   // 如果是用户点击缩略图触发的滚动
   if (isUserClickingThumbnail.value) {
     const target = event.target as HTMLElement
     if (!target || relatedTemplates.value.length === 0) return
 
     const { scrollTop, clientHeight } = target
-    const itemHeight = clientHeight
-    const currentIndex = Math.floor(scrollTop / itemHeight)
+    const mediaItems = target.querySelectorAll<HTMLElement>('.media-item')
+    const step = mediaItems.length > 1 ? mediaItems[1].offsetTop - mediaItems[0].offsetTop : clientHeight
+    const baseline = mediaItems.length > 0 ? mediaItems[0].offsetTop : 0
+    const currentIndex = Math.round((scrollTop - baseline) / Math.max(step, 1))
     const validIndex = Math.max(0, Math.min(currentIndex, relatedTemplates.value.length - 1))
-    // 关键：点击触发的平滑滚动过程中，不要用“滚动中的临时 index”覆盖详情展示
-    // 否则会出现：缩略图已选中第2个，但滚动经过第1个时把详情刷回第1个（错位）
+    logDetailFlow('handleMediaContainerScroll:click-branch', {
+      scrollTop,
+      step,
+      baseline,
+      currentIndex,
+      validIndex,
+      selected: selectedThumbnail.value,
+    })
+    // 点击对齐滚动期间：锁定为点击目标索引，不用滚动中间态去反推选中项
+    // 否则会出现：点击第4个，滚动中被计算成第3个，导致详情错位。
+    const lockedIndex =
+      clickingTargetIndex.value != null ? clickingTargetIndex.value : selectedThumbnail.value
 
-    // 只有当滚动到目标位置时，才调用详情接口
-    if (validIndex === selectedThumbnail.value && validIndex < relatedTemplates.value.length) {
-      const targetTemplate = relatedTemplates.value[validIndex]
-      // 调用详情接口获取完整数据（如果还没有加载过）
-      if (lastLoadedDetailId.value !== targetTemplate.id) {
-        await loadDetailOnce(targetTemplate.id)
+    if (
+      lockedIndex >= 0 &&
+      lockedIndex < relatedTemplates.value.length &&
+      lockedIndex !== selectedThumbnail.value
+    ) {
+      const currentTemplate = relatedTemplates.value[lockedIndex]
+      selectedThumbnail.value = lockedIndex
+      previousThumbnailIndex.value = lockedIndex
+      if (currentTemplate) {
+        templateDetail.value = { ...currentTemplate }
       }
     }
 
+    // 点击场景：详情请求只在 selectThumbnail 中触发一次。
+    // 这里不再触发任何详情请求，避免对齐滚动过程中的中间态请求覆盖点击目标。
+
     // 同步右侧缩略图滚动
     const scrollPercentage =
-      relatedTemplates.value.length > 1 ? validIndex / (relatedTemplates.value.length - 1) : 0
+      relatedTemplates.value.length > 1 ? lockedIndex / (relatedTemplates.value.length - 1) : 0
     syncRightThumbnailScroll(scrollPercentage)
 
     return // 直接返回，不执行后续的详情加载逻辑
@@ -1378,16 +1572,37 @@ const handleMediaContainerScroll = async (event: Event) => {
   const target = event.target as HTMLElement
   if (!target || relatedTemplates.value.length === 0) return
 
+  // 点击后的保护期内，不允许滚动事件覆盖点击选中结果
+  if (Date.now() < scrollSyncResumeAt.value) {
+    const safeIndex = Math.max(0, Math.min(selectedThumbnail.value, relatedTemplates.value.length - 1))
+    const scrollPercentage =
+      relatedTemplates.value.length > 1 ? safeIndex / (relatedTemplates.value.length - 1) : 0
+    syncRightThumbnailScroll(scrollPercentage)
+    logDetailFlow('handleMediaContainerScroll:normal-branch-suppressed-after-click', {
+      selected: selectedThumbnail.value,
+      resumeAt: scrollSyncResumeAt.value,
+      now: Date.now(),
+    })
+    return
+  }
+
   const { scrollTop, clientHeight } = target
 
-  // 每个媒体项占据完整的视口高度（100vh = clientHeight）
-  const itemHeight = clientHeight
-
-  // 根据滚动位置计算当前应该选中的项（向下取整，因为 scroll-snap 会对齐到开始位置）
-  const currentIndex = Math.floor(scrollTop / itemHeight)
-
+  // 由于容器使用了 gap/padding，不能直接用 clientHeight 作为步长
+  const mediaItems = target.querySelectorAll<HTMLElement>('.media-item')
+  const step = mediaItems.length > 1 ? mediaItems[1].offsetTop - mediaItems[0].offsetTop : clientHeight
+  const baseline = mediaItems.length > 0 ? mediaItems[0].offsetTop : 0
+  const currentIndex = Math.round((scrollTop - baseline) / Math.max(step, 1))
   // 确保索引在有效范围内
   const validIndex = Math.max(0, Math.min(currentIndex, relatedTemplates.value.length - 1))
+  logDetailFlow('handleMediaContainerScroll:normal-branch', {
+    scrollTop,
+    step,
+    baseline,
+    currentIndex,
+    validIndex,
+    selected: selectedThumbnail.value,
+  })
 
   // 如果索引发生变化，更新选中项并处理视频播放
   if (validIndex !== selectedThumbnail.value && validIndex < relatedTemplates.value.length) {
@@ -1413,11 +1628,18 @@ const handleMediaContainerScroll = async (event: Event) => {
     // 滚动过程中优先使用列表数据展示（确保数据一致性）
     templateDetail.value = { ...currentTemplate }
 
-    // 滚动停顿后再加载选中项详情，避免滚动过程频繁请求
-    if (currentTemplate.id) {
-      scrollDetailTimer = window.setTimeout(async () => {
-        await loadDetailOnce(currentTemplate.id)
-      }, 200)
+    // 点击跳转后的保护期内，不触发滚动详情请求，避免中间项被逐个请求
+    if (Date.now() >= suppressScrollDetailLoadUntil.value) {
+      // 滚动停顿后再加载选中项详情，避免滚动过程频繁请求
+      scheduleDetailLoadByIndex(validIndex, 180)
+    } else {
+      clearScrollDetailTimer()
+      logDetailFlow('handleMediaContainerScroll:skip-detail-load-in-protection-window', {
+        validIndex,
+        selected: selectedThumbnail.value,
+        suppressUntil: suppressScrollDetailLoadUntil.value,
+        now: Date.now(),
+      })
     }
 
     // 如果当前选中的是视频，自动播放
@@ -1452,13 +1674,11 @@ const syncMediaContainerToSelected = (instant = false) => {
   if (!mediaContainerRef.value || relatedTemplates.value.length === 0) return
 
   const container = mediaContainerRef.value
-  const { clientHeight } = container
-
-  // 每个媒体项占据完整的视口高度（100vh = clientHeight）
-  const itemHeight = clientHeight
-
-  // 根据选中索引计算目标滚动位置（每个项的开始位置）
-  const targetScrollTop = selectedThumbnail.value * itemHeight
+  const mediaItems = container.querySelectorAll<HTMLElement>('.media-item')
+  if (mediaItems.length === 0) return
+  const safeIndex = Math.max(0, Math.min(selectedThumbnail.value, mediaItems.length - 1))
+  // 直接滚动到对应 .media-item 的 offsetTop，避免 gap/padding 导致的步长误差
+  const targetScrollTop = mediaItems[safeIndex].offsetTop
 
   // 初始加载时使用立即滚动，避免看到滚动过程
   container.scrollTo({
@@ -1466,11 +1686,13 @@ const syncMediaContainerToSelected = (instant = false) => {
     behavior: instant ? 'auto' : 'smooth',
   })
 
+  const containerHeight = container.clientHeight
+  const step = mediaItems.length > 1 ? mediaItems[1].offsetTop - mediaItems[0].offsetTop : containerHeight
   console.log('滚动到选中项:', {
     index: selectedThumbnail.value,
-    itemHeight,
+    step,
     targetScrollTop,
-    containerHeight: clientHeight,
+    containerHeight,
     instant,
   })
 }
@@ -1485,9 +1707,13 @@ const handleAssetsCollect = async () => {
     return
   }
   if (!templateDetail.value) return
+  if ((templateDetail.value as any).collectStatus === undefined) {
+    ElMessage.warning('数据未加载完成，请稍后再试')
+    return
+  }
 
   try {
-    const isCollecting = !templateDetail.value.isCollect
+    const isCollecting = Number((templateDetail.value as any).collectStatus) !== 1
     // AI 工作台（AiFashionStudio）生成的资产：使用 /api/v1/algo/collect
     if (isAiFashionStudioAssetsDetail.value) {
       const algoOrderResultId = String(templateDetail.value.id || '')
@@ -1498,7 +1724,7 @@ const handleAssetsCollect = async () => {
 
       const response = await algoApi.collect({ algoOrderResultId })
       if (response.code === '0000') {
-        templateDetail.value.isCollect = isCollecting ? 1 : 0
+        ; (templateDetail.value as any).collectStatus = isCollecting ? 1 : 0
         // 如果后端有返回新的 collectId，则回填；没有则保留原值
         const nextCollectId =
           (response.data as any)?.collectId ??
@@ -1543,13 +1769,8 @@ const handleFeedbackSuccess = () => {
   console.log('反馈提交成功')
 }
 
-// 删除处理（仅资产页面可用）
+// 删除处理：详情页统一调用删除创作结果接口
 const handleDelete = async () => {
-  if (pageTypeRef.value !== 'assets') {
-    ElMessage.warning('只有我的资产页面可以删除')
-    return
-  }
-
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     return
@@ -1561,41 +1782,37 @@ const handleDelete = async () => {
   }
 
   try {
-    const userId = userStore.userInfo?.userId
-    if (!userId) {
-      ElMessage.warning('请先登录')
-      return
-    }
-
     // 确认删除
-    await ElMessageBox.confirm('确定要删除这个资产吗？删除后无法恢复。', '确认删除', {
+    await ElMessageBox.confirm('确定要删除这个创作吗？删除后将无法恢复。', '删除创作确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning',
+      customClass: 'creative-delete-confirm',
+      confirmButtonClass: 'creative-delete-confirm-btn',
+      cancelButtonClass: 'creative-delete-cancel-btn',
+      showClose: false,
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      center: true,
     })
 
     const deletedAssetId: string = String(templateDetail.value.id)
-
-    // AI 工作台生成结果：使用 algo/del
-    if (isAiFashionStudioAssetsDetail.value) {
-      const response = await algoApi.del({ algoOrderResultId: deletedAssetId })
-      if (response.code === '0000') {
-        ElMessage.success('删除成功')
-        emit('delete', deletedAssetId)
-        if (props.isModal) {
-          emit('close')
-        } else {
-          router.back()
-        }
-      } else {
-        ElMessage.error(response.msg || '删除失败')
-      }
+    if (!deletedAssetId) {
+      ElMessage.warning('结果ID丢失，无法删除')
       return
     }
 
-    // 其它资产：旧接口 creative.ts / asset.ts 已下线
-    ElMessage.warning('暂未接入删除（旧接口已下线）')
-    return
+    const response = await algoApi.del({ algoOrderResultId: deletedAssetId })
+    if (response.code === '0000') {
+      ElMessage.success('删除成功')
+      emit('delete', deletedAssetId)
+      if (props.isModal) {
+        emit('close')
+      } else {
+        router.back()
+      }
+    } else {
+      ElMessage.error(response.msg || '删除失败')
+    }
   } catch (error: any) {
     // 用户取消删除
     if (error === 'cancel') {
@@ -1608,230 +1825,14 @@ const handleDelete = async () => {
 
 // 组件挂载
 onMounted(async () => {
-  // 获取页面类型参数（优先使用 props，否则使用路由参数）
-  pageTypeRef.value = props.pageType || (route.query.pageType as string) || 'template'
   cateTitleRef.value = props.cateTitle || (route.query.cateTitle as string) || ''
-  sourceTabRef.value = props.sourceTab || (route.query.sourceTab as string) || ''
-
-  // ===== 临时：AI服装设计详情先用静态数据展示（不调用接口）=====
-  // 触发条件：从 AI 工作台进入详情（assets + sourceTab=aiFashionStudio），或显式携带 ?mock=1
-  if (String(route.query.mock || '') === '1') {
-    const now = new Date()
-    const dateText = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')}`
-
-    // 兼容：如果从 AiFashionStudio 来，通常会带 query.mode（aiFashion / sketchToReal / realToSketch / fabricCreative）
-    // 若未带，兜底使用当前详情的 typeName/titleName 关键词
-    const normalizeMode = (v: any): DetailModule => {
-      const raw = String(v || '').trim()
-      if (raw === 'aiFashion' || raw === 'sketchToReal' || raw === 'realToSketch' || raw === 'fabricCreative') {
-        return raw
-      }
-      if (raw.includes('线稿转实物')) return 'sketchToReal'
-      if (raw.includes('实物转线稿')) return 'realToSketch'
-      if (raw.includes('面料')) return 'fabricCreative'
-      return 'aiFashion'
-    }
-
-    // 优先级：URL query.mode > 缓存列表 mode > 兼容字段(detailModule/module)
-    const cachedMode = (templateStore.getTemplateListData() as any)?.mode
-    const mode = normalizeMode(route.query.mode || cachedMode || route.query.detailModule || route.query.module)
-
-    const buildMockRequestParam = (m: DetailModule) => {
-      const common = {
-        // 参数 tag（右侧“LingImage 1.0 / 3:4 / 2K / 图片”）
-        algorithmName: 'LingImage 1.0',
-        aspectRatio: '3:4',
-        resolution: '2K',
-        quality: '图片',
-        // 款型
-        category: '女装',
-        clothType: '上装',
-        subKind: m === 'sketchToReal' ? '卫衣' : 'T恤',
-        // 时间
-        createTime: dateText,
-      }
-
-      if (m === 'sketchToReal') {
-        return {
-          ...common,
-          // 参考图（线稿输入）
-          imageUrl: images.aiDesign1,
-          imageUrls: [images.aiDesign1],
-          // 线稿转实物专属字段（右侧展示用）
-          sketchType: '黑白线稿',
-          sketchStyle: '轮廓线稿',
-          outputType: '平铺图',
-          // 创意描述
-          prompt: '黑白线稿转写实服装，上衣卫衣，布料质感清晰，高清细节，写实光影',
-          creativeDescription: '黑白线稿转写实服装，上衣卫衣，布料质感清晰，高清细节，写实光影',
-        }
-      }
-
-      if (m === 'realToSketch') {
-        return {
-          ...common,
-          imageUrl: images.design2,
-          imageUrls: [images.design2],
-          lineType: '黑白线稿',
-          lineStyle: '轮廓线稿',
-          prompt: '实物照片生成黑白线稿，保留结构比例与关键褶皱',
-          creativeDescription: '实物照片生成黑白线稿，保留结构比例与关键褶皱',
-        }
-      }
-
-      if (m === 'fabricCreative') {
-        return {
-          ...common,
-          imageUrl: images.design3,
-          imageUrls: [images.design3],
-          outputType: '模特图',
-          prompt: '面料创拍，突出面料纹理与垂坠感，商业级布料质感',
-          creativeDescription: '面料创拍，突出面料纹理与垂坠感，商业级布料质感',
-        }
-      }
-
-      // aiFashion
-      return {
-        ...common,
-        // 参考图（右侧“参考图”区域）
-        imageUrl: images.design1,
-        imageUrls: [images.design1],
-        // 款型/设计特征（用于右侧展示）
-        features: ['A型', '白色', '牛仔面料', '小香风'],
-        // 创意描述
-        prompt: '无领 米白色 长款 宽松版型 毛呢大衣，20岁欧洲短发女模特穿着，时尚街拍，高清细节',
-        creativeDescription:
-          '无领 米白色 长款 宽松版型 毛呢大衣，20岁欧洲短发女模特穿着，时尚街拍，高清细节',
-      }
-    }
-
-    const buildMockList = (m: DetailModule) => {
-      // 左侧/右侧多图预览：保证 MediaPlayer 的 :src 有值（图片用 fileUrl 传入）
-      const baseId = String(route.params.id || 'mock')
-      if (m === 'sketchToReal') {
-        return [
-          {
-            id: `${baseId}-sketch`,
-            typeName: '线稿转实物',
-            titleName: '线稿转实物',
-            fileType: 1,
-            imageUrl: images.aiDesign1,
-            imgUrl: images.aiDesign1,
-            fileUrl: images.aiDesign1,
-          },
-          {
-            id: `${baseId}-real-1`,
-            typeName: '线稿转实物',
-            titleName: '线稿转实物',
-            fileType: 1,
-            imageUrl: images.design2,
-            imgUrl: images.design2,
-            fileUrl: images.design2,
-          },
-          {
-            id: `${baseId}-real-2`,
-            typeName: '线稿转实物',
-            titleName: '线稿转实物',
-            fileType: 1,
-          },
-        ]
-      }
-      // 其它类型先给 1 张即可（后续需要多图再扩展）
-      return [
-        {
-          id: `${baseId}-${m}-1`,
-          typeName:
-            m === 'realToSketch'
-              ? '实物转线稿'
-              : m === 'fabricCreative'
-                ? '面料创拍'
-                : 'AI服装设计',
-          titleName:
-            m === 'realToSketch'
-              ? '实物转线稿'
-              : m === 'fabricCreative'
-                ? '面料创拍'
-                : 'AI服装设计',
-          fileType: 1,
-          imageUrl: m === 'realToSketch' ? images.design2 : m === 'fabricCreative' ? images.design3 : images.design1,
-          imgUrl: m === 'realToSketch' ? images.design2 : m === 'fabricCreative' ? images.design3 : images.design1,
-          fileUrl: m === 'realToSketch' ? images.design2 : m === 'fabricCreative' ? images.design3 : images.design1,
-        },
-      ]
-    }
-
-    const list = buildMockList(mode)
-    const mockRequestParam = buildMockRequestParam(mode)
-
-    const mockDetail: any = {
-      ...list[0],
-      createTime: dateText,
-      requestParam: JSON.stringify(mockRequestParam),
-      isCollect: 0,
-      isLike: 0,
-    }
-
-    templateDetail.value = mockDetail
-    // 让列表项也带上 requestParam/createTime，避免切换缩略图时右侧回显丢字段
-    relatedTemplates.value = list.map((it: any, idx: number) => {
-      return {
-        ...it,
-        createTime: dateText,
-        requestParam: JSON.stringify(mockRequestParam),
-        isCollect: 0,
-        isLike: 0,
-        // 让第 0 张当作“主详情”
-        id: it.id || `${mockDetail.id}-${idx}`,
-      }
-    })
-    selectedThumbnail.value = 0
-    isDataReady.value = true
-    isInitialLoad.value = false
-    return
-  }
-
-  console.log(
-    '[详情页] pageType:',
-    pageTypeRef.value,
-    'sourceTab:',
-    sourceTabRef.value,
-    'isModal:',
-    props.isModal
-  )
-
-  // 对于我的资产页面，如果从列表传过来了收藏状态，先设置（接口返回后会覆盖）
-  if (pageTypeRef.value === 'assets') {
-    const collectId = props.collectId || (route.query.collectId as string)
-    const isCollect =
-      props.isCollect !== undefined
-        ? props.isCollect
-        : route.query.isCollect
-          ? Number(route.query.isCollect)
-          : undefined
-    if (collectId || isCollect !== undefined) {
-      // 先初始化一个临时对象，避免后续访问 undefined
-      if (!templateDetail.value) {
-        templateDetail.value = {} as CreativeTemplate
-      }
-      if (collectId && templateDetail.value) {
-        ; (templateDetail.value as any).collectId = collectId
-      }
-      if (isCollect !== undefined && templateDetail.value) {
-        ; (templateDetail.value as any).isCollect = Number(isCollect)
-      }
-    }
-  }
 
   // 尝试从store获取列表数据（如果是从列表页跳转过来的）
   const cachedListData = templateStore.getTemplateListData()
   const cateIdFromRoute = props.cateId || (route.query.cateId as string)
   const shouldUseCachedData =
     cachedListData &&
-    cachedListData.pageType === pageTypeRef.value &&
-    (pageTypeRef.value !== 'template' || cachedListData.cateId === cateIdFromRoute) &&
-    (pageTypeRef.value !== 'assets' || cachedListData.sourceTab === sourceTabRef.value)
+    (cachedListData.cateId === undefined || cachedListData.cateId === cateIdFromRoute)
 
   if (shouldUseCachedData && cachedListData.list && cachedListData.list.length > 0) {
     const templateId = props.id || route.params.id
@@ -1893,6 +1894,8 @@ onMounted(async () => {
       // 然后设置处理后的列表数据（此时 selectedThumbnail 已经是正确的值）
       relatedTemplates.value = processedList as any[]
 
+      // 收藏状态：统一使用 collectStatus(0/1)
+
       console.log('[详情页] 设置选中索引:', foundIndex, 'itemId:', selectedItem.id)
 
       // 等待 DOM 更新完成，并设置滚动位置
@@ -1927,7 +1930,7 @@ onMounted(async () => {
         routeId: route.params.id,
       })
       // 如果索引无效，使用路由参数ID加载详情
-      await loadTemplateDetail()
+      await loadTemplateDetail(route.params.id as string | number | undefined)
       if (templateDetail.value) {
         relatedTemplates.value = [templateDetail.value as any]
         selectedThumbnail.value = 0
@@ -1936,7 +1939,7 @@ onMounted(async () => {
     }
   } else {
     // 没有缓存数据，先加载详情数据（优先显示详情内容）
-    await loadTemplateDetail()
+    await loadTemplateDetail((props.id || route.params.id) as string | number | undefined)
     // 没有缓存数据，先显示当前详情
     if (templateDetail.value) {
       relatedTemplates.value = [templateDetail.value as any]
@@ -2011,6 +2014,7 @@ onMounted(async () => {
 
 // 组件卸载时移除监听
 onUnmounted(() => {
+  isUnmountedRef.value = true
   const mediaContainerElement = mediaContainerRef.value
   if (mediaContainerElement) {
     mediaContainerElement.removeEventListener('scroll', handleMediaContainerScroll)
@@ -2056,7 +2060,7 @@ onUnmounted(() => {
         left: 21px;
         width: 36px;
         height: 36px;
-        z-index: 999999;
+        z-index: 99999;
         border: none;
       }
 
@@ -2095,6 +2099,46 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
+
+        .media-status-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          color: $color-primary;
+          background: $color-bg-dark-secondary;
+          border-radius: $border-radius-md;
+          box-sizing: border-box;
+          padding: 24px;
+
+          &.generating {
+            background: url('@/assets/images/generating.gif') no-repeat center center;
+            background-size: 100% 100%;
+
+            .status-text {
+              margin: $spacing-md 0;
+            }
+          }
+
+          &.failed {
+            color: $color-text-white;
+
+            .placeholder-icon {
+              width: 130px;
+              height: 130px;
+              margin-bottom: $spacing-md;
+              object-fit: contain;
+            }
+          }
+
+          .status-text {
+            font-size: $font-size-xl;
+            text-align: center;
+          }
+        }
 
         .video-player {
           width: 100%;
@@ -2163,6 +2207,42 @@ onUnmounted(() => {
         .btn-icon-wrapper {
           display: inline-block;
           cursor: pointer;
+        }
+      }
+
+      &.info-panel--pending {
+        .info-actions {
+          display: none;
+        }
+
+        .info-header {
+          margin-bottom: 18px;
+        }
+
+        .info-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .info-title {
+          font-size: 18px;
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .pending-body {
+          padding: 14px 12px;
+          border-radius: $border-radius-md;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .pending-text {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.8);
         }
       }
 
@@ -2267,8 +2347,10 @@ onUnmounted(() => {
     .action-item {
 
       .action-btn {
-        width: 120px;
-        height: 27px;
+        // width: 120px;
+        // height: 27px;
+        width: 100%;
+        height: 47px;
         border-radius: 4px;
         background-color: rgba(18, 18, 18, 1);
         font-size: 14px;
@@ -2276,6 +2358,16 @@ onUnmounted(() => {
         text-align: center;
         font-family: PingFangSC-regular;
         border: 1px solid rgba(255, 255, 255, 0.15);
+
+        &.is-disabled {
+          background-color: rgba(255, 255, 255, 0.15);
+          color: rgba(255, 255, 255, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+
+          .action-icon {
+            opacity: 0.5;
+          }
+        }
       }
 
       .action-icon {

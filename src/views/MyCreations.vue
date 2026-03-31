@@ -156,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { MoreFilled } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import { uploadApi } from '@/api/upload'
@@ -451,6 +451,19 @@ const handleRefresh = async () => {
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) return
   try {
+    await ElMessageBox.confirm('确定要删除选中的创作吗？删除后将无法恢复。', '删除创作确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customClass: 'creative-delete-confirm',
+      confirmButtonClass: 'creative-delete-confirm-btn',
+      cancelButtonClass: 'creative-delete-cancel-btn',
+      showClose: false,
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      center: true,
+    })
+
     const ids = selectedIds.value.map((x) => String(x))
     for (const id of ids) {
       const res = await algoApi.del({ algoOrderResultId: id })
