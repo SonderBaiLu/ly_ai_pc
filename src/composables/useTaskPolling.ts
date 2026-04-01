@@ -1,7 +1,6 @@
 import { ElMessage } from 'element-plus'
 import { algoApi } from '@/api/algo'
 import { useUserStore } from '@/stores/user'
-import { storeToRefs } from 'pinia'
 import type { Ref } from 'vue'
 
 /**
@@ -88,7 +87,6 @@ export function useTaskPolling(
   onTaskFinished?: (resultList: any[]) => void
 ) {
   const userStore = useUserStore()
-  const { userInfo } = storeToRefs(userStore)
 
   // 将当前模块的资产列表引用注册到全局，用于跨模块同步进度
   registerAssetsRef(assets)
@@ -100,8 +98,8 @@ export function useTaskPolling(
     if (res.code === '0000') {
       ElMessage.success(`任务提交成功，生成中`)
 
-      // 更新用户信息（刷新灵衍值等信息）
-      if (userInfo.value?.phone) {
+      // 更新用户信息（刷新灵衍值等信息）；凡已登录用户都刷新，避免仅手机号账号才更新
+      if (userStore.isLoggedIn) {
         try {
           await userStore.getUserInfo()
           console.log('用户信息已更新')
@@ -229,7 +227,7 @@ export function useTaskPolling(
               ElMessage.success(`生成完成！`)
 
               // 生成成功后更新用户信息（刷新灵衍值等信息）
-              if (userInfo.value?.phone) {
+              if (userStore.isLoggedIn) {
                 try {
                   await userStore.getUserInfo()
                   console.log('生成成功，用户信息已更新')

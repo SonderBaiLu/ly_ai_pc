@@ -428,6 +428,8 @@ const submitByMenuCode = async (menuCode: string) => {
     const res = await algoApi.submit(payload)
     if (res.code === '0000') {
       ElMessage.success('已提交生成任务')
+      // 提交成功会扣灵衍值，刷新 Header 等处的潮币/余额展示
+      await refreshUserInfoIfLoggedIn()
       const orderNo = String((res as any)?.data?.orderNo ?? '')
       if (orderNo) {
         upsertGeneratingAssetByOrderNo(orderNo, String(form.prompt || '').trim(), menuCode)
@@ -598,6 +600,8 @@ const queryAlgoResultByOrderNo = async (orderNo: string) => {
     if (status === 3) {
       if (orderResultVOS.length) {
         applyQueryDoneResult(orderNo, orderResultVOS)
+        // 生成结果就绪后再拉一次用户信息，与后端最终扣费/回写余额对齐
+        void refreshUserInfoIfLoggedIn()
       } else {
         updateAssetByOrderNo(orderNo, (oldItem) => ({
           ...oldItem,
