@@ -63,6 +63,7 @@ const handleClose = () => {
 // 弹窗容器
 .modal-container {
   padding-bottom: 61px;
+  border-radius: 16px;
 
   // 关闭按钮
   .close-btn-wrapper {

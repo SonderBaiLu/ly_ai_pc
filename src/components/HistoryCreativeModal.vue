@@ -431,6 +431,8 @@ defineExpose({
 </style>
 <style lang="scss">
 .history-creative-dialog.el-dialog {
+  border-radius: 16px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.04);
 
   .el-dialog__header {

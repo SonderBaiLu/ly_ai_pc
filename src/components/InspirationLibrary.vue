@@ -235,6 +235,7 @@ defineExpose({
 <style lang="scss" scoped>
 .inspiration-library-dialog {
   border: none !important;
+  border-radius: 16px;
 
   .dialog-header {
     display: flex;
@@ -243,7 +244,7 @@ defineExpose({
     width: 100%;
     padding: 23px 28px 23px 25px;
     background: $color-bg-dark-two;
-    border-radius: 12px 12px 0 0;
+    border-radius: 16px 16px 0 0;
 
     .dialog-title {
       font-size: $font-size-lg;
@@ -334,7 +335,7 @@ defineExpose({
     justify-content: flex-end;
     gap: 12px;
     padding: 24px 24px 20px;
-    border-radius: 0px 0px 12px 12px !important;
+    border-radius: 0 0 16px 16px !important;
     background-color: rgba(34, 34, 34, 1) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
 

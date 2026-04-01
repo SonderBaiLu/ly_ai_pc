@@ -237,6 +237,8 @@ watch(
 
 <style lang="scss" scoped>
 .feedback-modal {
+  border-radius: 16px;
+
   .modal-header {
     display: flex;
     align-items: center;

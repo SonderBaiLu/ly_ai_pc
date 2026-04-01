@@ -92,9 +92,9 @@
             <div v-for="(param, paramIndex) in paramGroup.params" :key="paramIndex" :class="[
               'param-item',
               getParamItemClass(paramGroup.type),
-                {
+              {
                 active: isParamSelected(paramGroup.type, param),
-                  'vip-locked': param.vipStatus && !isVip,
+                'vip-locked': param.vipStatus && !isVip,
               },
             ]" @click="selectParam(paramGroup.type, param)">
               <!-- 比例参数显示图片+文字 -->
@@ -740,7 +740,7 @@ const onClose = () => {
 
 .dialog-footer {
   background: $color-bg-dark-two;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 16px 16px;
   padding: 24px 22px;
 
   :deep(.el-button) {
@@ -765,5 +765,7 @@ const onClose = () => {
 <style lang="scss">
 .image-param-dialog {
   border: none !important;
+  border-radius: 16px;
+  overflow: hidden;
 }
 </style>

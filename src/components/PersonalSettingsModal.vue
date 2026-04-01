@@ -275,6 +275,7 @@ const handleClose = () => {
 
 .personal-settings-modal {
   position: relative;
+  border-radius: 16px;
 
   .header-title {
     margin-bottom: 11px;

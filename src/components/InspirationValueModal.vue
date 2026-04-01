@@ -65,7 +65,7 @@
             negative: Number(transaction.points ?? 0) < 0,
           }">{{
             Number(transaction.points ?? 0) > 0 ? '+' : ''
-          }}{{ Number(transaction.points ?? 0).toFixed(2) }}
+            }}{{ Number(transaction.points ?? 0).toFixed(2) }}
           </div>
         </div>
       </div>
@@ -291,7 +291,7 @@ watch(
   padding: 15px 17px;
   background: $color-bg-black url('@/assets/images/logo_hui.png') no-repeat right 18px top 36px;
   background-size: 132px 97px;
-  border-radius: 12px 12px 0 0;
+  border-radius: 16px 16px 0 0;
 
   .coin-logo {
     width: 50px;
@@ -311,7 +311,7 @@ watch(
 // 灵衍值明细
 .header-title-section {
   padding: 23px 11px 14px;
-  border-radius: 0px 0px 12px 12px;
+  border-radius: 0 0 16px 16px;
   background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
   font-size: 13px;
   font-family: NotoSans-regular;
@@ -528,7 +528,7 @@ watch(
 <style lang="scss">
 // 全局样式，确保覆盖 Element Plus 的默认样式
 .el-dialog.inspiration-modal {
-  border-radius: 25px !important;
+  border-radius: 16px !important;
   border: none !important;
 
   .el-dialog__header {

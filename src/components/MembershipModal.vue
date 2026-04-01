@@ -590,6 +590,7 @@ const handleClose = () => {
 // 弹窗响应式适配
 :deep(.membership-modal-dialog) {
   // 弹窗包装器和居中样式已在全局样式中设置，无需重复
+  border-radius: 16px;
 
   .el-dialog {
     width: 1200px;

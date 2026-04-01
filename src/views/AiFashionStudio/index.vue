@@ -1529,7 +1529,7 @@ const handleDropFile = async (payload: any) => {
     return
   }
 }
-
+// 删除参考图
 const handleRefDelete = (payload?: any) => {
   const currentForm = formDataByMenu[leftMenu.value]
   if (leftMenu.value === 'aiFashion') {
@@ -1556,12 +1556,12 @@ const handleRefDelete = (payload?: any) => {
     currentForm.historyImageType = undefined
   }
 }
-
+// 打开历史创作弹窗
 const openHistoryModal = (payload?: any) => {
   historyModalContext.value = payload && typeof payload === 'object' ? payload : null
   showHistoryModal.value = true
 }
-
+// 选择历史创作
 const selectHistoryCreation = (item: any) => {
   const imageUrl = String(item?.imageUrl || item?.resultUrl || item?.thumbUrl || item?.url || '').trim()
   if (!imageUrl) return
