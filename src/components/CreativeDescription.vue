@@ -243,20 +243,18 @@ const handleApplyTryText = async () => {
   localDescription.value = displayTryText.value
   emit('try-example', displayTryText.value)
 }
-onMounted(() => {
-  if (props.menuId) {
-    handleShuffle()
-  }
-})
-
 watch(
   () => props.menuId,
-  (v) => {
+  (v, prev) => {
     if (!v) return
     if (props.tryExamples?.length) return
-    if (hasFetchedTryPromptOnce.value) return
-    handleShuffle()
-  }
+    if (prev != null && String(v) === String(prev)) return
+    // 切换左侧具体功能时必须用新的 menuId 重新拉推荐，避免一直用旧模块的 id
+    hasFetchedTryPromptOnce.value = false
+    tryRefreshNonce.value += 1
+    void handleShuffle()
+  },
+  { immediate: true }
 )
 </script>
 
