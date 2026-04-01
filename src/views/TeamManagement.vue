@@ -235,7 +235,6 @@ const searchUsers = async () => {
       currentPage: queryParams.currentPage,
       pageSize: queryParams.pageSize,
     })
-    console.log(res)
     if (String((res as any).code) === '0000') {
       teamList.value = res.data.list || []
       total.value = res.data.total || res.data.list.length // 后端没返回总条数，总数显示会受限
@@ -257,14 +256,11 @@ const changePage = (page: number) => {
   queryParams.currentPage = page
   searchUsers()
 }
-
 // 4. 搜索（重置页码 + 重新请求）
 const handleSearch = () => {
   queryParams.currentPage = 1
   searchUsers()
 }
-
-
 // ---------------- 弹窗/操作逻辑 ----------------
 const isDialogVisible = ref(false)  // 控制 添加成员弹窗的变量
 const showPwd = ref(false)
@@ -391,7 +387,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #101010;
+  background-color: rgba(10,15,29,1);
   padding-bottom: 56px;
 }
 
@@ -407,11 +403,12 @@ onMounted(() => {
   margin: 56px auto 0;
   box-sizing: border-box;
 
+
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 40px;
     padding-bottom: 24px;
     border-bottom: 1px solid rgba(51, 65, 85, 1);
 
@@ -468,7 +465,11 @@ onMounted(() => {
           font-weight: 900;
 
           &::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(156,163,175,1);
+            font-size: 14px;
+            font-family: Inter-black;
+            font-weight: 800;
+            text-align: center;
           }
 
           &:focus {
@@ -522,14 +523,16 @@ onMounted(() => {
 
   /* --- Table 样式 --- */
   .table-wrapper {
-    width: 100%;
-    border-radius: 10px;
+    //width: 100%;
+    margin: 0 32px;
+    border-radius: 24px;
     border: 1px solid rgba(51, 65, 85, 0.2);
-    margin-right: 15px;
     box-sizing: border-box;
     background-color: rgba(10, 15, 29, 1);
     color: rgba(16, 16, 16, 1);
     font-size: 14px;
+    // 防止内部表头的背景色溢出遮挡圆角
+    overflow: hidden;
 
     .native-team-table {
       width: 100%;
@@ -559,7 +562,6 @@ onMounted(() => {
 
       tbody tr:hover td {
         border-bottom-color: rgba(56, 189, 248, 0.5);
-
       }
 
       td {
@@ -763,6 +765,9 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  .pagination-left{
+    color: $color-text-white-disabled;
+  }
 }
 
 .pagination-right {

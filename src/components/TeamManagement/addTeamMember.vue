@@ -132,8 +132,8 @@ const form = reactive({
   userName: '',
   nickName: ''
 })
-// URL 地址
-const reactiveApiTarget = ref(import.meta.env.VITE_API_PROXY_TARGET)
+// URL 地址：运行时跟随当前访问域名
+const reactiveApiTarget = ref(window.location.origin)
 // 展示/返回的数据
 const displayData = reactive({
   mainNickName: userStore.userInfo.userName,

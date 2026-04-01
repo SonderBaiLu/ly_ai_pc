@@ -455,7 +455,7 @@
 </template>
 
 <script setup lang="ts">
-import {useRouter, useRoute} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {ElMessage} from 'element-plus'
 import {useModalStore} from '@/stores/modal'
@@ -768,23 +768,30 @@ const teamChildRef = ref<InstanceType<typeof OpneTeamMember> | null>(null)
 const handleClick = () => {
   // 1. 关闭右上角的头像下拉菜单
   closeUserMenu()
-  // 每次点击时，直接获取 store 里最新的状态，防止数据陈旧
-  const currentStatus = userStore.userInfo.teamStatus
-  if (currentStatus === false || currentStatus === 'false') {
-    if (teamChildRef.value) {
-      teamChildRef.value.openModal()
+  const userInfo = userStore.userInfo
+  const isMainAccount = String(userInfo.mainAccount) === 'true'
+  const isTeamEnabled = String(userInfo.teamStatus) === 'true'
+  const isAdmin = String(userInfo.mainAdmin) === 'true'  // 只要是管理员，直接放行进入管理页
+  // A 当前是主账号
+  if (isMainAccount) {
+    if (isTeamEnabled) {
+      router.push('/team-management')
+    } else {
+      if (teamChildRef.value) {
+        teamChildRef.value.openModal()
+      }
     }
     return
   }
-    // 状态 2：已经开通了团队协作
-    if (currentStatus === true || currentStatus === 'true') {
-      // 主账号/管理员 -> 去团队管理页面
-      if (userStore.userInfo.mainAccount || userStore.userInfo.mainAdmin === true) {
-        router.push('/team-management')
-      }
+  // B 当前是 子账号
+  if (!isMainAccount) {
+    if(isAdmin) {
+      router.push('/team-management')
     }
-}
+    return
+  }
 
+}
 const modalStore = useModalStore()
 
 // 关闭右上角「更多」弹窗并避免与顶部灵衍值 hover 面板互相干扰

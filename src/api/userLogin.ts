@@ -45,7 +45,12 @@ export const loginByPwd = (
     return request.post('/v1/login/loginByPwd', payload) as unknown as Promise<ApiResponse<any>>
 }
 // 团队登录
-export const teamLogin = (payload: { userName: string, pwd: string }) => {
+export const teamLogin = (
+    payload: {
+        userName: string,
+        pwd: string
+    }
+) => {
     return request.post('/v1/sonLogin/loginByPwd', payload) as unknown as Promise<ApiResponse<any>>
 }
 // 用户验证手机号更变密码（登录页忘记密码）
@@ -59,7 +64,7 @@ export const changePwdBySms = (payload: {
 }
 // 登录成功后  获取用户信息
 export const getUserDetailsApi = () => {
-    return  request.get('/v1/user/getUserDetails')
+    return request.get('/v1/user/getUserDetails')
 }
 // 用户登出
 export const logout = () => {

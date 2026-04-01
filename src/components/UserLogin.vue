@@ -530,11 +530,15 @@ const handleTeamSubmit = async () => {
   if (!formData.teamPassword) return ElMessage.warning(t('LoginPopUpPage.teamPasswordPlaceholder'))
   isTeamSubmitting.value = true //  开启 loading
   try {
-    await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
-    ElMessage.success(t('LoginPopUpPage.loginSuccess'))
-    emit('close')
-  } catch (e: any) {
-    teamErrorMsg.value = e.msg || e.response?.data?.msg || e.message || '登录失败，请重试'
+    const res = await userStore.teamLogin(formData.teamAccount, formData.teamPassword)
+    if (String((res as any).code) === '0000') {
+      ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
+      emit('close')
+    } else {
+      teamErrorMsg.value = (res as any).msg
+    }
+  } catch  (e: any){
+    teamErrorMsg.value = "登录失败，请重试"
   } finally {
     isTeamSubmitting.value = false //  解除 loading
   }

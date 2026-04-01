@@ -133,11 +133,12 @@ export const useUserStore = defineStore('user', {
     // 团队密码登录
     async teamLogin(userName: string, pwd: string) {
       const res = await teamLogin({ userName, pwd })
-      if (String((res as any).code) === '0000') {
+      if (String((res as any)?.code) === '0000') {
         const tokenStr = res.data?.accessToken
         this.setToken(tokenStr)
         await this.getUserInfo()
       }
+      return res
     },
 
     async logout() {
