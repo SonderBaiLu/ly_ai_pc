@@ -83,7 +83,7 @@ const selectThumbnail = (index: number) => {
   emit('thumbnail-click', index)
 }
 
-// 处理拖拽开始：把资产信息写入 dataTransfer
+// 处理拖拽开始：把创作信息写入 dataTransfer
 const handleDragStart = (asset: CreationResult, event: DragEvent) => {
   try {
     const data = {

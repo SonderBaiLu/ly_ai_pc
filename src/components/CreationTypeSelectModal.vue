@@ -176,7 +176,12 @@ watch(
   { deep: true, immediate: true },
 )
 
-const currentText = computed(() => selectedPath.value.slice(1).join(' > '))
+const currentText = computed(() => {
+  const path = selectedPath.value
+  if (path.length <= 3) return path.filter(Boolean).join(' > ')
+  // 需求：展示除第三级外的路径（例：女装 > 上装 > 长袖T恤）
+  return [path[0], path[1], ...path.slice(3)].filter(Boolean).join(' > ')
+})
 
 const handleClose = () => {
   visible.value = false

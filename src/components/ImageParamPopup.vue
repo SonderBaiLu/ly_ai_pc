@@ -35,7 +35,7 @@
         </div>
       </div>
 
-      <!-- 动态渲染参数组（只显示有数据的） -->
+      <!-- 动态渲染参数组（只显示有数据的），顺序完全按后端返回 -->
       <div v-for="(paramGroup, groupIndex) in selectedAlgorithm.paramGroups"
         v-show="paramGroup.params && paramGroup.params.length > 0" :key="groupIndex" class="param-section">
         <h3 class="section-title">
@@ -128,19 +128,20 @@
     </template>
   </el-dialog>
 
-  <!-- 会员购买弹窗：用于参数中点击 VIP 选项时提示升级会员（只展示会员相关内容） -->
-  <MembershipModal v-model="showMembershipModal" error-type="up_vip" :is-vip="isVip" custom-title="会员购买" />
+  <!-- 会员购买弹窗已弃用：vipStatus==1 时直接跳转会员页面 -->
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 import { images } from '@/assets'
-import MembershipModal from '@/components/MembershipModal.vue'
+// MembershipModal 已弃用：vipStatus==1 时直接跳转会员页面
 
 // ==================== 状态管理 ====================
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
+const router = useRouter()
 
 // 定义组件名称
 const componentName = 'ImageParamPopup'
@@ -159,6 +160,11 @@ const props = defineProps({
   defaultParams: {
     type: Array,
     default: () => [],
+  },
+  // 结构化默认选中（父层从列表 defaultStatus 过滤后传入）
+  defaultSelection: {
+    type: Object,
+    default: null,
   },
   // 算法模型列表
   algorithmModels: {
@@ -188,7 +194,14 @@ const hasUserInteraction = ref(false) // 标记用户是否有过选择操作
 
 // 会员相关
 const isVip = computed(() => Number(userInfo.value?.vipLevel ?? 0) > 0)
-const showMembershipModal = ref(false)
+// const showMembershipModal = ref(false)
+
+const goMembershipPage = () => {
+  // 关闭弹窗再跳转，避免遮罩残留
+  showPopup.value = false
+  emit('update:modelValue', false)
+  router.push({ path: '/membership', query: { tab: '0' } }).catch(() => { })
+}
 
 // 弹窗标题
 const dialogTitle = computed(() => props.title)
@@ -196,6 +209,39 @@ const dialogTitle = computed(() => props.title)
 // 滚动位置
 const scrollLeft = ref(0)
 const getAlgorithmKey = (algorithm: any) => String(algorithm?.algorithmId ?? algorithm?.id ?? '')
+
+const getDefaultSelectionParamMap = (algorithm: any): Record<number, any> => {
+  const result: Record<number, any> = {}
+  const ds: any = props.defaultSelection || null
+  if (!ds || !algorithm?.paramGroups) return result
+
+  const algoId = String(algorithm?.algorithmId ?? algorithm?.id ?? '')
+  const dsAlgoId = String(ds?.algorithmId ?? '')
+  if (algoId && dsAlgoId && algoId !== dsAlgoId) return result
+
+  const list = Array.isArray(ds?.paramList) ? ds.paramList : []
+  const groups = Array.isArray(algorithm?.paramGroups) ? algorithm.paramGroups : []
+
+  for (const group of groups) {
+    const params = Array.isArray(group?.params) ? group.params : []
+    if (!params.length) continue
+
+    const matchedInSelection = list.find((x: any) => Number(x?.type) === Number(group?.type))
+    if (!matchedInSelection) continue
+
+    const templateId = String(matchedInSelection?.templateId ?? '').trim()
+    const templateCode = String(matchedInSelection?.templateCode ?? '').trim()
+    const byId = templateId ? params.find((p: any) => String(p?.templateId ?? '') === templateId) : null
+    const byCode = !byId && templateCode ? params.find((p: any) => String(p?.templateCode ?? '') === templateCode) : null
+    const byName = !byId && !byCode
+      ? params.find((p: any) => String(p?.templateName ?? '') === String(matchedInSelection?.templateName ?? ''))
+      : null
+    const hit = byId || byCode || byName
+    if (hit) result[Number(group?.type)] = hit
+  }
+
+  return result
+}
 
 // 根据算法名称找到默认算法
 const findDefaultAlgorithm = (models: any[]) => {
@@ -208,9 +254,9 @@ const findDefaultAlgorithm = (models: any[]) => {
 
   // 根据算法名称匹配
   return (
-    models.find(
-      (model: any) => model.name === algorithmName || model.algorithmDesc === algorithmName
-    ) ||
+    models.find((model: any) => model.name === algorithmName || model.algorithmDesc === algorithmName) ||
+    // 如果 defaultParams 里没有命中，也优先用列表默认模型
+    models.find((model: any) => model.defaultStatus === 1) ||
     models[0] ||
     {}
   )
@@ -219,10 +265,18 @@ const findDefaultAlgorithm = (models: any[]) => {
 // 初始化参数选择
 const initSelectedParams = (algorithm: any) => {
   if (!algorithm.paramGroups) return
+  const fromDefaultSelection = getDefaultSelectionParamMap(algorithm)
 
   algorithm.paramGroups.forEach((group: any) => {
     if (group.params && group.params.length > 0) {
       let defaultParam = null
+
+      // 优先使用父层传入的结构化默认选中（基于 templateId/templateCode 精确匹配）
+      const typed = fromDefaultSelection[Number(group.type)]
+      if (typed) {
+        selectedParams.value[group.type] = typed
+        return
+      }
 
       // 从defaultParams数组的其余元素中查找匹配的templateName
       if (props.defaultParams.length > 1) {
@@ -234,8 +288,9 @@ const initSelectedParams = (algorithm: any) => {
         }
       }
 
-      // 如果找到默认参数就使用，否则使用第一个
-      selectedParams.value[group.type] = defaultParam || group.params[0]
+      // 默认选中：优先回显 defaultParams；否则使用列表 defaultStatus；最后兜底第一个
+      const listDefault = group.params.find((param: any) => Number(param?.defaultStatus) === 1)
+      selectedParams.value[group.type] = defaultParam || listDefault || group.params[0]
     }
   })
 }
@@ -286,6 +341,18 @@ watch(
   {
     deep: true,
   }
+)
+
+watch(
+  () => props.defaultSelection,
+  () => {
+    if (props.algorithmModels && props.algorithmModels.length > 0) {
+      const defaultAlgorithm = findDefaultAlgorithm(props.algorithmModels)
+      selectedAlgorithm.value = defaultAlgorithm
+      initSelectedParams(defaultAlgorithm)
+    }
+  },
+  { deep: true }
 )
 
 // 获取参数组标题
@@ -339,9 +406,9 @@ const isParamSelected = (type: number, param: any) => {
 
 // 选择算法
 const selectAlgorithm = (algorithm: any) => {
-  // 如果是VIP算法，判断用户是否是 vip 不是则跳转到会员页面
-  if (algorithm.vipStatus && !isVip.value) {
-    showMembershipModal.value = true
+  // vipStatus === 1 表示会员专享；非会员点击直接跳转会员页
+  if (Number(algorithm?.vipStatus ?? 0) === 1 && !isVip.value) {
+    goMembershipPage()
     return
   }
 
@@ -354,9 +421,9 @@ const selectAlgorithm = (algorithm: any) => {
 
 // 选择参数
 const selectParam = (type: number, param: any, paramIndex?: number) => {
-  // 如果是VIP选项，判断用户是否是 vip 不是则跳转到会员页面
-  if (param.vipStatus && !isVip.value) {
-    showMembershipModal.value = true
+  // vipStatus === 1 表示会员专享；非会员点击直接跳转会员页
+  if (Number(param?.vipStatus ?? 0) === 1 && !isVip.value) {
+    goMembershipPage()
     return
   }
   // 非VIP选项正常选中
@@ -584,8 +651,9 @@ const onClose = () => {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        border-radius: $border-radius-md;
         border: 1px solid transparent;
+        background-color: #19272e;
+        border-radius: 8px;
         cursor: pointer;
         flex-shrink: 0;
         overflow: hidden;
@@ -625,7 +693,8 @@ const onClose = () => {
 
       .param-item {
         position: relative;
-        background-color: rgba(23, 160, 225, 0.1);
+        background-color: #19272e;
+        border: 1px solid transparent;
         display: flex;
         flex-direction: column;
         align-items: center;

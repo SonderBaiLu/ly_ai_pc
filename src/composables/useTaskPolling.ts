@@ -58,8 +58,8 @@ export interface CreationResult {
 }
 
 /**
- * 全局注册所有使用任务轮询的资产列表引用
- * 这样同一个 taskId 的进度更新可以同步到多个模块的资产列表中
+ * 全局注册所有使用任务轮询的创作列表引用
+ * 这样同一个 taskId 的进度更新可以同步到多个模块的创作列表中
  */
 const assetsRefsRegistry = new Set<Ref<CreationResult[]>>()
 
@@ -76,7 +76,7 @@ const pollingTaskMap = new Map<string, ReturnType<typeof setInterval>>()
 
 /**
  * 任务轮询和结果查询 Composable
- * 处理API响应、任务轮询、资产状态更新等逻辑
+ * 处理API响应、任务轮询、创作状态更新等逻辑
  */
 export function useTaskPolling(
   assets: Ref<CreationResult[]>,
@@ -88,7 +88,7 @@ export function useTaskPolling(
 ) {
   const userStore = useUserStore()
 
-  // 将当前模块的资产列表引用注册到全局，用于跨模块同步进度
+  // 将当前模块的创作列表引用注册到全局，用于跨模块同步进度
   registerAssetsRef(assets)
 
   /**
@@ -111,7 +111,7 @@ export function useTaskPolling(
       const taskId = res.data
       console.log('生成任务已提交，taskId:', taskId)
 
-      // 立即添加生成中状态的占位卡片到资产列表
+      // 立即添加生成中状态的占位卡片到创作列表
       addGeneratingAsset(taskId, errorContext, queryType)
 
       // 开始轮询查询生成结果
@@ -132,7 +132,7 @@ export function useTaskPolling(
   }
 
   /**
-   * 添加生成中状态的资产到列表
+   * 添加生成中状态的创作到列表
    */
   const addGeneratingAsset = (taskId: string, _taskType: string, queryType: string) => {
     const now = new Date()
@@ -222,7 +222,7 @@ export function useTaskPolling(
             pollingTaskMap.delete(taskId)
 
             if (orderResultVOS && orderResultVOS.length > 0) {
-              // 更新资产为生成完成状态
+              // 更新创作为生成完成状态
               updateAssetWithResult(taskId, res.data, taskType)
               ElMessage.success(`生成完成！`)
 
@@ -317,9 +317,9 @@ export function useTaskPolling(
   }
 
   /**
-   * 在指定资产列表中更新某个任务的完成状态
+   * 在指定创作列表中更新某个任务的完成状态
    * 抽成一个工具函数，方便在多个模块的 assets 列表上复用
-   * 对于跨模块同步，只更新第一个结果，不添加额外的资产
+   * 对于跨模块同步，只更新第一个结果，不添加额外的创作
    */
   const updateAssetWithResultInAssets = (
     targetAssets: Ref<CreationResult[]>,
@@ -331,25 +331,25 @@ export function useTaskPolling(
       (asset: CreationResult) => asset.algoOrderId === taskId || asset.id === taskId || asset.algoUuId === taskId
     )
     if (assetIndex !== -1 && resultList.length > 0) {
-      // 只更新第一个结果（跨模块同步时不添加额外资产）
+      // 只更新第一个结果（跨模块同步时不添加额外创作）
       const item = resultList[0]
       targetAssets.value[assetIndex] = {
         ...targetAssets.value[assetIndex],
         ...item,
-        algoOrderId: String(item.algoOrderId ?? item.algoOrderID ?? item.taskId ?? taskId),
-        algoUuId: (item.algoUuId ?? item.taskUuid ?? null) as any,
+        algoOrderId: String(item.algoOrderId ?? taskId),
+        algoUuId: (item.algoUuId ?? null) as any,
         queryType: targetAssets.value[assetIndex].queryType, // 保留前端轮询字段
       }
     }
   }
 
   /**
-   * 更新资产为生成成功状态
+   * 更新创作为生成成功状态
    * 将占位卡片更新为实际生成的图片/视频
-   * 同时应用到所有已注册的模块资产列表中，实现跨模块完成状态同步
+   * 同时应用到所有已注册的模块创作列表中，实现跨模块完成状态同步
    */
   const updateAssetWithResult = (taskId: string, resultData: any, _taskType: string) => {
-    console.log('更新资产结果，taskId:', taskId, 'resultData:', resultData)
+    console.log('更新创作结果，taskId:', taskId, 'resultData:', resultData)
 
     // 处理返回的数据结构，可能包含 resultList 数组
     let resultList: any[] = []
@@ -365,11 +365,11 @@ export function useTaskPolling(
 
     console.log('处理后的 resultList:', resultList)
 
-    // 找到对应的占位资产（同时支持 taskId 和 taskUuid 匹配）
+    // 找到对应的占位创作（同时支持 taskId 和 taskUuid 匹配）
     const assetIndex = assets.value.findIndex(
       (asset: CreationResult) => asset.algoOrderId === taskId || asset.id === taskId || asset.algoUuId === taskId
     )
-    console.log('找到的占位资产索引:', assetIndex)
+    console.log('找到的占位创作索引:', assetIndex)
 
     if (assetIndex !== -1 && resultList.length > 0) {
       const originAsset = assets.value[assetIndex]
@@ -414,7 +414,7 @@ export function useTaskPolling(
         })
       }
 
-      // 在原始模块中执行完整逻辑（包括处理多个结果、添加新资产等）
+      // 在原始模块中执行完整逻辑（包括处理多个结果、添加新创作等）
       if (mappedList.length === 1) {
         // 如果只有一个结果，更新占位卡片
         const item = mappedList[0]
@@ -453,16 +453,16 @@ export function useTaskPolling(
             algoUuId: (item.algoUuId ?? null) as any,
             queryType: originAsset.queryType,
           }
-          // 插入到第一个资产后面，每次插入后位置会递增
+          // 插入到第一个创作后面，每次插入后位置会递增
           assets.value.splice(assetIndex + i, 0, newAsset)
         }
       }
 
-      // 自动切换到第一个生成的资产（只在原始模块中执行）
+      // 自动切换到第一个生成的创作（只在原始模块中执行）
       currentAssetIndex.value = assetIndex
-      console.log('资产更新完成，当前索引:', assetIndex)
+      console.log('创作更新完成，当前索引:', assetIndex)
 
-      // 跨模块同步：在其它所有模块中更新完成状态（只更新第一个结果，不添加额外资产）
+      // 跨模块同步：在其它所有模块中更新完成状态（只更新第一个结果，不添加额外创作）
       assetsRefsRegistry.forEach((assetsRef) => {
         // 跳过原始模块（已经处理过了）
         if (assetsRef !== assets) {
@@ -470,12 +470,12 @@ export function useTaskPolling(
         }
       })
     } else {
-      console.warn('未找到对应的占位资产或结果列表为空')
+      console.warn('未找到对应的占位创作或结果列表为空')
     }
   }
 
   /**
-   * 在指定资产列表中更新某个任务的错误状态
+   * 在指定创作列表中更新某个任务的错误状态
    * 抽成一个工具函数，方便在多个模块的 assets 列表上复用
    */
   const updateAssetWithErrorInAssets = (
@@ -496,8 +496,8 @@ export function useTaskPolling(
   }
 
   /**
-   * 更新资产为生成失败状态
-   * 同时应用到所有已注册的模块资产列表中，实现跨模块错误状态同步
+   * 更新创作为生成失败状态
+   * 同时应用到所有已注册的模块创作列表中，实现跨模块错误状态同步
    */
   const updateAssetWithError = (taskId: string, errorMsg: string) => {
     assetsRefsRegistry.forEach((assetsRef) => {
@@ -506,7 +506,7 @@ export function useTaskPolling(
   }
 
   /**
-   * 在指定资产列表中更新某个任务的进度信息
+   * 在指定创作列表中更新某个任务的进度信息
    * 抽成一个工具函数，方便在多个模块的 assets 列表上复用
    */
   const updateAssetProgressInAssets = (
@@ -539,9 +539,9 @@ export function useTaskPolling(
   }
 
   /**
-   * 更新资产进度信息（生成中状态）
+   * 更新创作进度信息（生成中状态）
    * 确保进度只增不减，直接使用接口返回的 progress 值
-   * 同时应用到所有已注册的模块资产列表中，实现跨模块进度同步
+   * 同时应用到所有已注册的模块创作列表中，实现跨模块进度同步
    */
   const updateAssetProgress = (
     taskId: string,
@@ -557,7 +557,7 @@ export function useTaskPolling(
   }
 
   /**
-   * 从资产记录列表中恢复进行中任务的轮询（用于页面刷新后自动恢复）
+   * 从创作记录列表中恢复进行中任务的轮询（用于页面刷新后自动恢复）
    * 只对 status 为 1/2 且有 type 的任务调用 startPollingTaskResult
    */
   const recoverTasksFromRecords = (records: CreationResult[] = []) => {

@@ -17,9 +17,9 @@
     <!-- 主内容显示区域（使用 el-scrollbar 触底加载，避免 v-infinite-scroll 弃用警告） -->
     <el-scrollbar ref="scrollbarRef" class="main-content-area" @scroll="handleMainScroll">
       <div ref="mainContentRef" v-loading="loading && assets.length === 0">
-        <!-- 资产列表 -->
+        <!-- 创作列表 -->
         <div class="assets-list">
-          <!-- 资产项 -->
+          <!-- 创作项 -->
           <div v-for="(asset, index) in assets"
             :key="asset.id || asset.algoOrderId || asset.algoUuId || `creation-${index}`" class="asset-item" :class="[
               { active: index === currentIndex },
@@ -40,7 +40,7 @@
               <div>生成失败</div>
             </div>
 
-            <!-- 正常显示：当前选中资产的主要显示区域 -->
+            <!-- 正常显示：当前选中创作的主要显示区域 -->
             <div v-else class="current-asset-display">
               <!-- 媒体展示区域 - 点击跳转详情 -->
               <div class="media-frame" :data-asset-index="index" :draggable="!isVideo(asset)"
@@ -206,10 +206,10 @@ const downloadMenuVisibleIndex = ref<number | null>(null)
 // 回到顶部相关
 const showBackTop = ref(false)
 
-// 已完成数量（所有生成中资产的已完成数量总和）
+// 已完成数量（所有生成中创作的已完成数量总和）
 const completedCount = computed(() => {
   const generatingAssets = props.assets.filter((asset) => asset.status === 2)
-  // 计算所有生成中资产的已完成数量（成功数量 + 失败数量）
+  // 计算所有生成中创作的已完成数量（成功数量 + 失败数量）
   return generatingAssets.reduce((total, asset) => {
     const successfulCount = asset.successfulCount || 0
     const failedCount = asset.failedCount || 0
@@ -218,10 +218,10 @@ const completedCount = computed(() => {
   }, 0)
 })
 
-// 正在生成中数量（所有生成中资产的正在生成中数量总和）
+// 正在生成中数量（所有生成中创作的正在生成中数量总和）
 const generatingCount = computed(() => {
   const generatingAssets = props.assets.filter((asset) => asset.status === 2)
-  // 计算所有生成中资产的正在生成中数量
+  // 计算所有生成中创作的正在生成中数量
   return generatingAssets.reduce((total, asset) => {
     const successfulCount = asset.successfulCount || 0
     const failedCount = asset.failedCount || 0
@@ -265,14 +265,14 @@ let intersectionObserver: IntersectionObserver | null = null
 // 当前正在播放的视频索引
 const currentPlayingIndex = ref<number | null>(null)
 
-// 计算属性：获取当前选中的资产（预留扩展，当前未直接使用）
+// 计算属性：获取当前选中的创作（预留扩展，当前未直接使用）
 
 const currentAsset = computed(() => {
-  // 只有当用户主动选择了资产（currentIndex >= 0）且索引有效时才返回
+  // 只有当用户主动选择了创作（currentIndex >= 0）且索引有效时才返回
   if (props.currentIndex >= 0 && props.currentIndex < props.assets.length) {
     return props.assets[props.currentIndex]
   }
-  // 没有选择时返回 null，不显示任何资产
+  // 没有选择时返回 null，不显示任何创作
   return null
 })
 void currentAsset
@@ -424,7 +424,7 @@ const handleViewDetail = (index: number) => {
 
 // 处理收藏
 const handleCollect = (index: number) => {
-  console.log('[操作] 收藏资产:', index)
+  console.log('[操作] 收藏创作:', index)
   emit('collect', index)
 }
 
@@ -477,27 +477,44 @@ const handleRemoveWatermarkToggle = async (enabled: boolean) => {
 }
 // 处理删除
 const handleDelete = (index: number) => {
-  console.log('[操作] 删除资产:', index)
+  console.log('[操作] 删除创作:', index)
   emit('delete', index)
 }
 
-// el-scrollbar 触底加载更多（替代 v-infinite-scroll）
+// el-scrollbar 滚动：同步滚动状态 + 触底加载更多（替代 v-infinite-scroll）
 const handleMainScroll = ({ scrollTop }: { scrollTop: number }) => {
   const wrapEl: HTMLElement | undefined = scrollbarRef.value?.wrapRef
   if (!wrapEl) return
-  if (props.loading || props.loadingMore || !props.hasMoreData) return
 
+  // 始终同步：回到顶部按钮显示 + 缩略图滚动百分比
+  const maxScroll = wrapEl.scrollHeight - wrapEl.clientHeight
+  const scrollPercentage = maxScroll > 0 ? scrollTop / maxScroll : 0
+  showBackTop.value = scrollTop > 300
+  emit('scroll-change', scrollPercentage)
+
+  // 顶部兜底：滚到最顶时 IntersectionObserver 的 rootMargin 会让第 2 个更“可见”，导致自动选中错位
+  // 这里在接近顶部时强制选中第 1 个，并短暂禁用自动选中避免被抢回。
+  if (scrollTop <= 8 && props.assets.length > 0 && props.currentIndex !== 0) {
+    allowAutoSelect = false
+    isAutoScrolling = true
+    emit('asset-click', 0)
+    setTimeout(() => {
+      allowAutoSelect = true
+    }, 200)
+  }
+
+  // 触底加载更多
+  if (props.loading || props.loadingMore || !props.hasMoreData) return
   const distance = 200
   const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
   if (reachBottom) handleLoadMore()
 }
 
-// 组件挂载时添加滚动监听和 Intersection Observer
+// 组件挂载时初始化 Intersection Observer
 onMounted(() => {
   nextTick(() => {
     // mainContentRef 用于 scrollToAsset/syncScroll：这里指向 scrollbar 的 wrap
     mainContentRef.value = (scrollbarRef.value?.wrapRef as HTMLElement) || mainContentRef.value
-    if (mainContentRef.value) mainContentRef.value.addEventListener('scroll', handleScroll, { passive: true })
     initIntersectionObserver()
     // 首次渲染阶段可能误触发 IntersectionObserver，导致父层 currentIndex 被自动改掉
     // 所以要稍晚再允许自动选中逻辑（避免刷新时父层 currentIndex 还没就绪）
@@ -509,10 +526,6 @@ onMounted(() => {
 
 // 组件卸载时移除滚动监听和清理 Observer
 onUnmounted(() => {
-  if (mainContentRef.value) {
-    mainContentRef.value.removeEventListener('scroll', handleScroll)
-  }
-
   if (intersectionObserver) {
     intersectionObserver.disconnect()
     intersectionObserver = null
@@ -559,7 +572,7 @@ watch(
   }
 )
 
-// 监听资产列表变化，重新观察元素
+// 监听创作列表变化，重新观察元素
 watch(
   () => props.assets,
   () => {
@@ -583,7 +596,7 @@ watch(
   () => props.assets,
   (newAssets) => {
     newAssets.forEach((asset) => {
-      // 只处理生成中状态且有失败数量的资产
+      // 只处理生成中状态且有失败数量的创作
       if (asset.status === 2 && asset.failedCount && asset.failedCount > 0) {
         const previousFailedCount = failedCountNotified.get(asset.id) || 0
         // 如果失败数量增加了，显示提示
@@ -645,7 +658,7 @@ const observeMediaElements = () => {
       intersectionObserver!.observe(item)
     })
 
-    console.log(`[智能播放] 正在观察 ${assetItems.length} 个资产元素`)
+    console.log(`[智能播放] 正在观察 ${assetItems.length} 个创作元素`)
   } catch (error) {
     console.error('[智能播放] 观察媒体元素时出错:', error)
   }
@@ -671,18 +684,18 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       const index = parseInt(indexStr, 10)
       const asset = props.assets[index]
       if (!asset) {
-        console.log('[智能播放] 未找到资产数据:', index)
+        console.log('[智能播放] 未找到创作数据:', index)
         return
       }
 
-      console.log(`[智能播放] 检测资产 ${index}:`, {
+      console.log(`[智能播放] 检测创作 ${index}:`, {
         isIntersecting: entry.isIntersecting,
         intersectionRatio: Math.round(entry.intersectionRatio * 100) / 100, // 保持数字类型，保留2位小数
         fileType: asset.fileType,
         status: asset.status,
       })
 
-      // 当资产进入视口（可见度超过30%时更新选中状态）
+      // 当创作进入视口（可见度超过30%时更新选中状态）
       if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
         if (!allowAutoSelect) return
         // 更新选中状态（同步缩略图）
@@ -695,7 +708,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
         }
       }
 
-      // 当资产滚动到视口中心区域（intersectionRatio >= 0.6，即可见60%以上）才自动播放视频
+      // 当创作滚动到视口中心区域（intersectionRatio >= 0.6，即可见60%以上）才自动播放视频
       if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
         // 如果是视频，自动播放
         if (isVideo(asset)) {
@@ -763,7 +776,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
         }
       }
     } catch (error) {
-      console.error('[智能播放] 处理资产时出错:', error)
+      console.error('[智能播放] 处理创作时出错:', error)
     }
   })
 }
@@ -795,23 +808,6 @@ const handleVideoPause = (index: number) => {
   }
 }
 
-// 监听滚动事件，同步到缩略图（传递滚动百分比）
-const handleScroll = () => {
-  if (!mainContentRef.value) return
-
-  // 直接计算并发送，不使用节流，保持实时性
-  const { scrollTop, scrollHeight, clientHeight } = mainContentRef.value
-  const maxScroll = scrollHeight - clientHeight
-
-  // 计算滚动百分比（0-1之间）
-  const scrollPercentage = maxScroll > 0 ? scrollTop / maxScroll : 0
-
-  // 控制回到顶部按钮显示
-  showBackTop.value = scrollTop > 300
-
-  emit('scroll-change', scrollPercentage)
-}
-
 // 回到顶部方法
 const scrollToTop = () => {
   if (mainContentRef.value) {
@@ -821,18 +817,18 @@ const scrollToTop = () => {
     })
   }
 
-  // 回到顶部时同步选中第一个资产
+  // 回到顶部时同步选中第一个创作
   if (props.assets.length > 0) {
     emit('asset-click', 0)
   }
 }
 
-// 预留：检测当前可见的资产（目前未用到，后续可扩展智能播放等能力）
+// 预留：检测当前可见的创作（目前未用到，后续可扩展智能播放等能力）
 
 const detectVisibleAsset = () => { }
 void detectVisibleAsset
 
-// 滚动到指定资产（供外部调用，如缩略图点击）
+// 滚动到指定创作（供外部调用，如缩略图点击）
 const scrollToAsset = (index: number) => {
   if (index < 0 || index >= props.assets.length) return
 
@@ -926,6 +922,11 @@ defineExpose({
   -webkit-overflow-scrolling: touch; // iOS平滑滚动
   will-change: scroll-position; // 优化滚动性能
 
+  // Element Plus el-scrollbar：隐藏滚动条（保留滚动）
+  :deep(.el-scrollbar__bar) {
+    display: none !important;
+  }
+
   // 隐藏滚动条，但保留滚动功能
   &::-webkit-scrollbar {
     width: 0;
@@ -936,7 +937,7 @@ defineExpose({
   -ms-overflow-style: none; // IE/Edge
 }
 
-/* ========== 资产列表 ========== */
+/* ========== 创作列表 ========== */
 .assets-list {
   display: flex;
   flex-direction: column;
@@ -953,7 +954,7 @@ defineExpose({
   }
 }
 
-/* ========== 资产占位符（生成中/失败） ========== */
+/* ========== 创作占位符（生成中/失败） ========== */
 .asset-placeholder {
   width: 100%;
   height: 420px;
@@ -990,7 +991,7 @@ defineExpose({
   }
 }
 
-/* ========== 当前资产展示区域 ========== */
+/* ========== 当前创作展示区域 ========== */
 .current-asset-display {
   overflow: hidden;
 }

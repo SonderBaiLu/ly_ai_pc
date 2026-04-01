@@ -39,10 +39,11 @@
 参考示例：无领 驼色 长款 双面呢 宽松版型 羊毛材质 毛呢大衣" />
     </div>
 
-    <!-- 底部参数以及生成按钮（贴底） -->
+    <!-- 底部参数以及生成按钮（贴底）：与 AI 服装设计一致，展示真实模型参数并可点击生成 -->
     <div class="bottom-sticky">
-      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
-        button-text="立即生成" @show-params="() => emit('show-params')" @generate="() => emit('generate')" />
+      <VideoOptionsSection :options="modelParamSummary" :credits="coin" :disabled="generateButtonDisabled"
+        :loading="submitting" button-text="立即生成" @show-params="() => emit('show-params')"
+        @generate="() => emit('generate')" />
     </div>
   </div>
 </template>
@@ -52,6 +53,7 @@ import { images } from '@/assets'
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 
 const imageUrl = defineModel<string>('imageUrl', { default: '' })
+const prompt = defineModel<string>('prompt', { default: '' })
 
 const props = defineProps<{
   taskResultId?: string | number
@@ -60,8 +62,12 @@ const props = defineProps<{
   coin?: number
   menuId?: string | number
   sketchParamSelections?: Record<string, string>
-  /** getInspirationWords(line_draw_to_phys_obj ×2) 返回的 class 节点列表 */
+  /** getInspirationWords（线稿转实物）返回的 class 节点列表 */
   paramCategories?: any[]
+  /** 与 AI 服装设计一致：ImageParamPopup 回显的模型+维度摘要 */
+  defaultImageParams?: string[]
+  /** 父级提交中，禁用生成按钮 */
+  submitting?: boolean
 }>()
 
 watch(
@@ -119,12 +125,9 @@ const selectOption = (classId: string, optionId: string) => {
   emit('update:sketch-param-selections', next)
 }
 
-const prompt = ref('')
 const inspirationWords = ref<any[]>([])
 
-const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '3:4', '2K', '1'])
 const coin = computed(() => Number(props.coin ?? 0))
-const isGenerating = ref(false)
 
 const updateInspirationWords = (words: any[]) => {
   inspirationWords.value = words
@@ -136,6 +139,43 @@ const typeText = computed(() => {
   if (!s?.category || !s?.clothType || !s?.subKind) return ''
   return `${s.category}-${s.clothType}-${s.subKind}`
 })
+
+const isCreationTypeReady = computed(() => Boolean(typeText.value))
+
+const hasSketchImage = computed(() => String(imageUrl.value || '').trim().length > 0)
+
+const allSegmentCategoriesSelected = computed(() => {
+  const cats = categoryList.value || []
+  const sel = props.sketchParamSelections || {}
+  if (!cats.length) return false
+  return cats.every((cat: any) => {
+    const cid = String(cat?.id ?? '')
+    return cid && String(sel[cid] ?? '').trim().length > 0
+  })
+})
+
+/** 无接口数据时不误放行提交按钮 */
+const segmentParamsReady = computed(() => {
+  const cats = categoryList.value || []
+  if (!cats.length) return false
+  return allSegmentCategoriesSelected.value
+})
+
+const modelParamSummary = computed(() => {
+  const fromParent = props.defaultImageParams
+  if (Array.isArray(fromParent) && fromParent.length > 0) return fromParent
+  return ['请点击参数设置']
+})
+
+const submitting = computed(() => Boolean(props.submitting))
+
+const generateButtonDisabled = computed(
+  () =>
+    !isCreationTypeReady.value ||
+    !hasSketchImage.value ||
+    !segmentParamsReady.value ||
+    submitting.value,
+)
 </script>
 
 <style scoped lang="scss">

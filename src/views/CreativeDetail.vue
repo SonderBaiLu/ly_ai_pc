@@ -420,30 +420,7 @@ const studioModuleName = computed(() => {
 
 // 缩略图组件数据：将 relatedTemplates 映射成统一的“创作（算法结果）”结构（ThumbnailGallery 使用）
 const thumbnailAssets = computed<CreationResult[]>(() => {
-  return (relatedTemplates.value || []).map((t: any) => {
-    return {
-      id: String(t?.id ?? ''),
-      userId: t?.userId != null ? String(t.userId) : undefined,
-      userSonId: t?.userSonId != null ? String(t.userSonId) : null,
-      algoOrderId: String(t?.algoOrderId ?? t?.taskId ?? ''),
-      algoOrderNo: t?.algoOrderNo != null ? String(t.algoOrderNo) : undefined,
-      algoUuId: (t?.algoUuId ?? t?.taskUuid ?? null) as any,
-      menuCode: String(t?.menuCode ?? ''),
-      thumbUrl: (t?.thumbUrl ?? null) as any,
-      url: (t?.url ?? null) as any,
-      originalUrl: (t?.originalUrl ?? null) as any,
-      fileSize: t?.fileSize !== undefined && t?.fileSize !== null ? Number(t.fileSize) : undefined,
-      duration: t?.duration !== undefined && t?.duration !== null ? Number(t.duration) : undefined,
-      collectStatus: Number(t?.collectStatus ?? 0),
-      fileType: Number(t?.fileType ?? 1),
-      status: Number(t?.status ?? 3),
-      progress: t?.progress !== undefined && t?.progress !== null ? Number(t?.progress) : undefined,
-      successfulCount: t?.successfulCount !== undefined && t?.successfulCount !== null ? Number(t?.successfulCount) : undefined,
-      failedCount: t?.failedCount !== undefined && t?.failedCount !== null ? Number(t?.failedCount) : undefined,
-      prompt: String(t?.prompt ?? t?.title ?? ''),
-      createTime: String(t?.createTime ?? new Date().toISOString()),
-    }
-  }).filter((x) => x.id && x.algoOrderId)
+  return (relatedTemplates.value || []) as unknown as CreationResult[]
 })
 
 const relatedPageParams = ref({
@@ -458,13 +435,7 @@ const isDataReady = ref(false)
 
 const getAlgoResultId = (item: any): string | number | null => {
   if (!item) return null
-  return (
-    item.id ??
-    item.algoOrderResultId ??
-    item.algoResulId ??
-    item.algoResultId ??
-    null
-  )
+  return item.id ?? null
 }
 
 // 统一参数：只使用详情接口 webRequest 字段
@@ -523,6 +494,39 @@ const requestParams = computed(() => {
     const values = src.imageTypeParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
     // 详情页里“生成图片类型”字段名是 outputType
     res.outputType = values?.[0] || ''
+  }
+
+  // 兼容：历史数据曾出现三项串位（模特图/平铺图/3D图 应属 outputType；黑白/彩色 属线稿类型；轮廓/手绘 属线稿风格）
+  if (res.sketchType || res.sketchStyle || res.outputType) {
+    const isOutputType = (v: string) => Boolean(v) && v.includes('图') && !v.includes('线稿')
+    const isSketchType = (v: string) => Boolean(v) && (v.includes('黑白') || v.includes('彩色'))
+    const isSketchStyle = (v: string) => Boolean(v) && (v.includes('轮廓') || v.includes('手绘'))
+
+    const a = String(res.sketchType || '')
+    const b = String(res.sketchStyle || '')
+    const c = String(res.outputType || '')
+
+    // 优先按内容识别归位
+    const next: any = { sketchType: res.sketchType, sketchStyle: res.sketchStyle, outputType: res.outputType }
+    const candidates = [a, b, c].filter(Boolean)
+
+    const out = candidates.find(isOutputType) || ''
+    const typ = candidates.find(isSketchType) || ''
+    const sty = candidates.find(isSketchStyle) || ''
+
+    // 只有在识别到至少一项且与现有字段明显不符时才改（避免影响已正确的数据）
+    if (
+      (out && out !== c) ||
+      (typ && typ !== a) ||
+      (sty && sty !== b)
+    ) {
+      next.outputType = out || c
+      next.sketchType = typ || a
+      next.sketchStyle = sty || b
+      res.outputType = next.outputType
+      res.sketchType = next.sketchType
+      res.sketchStyle = next.sketchStyle
+    }
   }
 
   // realToSketch：实物转线稿-线稿生成类型
@@ -627,7 +631,7 @@ const handleAgainGenerate = async () => {
       const orderNo = String(
         (typeof data === 'string' || typeof data === 'number'
           ? data
-          : data?.orderNo ?? data?.algoOrderNo ?? data?.taskId ?? data?.algoOrderId ?? '') || ''
+          : data?.orderNo ?? data?.algoOrderNo ?? data?.algoOrderId ?? '') || ''
       )
       if (!orderNo) {
         ElMessage.warning('提交成功，但未返回任务编号')
@@ -1216,7 +1220,7 @@ const refreshUserInfoIfPossible = async () => {
 // 获取“无水印链接”：优先使用最新接口字段 originalUrl
 // - 只做本地取值，不再走旧接口（避免依赖 creative.ts 中的旧算法结果接口）
 const ensureNoWatermarkUrlForAsset = async (asset: any): Promise<string | null> => {
-  const originalUrl = asset?.originalUrl ?? asset?.noWatermarkUrl
+  const originalUrl = asset?.originalUrl
   if (!originalUrl) return null
   return String(originalUrl)
 }
@@ -1316,7 +1320,7 @@ watch(
   },
 )
 
-// 下载/保存资产（参考资产列表的下载逻辑）
+// 下载/保存创作（参考创作列表的下载逻辑）
 const handleDownload = async () => {
   if (!templateDetail.value) return
 
@@ -1330,13 +1334,13 @@ const handleDownload = async () => {
         ? relatedTemplates.value[selectedThumbnail.value]
         : templateDetail.value
 
-    // 下载使用“生成结果”的输出链接（url/originalUrl/fileUrl），不要使用 webRequest 输入图字符串
+    // 下载使用“生成结果”新字段（url/originalUrl），不要使用 webRequest 输入图字符串
     const currentItem = currentItemBase as any
 
-    // 根据文件类型选择下载 URL（与资产列表逻辑一致）
+    // 根据文件类型选择下载 URL（与创作列表逻辑一致）
     const isVideo = isVideoType(currentItem)
 
-    // 详情页去除水印逻辑（仅资产详情生效）：
+    // 详情页去除水印逻辑（仅创作详情生效）：
     const wantRemoveWatermark = removeWatermarkEnabled.value
 
     // 若用户尝试无水印下载：先刷新用户信息再判断是否会员/是否已过期
@@ -1352,7 +1356,7 @@ const handleDownload = async () => {
       }
     }
 
-    let downloadUrl = isVideo ? currentItem.url : currentItem.fileUrl || currentItem.noWatermarkUrl
+    let downloadUrl = currentItem.url
 
     // 如果需要去除水印，优先使用 originalUrl（无水印链接）
     if (wantRemoveWatermark && isUserVip.value) {
@@ -1367,7 +1371,6 @@ const handleDownload = async () => {
       url: currentItem.url,
       originalUrl: currentItem.originalUrl,
       downloadUrl,
-      templateDetailFileUrl: templateDetail.value.fileUrl,
       relatedTemplatesLength: relatedTemplates.value.length,
     })
 
@@ -1700,7 +1703,7 @@ const syncMediaContainerToSelected = (instant = false) => {
 // 切换喜欢状态（用于template和like页面）
 // 当前详情页 UI 已不展示“喜欢”入口；为避免 noUnusedLocals 导致 build 失败，先移除该逻辑
 
-// 资产收藏操作（用于assets页面）
+// 创作收藏操作（用于assets页面）
 const handleAssetsCollect = async () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
@@ -1714,7 +1717,7 @@ const handleAssetsCollect = async () => {
 
   try {
     const isCollecting = Number((templateDetail.value as any).collectStatus) !== 1
-    // AI 工作台（AiFashionStudio）生成的资产：使用 /api/v1/algo/collect
+    // AI 工作台（AiFashionStudio）生成的创作：使用 /api/v1/algo/collect
     if (isAiFashionStudioAssetsDetail.value) {
       const algoOrderResultId = String(templateDetail.value.id || '')
       if (!algoOrderResultId) {
@@ -1736,7 +1739,7 @@ const handleAssetsCollect = async () => {
         ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
       }
     } else {
-      // 其它来源资产：旧接口 creative.ts / asset.ts 已下线
+      // 其它来源创作：旧接口 creative.ts / asset.ts 已下线
       ElMessage.warning('暂未接入收藏/取消收藏（旧接口已下线）')
       return
     }
@@ -1874,9 +1877,6 @@ onMounted(async () => {
         if (item.creativeTemplate) {
           return {
             ...item.creativeTemplate,
-            // 保留一些外层字段（likeId 和 useLikes 可能在外层）
-            taskId: item.taskId,
-            taskUuid: item.taskUuid,
             // 如果外层的 likeId 或 useLikes 存在，优先使用外层值（覆盖内层值）
             likeId: item.likeId || item.creativeTemplate?.likeId,
             useLikes: item.useLikes !== undefined ? item.useLikes : item.creativeTemplate?.useLikes,

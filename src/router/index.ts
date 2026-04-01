@@ -40,6 +40,7 @@ const routes: RouteRecordRaw[] = [
     path: '/membership',
     name: 'Membership',
     component: () => import('../views/Membership.vue'),
+    meta: { requiresAuth: true },
   },
   {
     path: '/invitation-gift',
@@ -55,12 +56,6 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue'),
-  },
-  {
-    path: '/team-management',
-    name: 'TeamManagement',
-    component: () => import('../views/TeamManagement.vue'),
-    meta: { requiresAuth: true }
   },
   {
     path: '/team-management',

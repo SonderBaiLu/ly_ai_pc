@@ -42,17 +42,19 @@
               @show-history="openHistoryModal"
               @update:inspiration-words="(words) => formDataByMenu.fabricCreative.inspirationWords = words" />
             <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="formDataByMenu.sketchToReal.image"
+              v-model:prompt="formDataByMenu.sketchToReal.prompt"
               :sketch-param-selections="formDataByMenu.sketchToReal.sketchParamSelections"
               :param-categories="sketchToRealParamCategories" :task-result-id="formDataByMenu.sketchToReal.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
               :inspiration-words="formDataByMenu.sketchToReal.inspirationWords" :coin="imageCoin"
-              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('sketchToReal')"
+              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+              @open-type-modal="() => openTypeModal('sketchToReal')"
               @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleSketchToRealGenerate" @inspiration-library="handleInspirationLibrary"
               @show-history="openHistoryModal"
-              @update:sketch-param-selections="(v) => formDataByMenu.sketchToReal.sketchParamSelections = v"
-              @update:inspiration-words="(words) => formDataByMenu.sketchToReal.inspirationWords = words" />
+              @update:sketch-param-selections="(v) => (formDataByMenu.sketchToReal.sketchParamSelections = v)"
+              @update:inspiration-words="(words) => (formDataByMenu.sketchToReal.inspirationWords = words)" />
             <RealToSketch v-else v-model:image-url="formDataByMenu.realToSketch.image"
               :task-result-id="formDataByMenu.realToSketch.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
@@ -86,7 +88,7 @@
 
     <!-- 模型参数弹窗（父层统一管理，子组件只负责触发 show-params） -->
     <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="currentImageDefaultParams"
-      :algorithm-models="currentImageAlgorithmModels" @confirm="handleImageParamsConfirm"
+      :default-selection="currentImageDefaultSelection" :algorithm-models="currentImageAlgorithmModels" @confirm="handleImageParamsConfirm"
       @close="handleImageParamsClose" />
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
@@ -159,7 +161,8 @@ const menuCodeByKey: Record<LeftMenuKey, string> = {
 }
 const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
   aiFashion: CREATION_PARAM_CODES.CREATION_STYLE,
-  sketchToReal: CREATION_PARAM_CODES.SKETCH_TYPE,
+  // 线稿转实物：款型选择与 AI 服装设计一致，typeCode 为 creation_style
+  sketchToReal: CREATION_PARAM_CODES.CREATION_STYLE,
   realToSketch: CREATION_PARAM_CODES.GARMENT_STYLE,
   fabricCreative: CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE,
 }
@@ -269,7 +272,7 @@ const buildInspirationWordsParams = (words: any[] = []) => {
 }
 
 /**
- * 与 algo.submit 一致：仅含来自历史/资产的图。
+ * 与 algo.submit 一致：仅含来自历史/创作的图。
  * - 提交的 image 与这里入参 imageSlots 一致，均为数组；单图模块也是 length === 1 的数组。
  * - imageSlots.length > 1：type 与下标对应，image0、image1…
  * - length === 1：type 用 historyImageType；未单独指定时默认为 image（与提交图片参数 key 一致）。
@@ -310,6 +313,68 @@ const buildCreationStyleParams = (selection: any) => {
     prentId: String(idx > 0 ? (ids[idx - 1] ?? '') : ''),
     content: String(content ?? ''),
   })).filter((x) => x.content)
+}
+
+/** 线稿转实物：左侧三组单选 → sketchTypeParams / sketchStyleParams / imageTypeParams（与详情页字段一致） */
+const classifySketchToRealCategory = (cat: any, index: number): 'type' | 'style' | 'image' | null => {
+  const code = String(cat?.code ?? cat?.typeCode ?? '').toLowerCase()
+  if (code === CREATION_PARAM_CODES.SKETCH_TYPE || code.endsWith('sketch_type')) return 'type'
+  if (code === CREATION_PARAM_CODES.SKETCH_STYLE || code.endsWith('sketch_style')) return 'style'
+  if (code === CREATION_PARAM_CODES.IMAGE_TYPE || code.endsWith('image_type')) return 'image'
+
+  // 部分接口返回的三组参数并不会带 typeCode（而是用 content 标题区分），这里用标题兜底
+  const title = String(cat?.content ?? cat?.title ?? '').trim()
+  if (title.includes('生成图片') || title.includes('图片类型')) return 'image'
+  if (title.includes('线稿类型')) return 'type'
+  if (title.includes('线稿风格')) return 'style'
+
+  // 最后兜底：按顺序猜（避免空）
+  if (index === 0) return 'image'
+  if (index === 1) return 'type'
+  if (index === 2) return 'style'
+  return null
+}
+
+const buildSketchToRealSegmentParams = (
+  categories: any[],
+  selections: Record<string, string>,
+): {
+  sketchTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+  sketchStyleParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+  imageTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+} => {
+  const sketchTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+  const sketchStyleParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+  const imageTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+
+  const push = (
+    bucket: Array<{ id: string; configType: string; prentId: string; content: string }>,
+    category: any,
+    opt: any,
+  ) => {
+    bucket.push({
+      id: String(opt?.id ?? ''),
+      configType: String(opt?.configType ?? 'class'),
+      prentId: String(category?.id ?? ''),
+      content: String(opt?.content ?? opt?.name ?? opt?.wordsName ?? ''),
+    })
+  }
+
+  const list = Array.isArray(categories) ? categories : []
+  list.forEach((cat, index) => {
+    const classId = String(cat?.id ?? '')
+    const selId = String((selections || {})[classId] ?? '').trim()
+    if (!classId || !selId) return
+    const children = Array.isArray(cat?.children) ? cat.children : []
+    const opt = children.find((c: any) => String(c?.id ?? '') === selId)
+    if (!opt) return
+    const kind = classifySketchToRealCategory(cat, index)
+    if (kind === 'type') push(sketchTypeParams, cat, opt)
+    else if (kind === 'style') push(sketchStyleParams, cat, opt)
+    else if (kind === 'image') push(imageTypeParams, cat, opt)
+  })
+
+  return { sketchTypeParams, sketchStyleParams, imageTypeParams }
 }
 
 // ==================== payload 公共部分（各模块只补差异字段） ====================
@@ -381,6 +446,20 @@ const submitByMenuCode = async (menuCode: string) => {
       ElMessage.error('请先上传线稿参考图')
       return
     }
+    const creationRows = buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal)
+    if (!creationRows.length) {
+      ElMessage.error('请先选择款型')
+      return
+    }
+    const segCats = sketchToRealParamCategories.value || []
+    const selMap = form.sketchParamSelections || {}
+    for (const cat of segCats) {
+      const cid = String(cat?.id ?? '')
+      if (!cid || !String(selMap[cid] ?? '').trim()) {
+        ElMessage.error('请完成线稿类型、线稿风格与生成图片类型的选择')
+        return
+      }
+    }
   } else {
     // realToSketch
     images = String(form.image || '').trim() ? [String(form.image).trim()] : []
@@ -404,10 +483,16 @@ const submitByMenuCode = async (menuCode: string) => {
       imageTypeParams: buildCreationStyleParams(creationTypeSelectionByMenu.fabricCreative),
     }
   } else if (menuKey === 'sketchToReal') {
+    const { sketchTypeParams, sketchStyleParams, imageTypeParams } = buildSketchToRealSegmentParams(
+      sketchToRealParamCategories.value,
+      form.sketchParamSelections || {},
+    )
     diffPayload = {
-      sketchTypeParams: buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal),
-      sketchStyleParams: [],
-      imageTypeParams: [],
+      // 与 AI 服装设计一致：款型走 creationStyleParams，详情页「款型」展示用
+      creationStyleParams: buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal),
+      sketchTypeParams,
+      sketchStyleParams,
+      imageTypeParams,
     }
   } else {
     // realToSketch
@@ -471,14 +556,14 @@ const stopQueryTimer = (orderNo: string) => {
   }
 }
 
-// 根据 orderNo / algoOrderId / id 在 assets 中定位资产
+// 根据 orderNo / algoOrderId / id 在 assets 中定位创作
 const findAssetIndexByOrderNo = (orderNo: string) => {
   return assets.value.findIndex((item: CreationResult) => {
     return String(item?.algoOrderNo ?? '') === orderNo || String(item?.algoOrderId ?? '') === orderNo || String(item?.id ?? '') === orderNo
   })
 }
 
-// 更新指定资产：以 updater 的返回值覆盖原 assets 项
+// 更新指定创作：以 updater 的返回值覆盖原 assets 项
 const updateAssetByOrderNo = (orderNo: string, updater: (asset: CreationResult) => CreationResult) => {
   const idx = findAssetIndexByOrderNo(orderNo)
   if (idx === -1) return
@@ -750,7 +835,7 @@ type CreativeAndModelState = {
 
 type CommonFormState = CreativeAndModelState & {
   historyParams: any[]
-  /** 单图模块：历史/资产入图时的 type；未设时提交 historyParams 默认 image */
+  /** 单图模块：历史/创作入图时的 type；未设时提交 historyParams 默认 image */
   historyImageType?: string
 }
 
@@ -826,6 +911,47 @@ const getCurrentParams = () => getCurrentForm().params
 const imageCoin = computed(() => getCurrentParams()?.coinCost ?? 0)
 const currentImageDefaultParams = computed(() => getCurrentParams()?.defaultModelsParams || [])
 const currentImageAlgorithmModels = computed(() => getCurrentParams()?.algorithmModels || [])
+
+/** 从算法列表中按 defaultStatus 提取“默认选中”对象，供参数弹窗直接回显选中态 */
+const extractDefaultSelectionFromModels = (models: any[]) => {
+  if (!Array.isArray(models) || models.length === 0) return null
+  const defaultModel = models.find((m: any) => Number(m?.defaultStatus) === 1) || models[0]
+  if (!defaultModel) return null
+
+  const groups = Array.isArray(defaultModel?.paramGroups) ? defaultModel.paramGroups : []
+  const paramList = groups
+    .map((group: any) => {
+      const params = Array.isArray(group?.params) ? group.params : []
+      if (!params.length) return null
+      const p = params.find((x: any) => Number(x?.defaultStatus) === 1) || params[0]
+      return p
+        ? {
+          templateId: p?.templateId || '',
+          templateCode: p?.templateCode || '',
+          templateName: p?.templateName || '',
+          type: p?.type,
+          vipStatus: p?.vipStatus,
+          waveCoin: p?.waveCoin,
+          templateDesc: p?.templateDesc || '',
+          imageUrl: p?.imageUrl || '',
+        }
+        : null
+    })
+    .filter(Boolean)
+
+  return {
+    algorithmId: defaultModel?.algorithmId ?? defaultModel?.id ?? 0,
+    algorithmCode: defaultModel?.code || '',
+    algorithmName: defaultModel?.name || '',
+    paramList,
+  }
+}
+
+const currentImageDefaultSelection = computed(() => {
+  const byList = extractDefaultSelectionFromModels(currentImageAlgorithmModels.value)
+  // 有用户手动确认结果时，优先使用用户选择；否则回退到接口默认
+  return getCurrentParams()?.defaultParamObject || byList
+})
 
 const buildDefaultStateFromModels = (models: any[]) => {
   if (!Array.isArray(models) || models.length === 0) {
@@ -1437,7 +1563,7 @@ const handleDropFile = async (payload: any) => {
   const currentForm = formDataByMenu[leftMenu.value]
   // payload 可能来自：
   // 1) 本地文件拖拽：{ file, type, position }
-  // 2) 我的资产拖拽：{ url, taskResultId, type, position, fileType }
+  // 2) 我的创作拖拽：{ url, taskResultId, type, position, fileType }
   if (payload?.file) {
     const file: File = payload.file
     const uploadResult = await uploadApi.uploadImage(file, {
