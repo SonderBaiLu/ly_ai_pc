@@ -1,8 +1,19 @@
 /* global File, FormData */
+import { h } from 'vue'
 import request from '@/utils/request'
 import type { ApiResponse } from '@/types'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
+
+/** 异常时优先取响应体 msg（与业务失败一致）；无则走通用提示 */
+const pickErrorMsg = (error: unknown): string => {
+  const d = (error as any)?.response?.data
+  if (d && typeof d === 'object') {
+    const m = (d as any).msg ?? (d as any).message
+    if (typeof m === 'string' && m.trim()) return m.trim()
+  }
+  return ''
+}
 
 /**
  * 文件上传配置
@@ -10,7 +21,8 @@ import { Loading } from '@element-plus/icons-vue'
 interface UploadConfig {
   showLoading?: boolean // 是否显示加载提示
   loadingText?: string // 加载提示文本
-  showMessage?: boolean // 是否显示默认成功/失败消息（默认 true）
+  /** 是否显示默认成功/失败消息（默认 true）；为 false 时由调用方自定义提示 */
+  showMessage?: boolean
 }
 
 /**
@@ -41,8 +53,6 @@ export const uploadApi = {
     config?: UploadConfig
   ): Promise<{ success: boolean; url?: string; message?: string }> => {
     const {
-      // maxSize = 10 * 1024 * 1024, // 默认 10MB
-      // allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'],
       showLoading = true,
       loadingText = '图片上传中...',
       showMessage = true,
@@ -51,7 +61,6 @@ export const uploadApi = {
     let loadingMsg: any = null
 
     try {
-      // 显示加载提示
       if (showLoading) {
         loadingMsg = ElMessage({
           message: loadingText,
@@ -62,11 +71,9 @@ export const uploadApi = {
         })
       }
 
-      // 构建表单数据
       const formData = new FormData()
       formData.append('file', file)
 
-      // 调用上传接口（/api/v1/storage/uploadImage）
       const response: ApiResponse<UploadResponse> = await request.post(
         '/v1/storage/uploadImage',
         formData,
@@ -77,15 +84,14 @@ export const uploadApi = {
         }
       )
 
-      // 关闭加载提示
       if (loadingMsg) {
         loadingMsg.close()
       }
 
       const respData: any = (response as any).data
-      const uploadedUrl = String(respData?.url || respData?.fileUrl || respData || '').trim()
-      if (response.code === '0000' && uploadedUrl) {
-        // 上传成功，获取图片URL
+      const uploadedUrl = String(respData?.url || respData?.fileUrl || '').trim()
+      const code = String((response as any).code ?? '')
+      if (code === '0000' && uploadedUrl) {
         if (showLoading && showMessage) {
           ElMessage.success('图片上传成功')
         }
@@ -96,22 +102,21 @@ export const uploadApi = {
         return { success: false, message: msg || '上传失败' }
       }
     } catch (error) {
-      // 关闭加载提示
       if (loadingMsg) {
         loadingMsg.close()
       }
 
       console.error('图片上传失败:', error)
-      if (showMessage) ElMessage.error('网络开小差了，请稍后重试')
-      return { success: false, message: '网络错误' }
+      const failMsg = pickErrorMsg(error)
+      if (showMessage) {
+        ElMessage.error(failMsg || '网络开小差了，请稍后重试')
+      }
+      return { success: false, message: failMsg || '网络错误' }
     }
   },
 
   /**
    * 上传多张图片
-   * @param files 文件数组
-   * @param config 上传配置
-   * @returns Promise<上传结果数组>
    */
   uploadImages: async (
     files: File[],
@@ -123,9 +128,6 @@ export const uploadApi = {
 
   /**
    * 上传视频
-   * @param file 文件对象
-   * @param config 上传配置
-   * @returns Promise<上传结果>
    */
   uploadVideo: async (
     file: File,
@@ -136,7 +138,6 @@ export const uploadApi = {
     let loadingMsg: any = null
 
     try {
-      // 显示加载提示
       if (showLoading) {
         loadingMsg = ElMessage({
           message: loadingText,
@@ -147,11 +148,9 @@ export const uploadApi = {
         })
       }
 
-      // 构建表单数据
       const formData = new FormData()
       formData.append('file', file)
 
-      // 调用上传接口
       const response: ApiResponse<UploadResponse> = await request.post(
         '/api-file/files/upload',
         formData,
@@ -162,13 +161,13 @@ export const uploadApi = {
         }
       )
 
-      // 关闭加载提示
       if (loadingMsg) {
         loadingMsg.close()
       }
 
       const respData: any = (response as any).data
-      if (response.code === '0000' && respData?.url) {
+      const code = String((response as any).code ?? '')
+      if (code === '0000' && respData?.url) {
         if (showLoading && showMessage) {
           ElMessage.success('视频上传成功')
         }
@@ -179,22 +178,21 @@ export const uploadApi = {
         return { success: false, message: msg || '上传失败' }
       }
     } catch (error) {
-      // 关闭加载提示
       if (loadingMsg) {
         loadingMsg.close()
       }
 
       console.error('视频上传失败:', error)
-      if (showMessage) ElMessage.error('网络开小差了，请稍后重试')
-      return { success: false, message: '网络错误' }
+      const failMsg = pickErrorMsg(error)
+      if (showMessage) {
+        ElMessage.error(failMsg || '网络开小差了，请稍后重试')
+      }
+      return { success: false, message: failMsg || '网络错误' }
     }
   },
 
   /**
    * 通用文件上传
-   * @param file 文件对象
-   * @param config 上传配置
-   * @returns Promise<上传结果>
    */
   uploadFile: async (
     file: File,
@@ -205,7 +203,6 @@ export const uploadApi = {
     let loadingMsg: any = null
 
     try {
-      // 显示加载提示
       if (showLoading) {
         loadingMsg = ElMessage({
           message: loadingText,
@@ -216,11 +213,9 @@ export const uploadApi = {
         })
       }
 
-      // 构建表单数据
       const formData = new FormData()
       formData.append('file', file)
 
-      // 调用上传接口
       const response: ApiResponse<UploadResponse> = await request.post(
         '/api-file/files/upload',
         formData,
@@ -231,13 +226,13 @@ export const uploadApi = {
         }
       )
 
-      // 关闭加载提示
       if (loadingMsg) {
         loadingMsg.close()
       }
 
       const respData: any = (response as any).data
-      if (response.code === '0000' && respData?.url) {
+      const code = String((response as any).code ?? '')
+      if (code === '0000' && respData?.url) {
         if (showLoading && showMessage) {
           ElMessage.success('文件上传成功')
         }
@@ -248,14 +243,16 @@ export const uploadApi = {
         return { success: false, message: msg || '上传失败' }
       }
     } catch (error) {
-      // 关闭加载提示
       if (loadingMsg) {
         loadingMsg.close()
       }
 
       console.error('文件上传失败:', error)
-      if (showMessage) ElMessage.error('网络开小差了，请稍后重试')
-      return { success: false, message: '网络错误' }
+      const failMsg = pickErrorMsg(error)
+      if (showMessage) {
+        ElMessage.error(failMsg || '网络开小差了，请稍后重试')
+      }
+      return { success: false, message: failMsg || '网络错误' }
     }
   },
 }

@@ -124,3 +124,28 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 35%, rgba(0, 0, 0, 0.9) 100%);
   }
 }
+
+// 左栏固定底部：中间区域滚动，LingImage 条 + 立即生成始终贴底（父级需限高 + flex）
+.studio-left--sticky-footer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
+  .left-panel-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    // 与 param-panel 左右 padding 对齐，避免双滚动条顶到边
+    padding-right: 2px;
+  }
+
+  .bottom-sticky {
+    flex-shrink: 0;
+    z-index: 5;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 35%, rgba(0, 0, 0, 0.9) 100%);
+  }
+}

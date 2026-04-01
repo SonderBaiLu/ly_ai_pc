@@ -147,6 +147,7 @@ const handleClose = () => {
 <style lang="scss" scoped>
 .write-off-modal {
   position: relative;
+  border-radius: 16px;
 
   .modal-header {
     margin-bottom: $spacing-sm;

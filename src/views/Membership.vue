@@ -1735,6 +1735,7 @@ const getPurchaseButtonText = (plan: any) => {
 
 // 升级会员弹窗
 .change-plan-dialog {
+  border-radius: 16px;
 
   .change-plan-header {
     padding: 21px 33px 28px;

@@ -577,7 +577,14 @@ const toggleUserCard = () => {
     isUserMenuOpen.value = true
     return
   }
-  isUserMenuOpen.value = !isUserMenuOpen.value
+  // 已展开时：避免「更多」菜单打开状态下再点一次被翻成个人中心（原逻辑 isUserMenuOpen = ! 会误切到个人中心）
+  if (isUserMenuOpen.value) {
+    isUserCardOpen.value = false
+    isUserMenuOpen.value = false
+    return
+  }
+  // 当前是个人中心：再点「更多」切到更多菜单
+  isUserMenuOpen.value = true
 }
 
 const scheduleCloseUserCard = () => {
@@ -1143,6 +1150,21 @@ const handleLogout = async () => {
     width: 24px;
     height: 24px;
     cursor: pointer;
+  }
+
+  // 个人中心仅响应头像本身区域，避免与「更多」之间的空白也算进头像热区
+  .user-menu {
+    gap: 12px;
+  }
+
+  .user-avatar {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
   }
 }
 

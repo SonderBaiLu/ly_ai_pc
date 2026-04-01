@@ -1,13 +1,6 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    width="760px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="true"
-    :show-close="false"
-    class="product-tutorial-modal"
-    @close="handleClose"
-  >
+  <el-dialog v-model="visible" width="760px" :close-on-click-modal="false" :close-on-press-escape="true"
+    :show-close="false" class="product-tutorial-modal" @close="handleClose">
     <template #title>
       <div class="modal-title">
         <span>{{ isZh ? '产品教程' : 'Product Tutorials' }}</span>
@@ -21,13 +14,9 @@
           {{ isZh ? '暂无教程' : 'No tutorials yet' }}
         </div>
         <div v-else class="list">
-          <div
-            v-for="(item, idx) in tutorialList"
-            :key="getItemKey(item, idx)"
-            class="list-item"
+          <div v-for="(item, idx) in tutorialList" :key="getItemKey(item, idx)" class="list-item"
             :class="{ 'is-active': selectedItem?.key === getItemKey(item, idx) }"
-            @click="selectedItem = toSelected(item, idx)"
-          >
+            @click="selectedItem = toSelected(item, idx)">
             <div class="item-title">{{ getItemTitle(item) }}</div>
             <div v-if="getItemDesc(item)" class="item-desc">{{ getItemDesc(item) }}</div>
           </div>
@@ -154,6 +143,10 @@ const handleClose = () => {
 </script>
 
 <style scoped lang="scss">
+.product-tutorial-modal {
+  border-radius: 16px;
+}
+
 .modal-title {
   font-weight: 700;
   font-size: 18px;
@@ -233,4 +226,3 @@ const handleClose = () => {
   color: rgba(255, 255, 255, 0.85);
 }
 </style>
-

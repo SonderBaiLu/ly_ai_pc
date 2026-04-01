@@ -1,85 +1,46 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="multiSelect ? `历史创作（已选${selectedList.length}/${maxCount}）` : '历史创作'"
-    width="800px"
-    :close-on-click-modal="true"
-    :close-on-press-escape="true"
-    append-to-body
-    class="history-creative-dialog"
-    @close="handleClose"
-  >
+  <el-dialog v-model="visible" width="800px" :close-on-click-modal="true" :close-on-press-escape="true"
+    :show-close="false" append-to-body class="history-creative-dialog" @close="handleClose">
+    <template #header>
+      <div class="history-header">
+        <!-- {{ multiSelect ? `历史创作（已选${selectedList.length}/${maxCount}）` : '历史创作' }} -->
+        <h2 class="history-title">历史创作</h2>
+        <img :src="images.closeDialog" alt="" class="header-close" @click="handleClose" />
+      </div>
+    </template>
     <div class="history-content">
-      <!-- 图片网格 - 无限滚动 -->
-      <div
-        v-infinite-scroll="loadMore"
-        class="scroll-container"
-        :infinite-scroll-disabled="scrollDisabled"
-        :infinite-scroll-distance="100"
-      >
+      <!-- el-scrollbar 触底加载（替代 v-infinite-scroll，避免 Element Plus 弃用警告） -->
+      <el-scrollbar ref="historyScrollbarRef" class="history-scroll-container" @scroll="handleHistoryScroll">
         <div v-loading="loading" class="image-grid">
-          <ImageItem
-            v-for="item in displayList"
-            :key="item.id"
-            :image-data="item"
-            :show-select="multiSelect"
-            :is-selected="isSelected(item)"
-            :selected-count="selectedList.length"
-            :max-select="maxCount"
-            :show-collect="false"
-            :show-zoom="true"
-            @select="handleImageSelect"
-            @click="handleImageClick"
-            @zoom="handlePreviewClick"
-          />
+          <ImageItem v-for="item in displayList" :key="item.id" :image-data="item" :show-select="multiSelect"
+            :is-selected="isSelected(item)" :selected-count="selectedList.length" :max-select="maxCount"
+            :show-collect="false" :show-zoom="true" @select="handleImageSelect" @click="handleImageClick"
+            @zoom="handlePreviewClick" />
         </div>
 
-        <!-- 下拉加载状态：加载中/加载更多/END/空状态 -->
-        <InfiniteScrollLoader
-          :loading="loading"
-          :loading-more="loadingMore"
-          :has-more="hasMore"
-          :data-length="displayList.length"
-          empty-text="暂无历史创作"
-          :show-back-top="false"
-        />
-      </div>
+        <InfiniteScrollLoader :loading="loading" :loading-more="loadingMore" :has-more="hasMore"
+          :data-length="displayList.length" empty-text="暂无历史创作" :show-back-top="false" />
+      </el-scrollbar>
     </div>
 
     <!-- 自定义预览弹窗 -->
-    <ImagePreviewModal
-      v-model="showPreviewModal"
-      :image-src="previewImage?.imageUrl || previewImage?.resultUrl || ''"
-      :show-selected-badge="props.multiSelect"
-      :is-selected="previewImage ? isSelected(previewImage) : false"
-      :extra-info="
-        previewImage
-          ? {
-              createTime: previewImage.createTime,
-              prompt: previewImage.prompt,
-            }
-          : undefined
-      "
-      cancel-text="关闭"
-      :show-confirm-button="true"
-      :confirm-text="
-        props.multiSelect && previewImage && isSelected(previewImage) ? '取消选择' : '选择此图片'
-      "
-      :confirm-button-type="
-        props.multiSelect && previewImage && isSelected(previewImage) ? 'danger' : 'primary'
-      "
-      @confirm="handlePreviewConfirm"
-    />
+    <ImagePreviewModal v-model="showPreviewModal" :image-src="previewImage?.imageUrl || previewImage?.resultUrl || ''"
+      :show-selected-badge="props.multiSelect" :is-selected="previewImage ? isSelected(previewImage) : false"
+      :extra-info="previewImage
+        ? {
+          createTime: previewImage.createTime,
+          prompt: previewImage.prompt,
+        }
+        : undefined
+        " cancel-text="关闭" :show-confirm-button="true" :confirm-text="props.multiSelect && previewImage && isSelected(previewImage) ? '取消选择' : '选择此图片'
+          " :confirm-button-type="props.multiSelect && previewImage && isSelected(previewImage) ? 'danger' : 'primary'
+            " @confirm="handlePreviewConfirm" />
 
     <!-- 多选确认按钮 -->
     <template v-if="multiSelect" #footer>
       <div class="multi-select-footer">
         <el-button @click="visible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :disabled="selectedList.length === 0"
-          @click="handleConfirmMultiSelect"
-        >
+        <el-button type="primary" :disabled="selectedList.length === 0" @click="handleConfirmMultiSelect">
           确认选择（{{ selectedList.length }}/{{ maxCount }}）
         </el-button>
       </div>
@@ -88,6 +49,7 @@
 </template>
 
 <script setup lang="ts">
+import { images } from '@/assets'
 import { algoApi } from '@/api/algo'
 import { ElMessage } from 'element-plus'
 import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
@@ -109,6 +71,8 @@ interface Props {
   type?: string | number
   /** 文件类型：1图片 2视频 */
   fileType?: string | number
+  /** 一级模块 menuCode（queryAlgoResultPage 筛选）；未传则为 '' */
+  menuCode?: string
   /** 数据来源：creative-创作记录 upload-文件上传历史 */
   source?: 'creative' | 'upload'
   /** 是否多选 */
@@ -130,6 +94,7 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   type: undefined,
   fileType: 1,
+  menuCode: '',
   source: 'creative',
   multiSelect: false,
   maxCount: 1,
@@ -154,6 +119,8 @@ const selectedList = ref<HistoryItem[]>([])
 
 const scrollDisabled = computed(() => loading.value || loadingMore.value || !hasMore.value)
 
+const historyScrollbarRef = ref<{ wrapRef?: HTMLElement } | null>(null)
+
 // 预览相关状态
 const showPreviewModal = ref(false)
 const previewImage = ref<HistoryItem | null>(null)
@@ -164,7 +131,90 @@ const displayList = computed(() => {
   return historyList.value
 })
 
-// 监听 modelValue 变化
+async function loadHistoryData(isLoadMore = false, options: { skipCache?: boolean } = {}) {
+  void options
+  if (isLoadMore) {
+    if (loading.value || loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+    currentPage.value++
+  } else {
+    loading.value = true
+  }
+
+  try {
+    const moduleCode = String(props.menuCode ?? '').trim()
+    const params = {
+      menuCode: moduleCode,
+      collectStatus: '0',
+      fileType: String(props.fileType ?? 1),
+      currentPage: currentPage.value,
+      pageSize: pageSize.value,
+    }
+    const res = await algoApi.queryAlgoResultPage(params)
+    if (res.code !== '0000') {
+      if (!isLoadMore) ElMessage.error(res.msg || '加载历史数据失败')
+      hasMore.value = false
+      return
+    }
+
+    const data: any = res.data || {}
+    const records = (Array.isArray(data?.records) && data.records) || (Array.isArray(data?.list) && data.list) || []
+    const mapped: HistoryItem[] = records.map((item: any) => {
+      const imageUrl = String(item?.url || item?.thumbUrl || item?.originalUrl || '').trim()
+      return {
+        ...item,
+        id: item?.id ?? imageUrl,
+        imageUrl,
+        thumbUrl: item?.thumbUrl || imageUrl,
+        resultUrl: item?.url || imageUrl,
+      }
+    })
+
+    historyList.value = isLoadMore ? [...historyList.value, ...mapped] : mapped
+    if (typeof data?.hasNext === 'boolean') {
+      hasMore.value = data.hasNext
+    } else {
+      const total = Number(data?.total ?? data?.totalCount ?? 0)
+      hasMore.value = total > 0 ? historyList.value.length < total : mapped.length >= pageSize.value
+    }
+  } catch (error) {
+    console.error('加载历史数据出错:', error)
+    if (!isLoadMore) {
+      ElMessage.error('加载历史数据失败')
+    }
+    if (!isLoadMore) historyList.value = []
+    hasMore.value = false
+  } finally {
+    if (isLoadMore) {
+      loadingMore.value = false
+    } else {
+      loading.value = false
+    }
+  }
+}
+
+const loadMore = () => {
+  loadHistoryData(true)
+}
+
+/** 与 MainImageDisplay 一致：用 scrollbar wrap 判断是否触底 */
+const handleHistoryScroll = ({ scrollTop }: { scrollTop: number }) => {
+  const wrapEl = historyScrollbarRef.value?.wrapRef
+  if (!wrapEl) return
+  if (scrollDisabled.value) return
+  const distance = 100
+  const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
+  if (reachBottom) loadMore()
+}
+
+const refresh = () => {
+  currentPage.value = 1
+  historyList.value = []
+  hasMore.value = true
+  loadHistoryData(false)
+}
+
+// 监听 modelValue 变化（须在 loadHistoryData 定义之后）
 watch(
   () => props.modelValue,
   (newVal) => {
@@ -176,7 +226,7 @@ watch(
     historyList.value = []
     hasMore.value = true
     selectedList.value = props.multiSelect ? [...(props.selectedItems || [])] : []
-    loadHistoryData()
+    void loadHistoryData()
   },
   { immediate: true }
 )
@@ -282,80 +332,6 @@ const handleClose = () => {
   visible.value = false
 }
 
-const loadHistoryData = async (isLoadMore = false, options: { skipCache?: boolean } = {}) => {
-  void options
-  if (isLoadMore) {
-    if (loading.value || loadingMore.value || !hasMore.value) return
-    loadingMore.value = true
-    currentPage.value++
-  } else {
-    loading.value = true
-  }
-
-  try {
-    const params = {
-      menuCode: 'ALL',
-      collectStatus: '0',
-      fileType: String(props.fileType ?? 1),
-      currentPage: currentPage.value,
-      pageSize: pageSize.value,
-    }
-    const res = await algoApi.queryAlgoResultPage(params)
-    if (res.code !== '0000') {
-      if (!isLoadMore) ElMessage.error(res.msg || '加载历史数据失败')
-      hasMore.value = false
-      return
-    }
-
-    const data: any = res.data || {}
-    const records = (Array.isArray(data?.records) && data.records) || (Array.isArray(data?.list) && data.list) || []
-    const mapped: HistoryItem[] = records.map((item: any) => {
-      const imageUrl = String(item?.url || item?.thumbUrl || item?.originalUrl || '').trim()
-      return {
-        ...item,
-        id: item?.id ?? imageUrl,
-        imageUrl,
-        thumbUrl: item?.thumbUrl || imageUrl,
-        resultUrl: item?.url || imageUrl,
-      }
-    })
-
-    historyList.value = isLoadMore ? [...historyList.value, ...mapped] : mapped
-    if (typeof data?.hasNext === 'boolean') {
-      hasMore.value = data.hasNext
-    } else {
-      const total = Number(data?.total ?? data?.totalCount ?? 0)
-      hasMore.value = total > 0 ? historyList.value.length < total : mapped.length >= pageSize.value
-    }
-  } catch (error) {
-    console.error('加载历史数据出错:', error)
-    if (!isLoadMore) {
-      ElMessage.error('加载历史数据失败')
-    }
-    if (!isLoadMore) historyList.value = []
-    hasMore.value = false
-  } finally {
-    if (isLoadMore) {
-      loadingMore.value = false
-    } else {
-      loading.value = false
-    }
-  }
-}
-
-// 加载更多数据（调用统一方法）
-const loadMore = () => {
-  loadHistoryData(true)
-}
-
-// 刷新列表（供父组件调用）
-const refresh = () => {
-  currentPage.value = 1
-  historyList.value = []
-  hasMore.value = true
-  loadHistoryData(false)
-}
-
 // 暴露方法给父组件
 defineExpose({
   refresh,
@@ -364,31 +340,32 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .history-title {
+    font-size: $font-size-xl;
+  }
+
+  .header-close {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+}
+
 .history-content {
-  .scroll-container {
+  .history-scroll-container {
     max-height: min(600px, 60vh);
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(144, 147, 153, 0.3);
-      border-radius: 3px;
-
-      &:hover {
-        background-color: rgba(144, 147, 153, 0.5);
-      }
-    }
   }
 
   .image-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: $spacing-md;
-    padding: $spacing-sm;
+    gap: 10px;
+    padding: 17px;
     align-content: start;
   }
 }
@@ -397,6 +374,7 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: $spacing-sm;
+  padding: 24px 22px;
 }
 
 // 响应式设计：小屏幕优化（始终保持6列）
@@ -409,20 +387,13 @@ defineExpose({
       flex-direction: column;
     }
 
-    :deep(.el-dialog__body) {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
     .history-content {
       flex: 1;
       overflow: hidden;
       display: flex;
       flex-direction: column;
 
-      .scroll-container {
+      .history-scroll-container {
         max-height: min(500px, 55vh);
       }
     }
@@ -451,10 +422,28 @@ defineExpose({
     }
 
     .history-content {
-      .scroll-container {
+      .history-scroll-container {
         max-height: min(300px, 45vh);
       }
     }
+  }
+}
+</style>
+<style lang="scss">
+.history-creative-dialog.el-dialog {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+
+  .el-dialog__header {
+    padding: 32px 17px;
+  }
+
+  .el-dialog__body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 }
 </style>

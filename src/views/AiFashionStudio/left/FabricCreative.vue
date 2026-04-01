@@ -1,68 +1,69 @@
 <template>
-  <div class="left-panel studio-left--btn-sm studio-left--select-card-bordered studio-left--bottom-sticky">
-    <div class="panel-title">面料创拍</div>
+  <div class="left-panel studio-left--btn-sm studio-left--select-card-bordered studio-left--sticky-footer">
+    <div class="left-panel-scroll">
+      <div class="panel-title">面料创拍</div>
 
-    <div class="block">
-      <div class="block-title flex align-center flex-between">
-        <div>
-          上传面料图<span class="required-mark">（必传）</span>
+      <div class="block">
+        <div class="block-title flex align-center flex-between">
+          <div>
+            上传面料图<span class="required-mark">（必传）</span>
+          </div>
+          <el-button class="upload-btn" size="small" type="primary" plain
+            @click="emit('open-type-modal')">选择款型</el-button>
         </div>
-        <el-button class="upload-btn" size="small" type="primary" plain
-          @click="emit('open-type-modal')">选择款型</el-button>
-      </div>
-      <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
-        :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
-        @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="emit('delete')"
-        @show-history="emit('show-history')" @drop-file="(p: File) => emit('drop-file', p)" />
+        <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
+          :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
+          @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)"
+          @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)" />
 
-      <!-- 面料缩放设置（上传后展示；生成前会用 canvas 导出平铺+缩放后的纹理图） -->
-      <div v-if="imageUrl" class="fabric-scale-card">
-        <div class="fabric-scale-title">面料缩放设置</div>
-        <div class="fabric-scale-body">
-          <div class="fabric-scale-preview" :style="fabricPreviewStyle" />
-          <div class="fabric-scale-slider">
-            <div class="fabric-scale-slider-header flex align-center flex-between">
-              <div class="fabric-scale-label">缩放设置</div>
-              <div class="fabric-scale-value">{{ fabricScale }}x</div>
-            </div>
-            <el-slider v-model="fabricScale" :min="-4" :max="4" :step="1" :show-tooltip="false" />
-            <div class="fabric-scale-ticks flex align-center flex-between">
-              <span>-4x</span>
-              <span>0x</span>
-              <span>4x</span>
+        <!-- 面料缩放设置（上传后展示；生成前会用 canvas 导出平铺+缩放后的纹理图） -->
+        <div v-if="imageUrl" class="fabric-scale-card">
+          <div class="fabric-scale-title">面料缩放设置</div>
+          <div class="fabric-scale-body">
+            <div class="fabric-scale-preview" :style="fabricPreviewStyle" />
+            <div class="fabric-scale-slider">
+              <div class="fabric-scale-slider-header flex align-center flex-between">
+                <div class="fabric-scale-label">缩放设置</div>
+                <div class="fabric-scale-value">{{ fabricScale }}x</div>
+              </div>
+              <el-slider v-model="fabricScale" :min="-4" :max="4" :step="1" :show-tooltip="false" />
+              <div class="fabric-scale-ticks flex align-center flex-between">
+                <span>-4x</span>
+                <span>0x</span>
+                <span>4x</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- 款型选择回显 -->
+        <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
+          {{ typeText }}
+          <img class="select-del-icon" :src="images.tagDel" alt="" srcset="" @click.stop="emit('clear-type-selection')">
+        </div>
       </div>
 
-      <!-- 款型选择回显 -->
-      <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
-        {{ typeText }}
-        <img class="select-del-icon" :src="images.tagDel" alt="" srcset="" @click.stop="emit('clear-type-selection')">
+      <div class="block">
+        <div class="block-title">生成图片类型 <span class="required-mark">（必选，单选）</span></div>
+        <div class="ai-segmented">
+          <el-button :type="outputType === 'flat' ? 'primary' : 'default'" @click="outputType = 'flat'">
+            平铺图
+          </el-button>
+          <el-button :type="outputType === 'model' ? 'primary' : 'default'" @click="outputType = 'model'">
+            模特图
+          </el-button>
+          <el-button :type="outputType === '3d' ? 'primary' : 'default'" @click="outputType = '3d'">
+            3D图
+          </el-button>
+        </div>
       </div>
-    </div>
 
-
-    <div class="block">
-      <div class="block-title">生成图片类型 <span class="required-mark">（必选，单选）</span></div>
-      <div class="ai-segmented">
-        <el-button :type="outputType === 'flat' ? 'primary' : 'default'" @click="outputType = 'flat'">
-          平铺图
-        </el-button>
-        <el-button :type="outputType === 'model' ? 'primary' : 'default'" @click="outputType = 'model'">
-          模特图
-        </el-button>
-        <el-button :type="outputType === '3d' ? 'primary' : 'default'" @click="outputType = '3d'">
-          3D图
-        </el-button>
-      </div>
-    </div>
-
-    <CreativeDescription v-model:prompt="prompt" :optional="true" :inspiration-words="inspirationWords"
-      :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')" @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
+      <CreativeDescription v-model="prompt" :optional="true" :inspiration-words="inspirationWords"
+        :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')"
+        @update:inspiration-words="updateInspirationWords" placeholder="请输入完整的面料创作款式描述，建议包含类目、风格、材质、设计细节等关键信息，以生成精准的面料创款式效果。
 参考示例：该面料是一块米色毛呢面料，将面料生成一件无领米色长款宽松版型毛呢大衣，20岁欧洲短发女模特穿着，搭配毛衣和阔腿裤。" />
+    </div>
 
-    <!-- 底部参数以及生成按钮 -->
     <div class="bottom-sticky">
       <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
         button-text="立即生成" @show-params="() => emit('show-params')" @generate="handleGenerate" />
@@ -98,14 +99,14 @@ watch(
 
 const emit = defineEmits<{
   (e: 'drop-file', payload: any): void
-  (e: 'delete'): void
+  (e: 'delete', payload?: any): void
   (e: 'coming-soon'): void
   (e: 'show-params'): void
   (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number }): void
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
-  (e: 'show-history'): void
+  (e: 'show-history', payload?: any): void
   (e: 'update:inspiration-words', words: any[]): void
 }>()
 
@@ -201,9 +202,6 @@ const handleGenerate = async () => {
 @use '@/styles/_studio_left.scss';
 
 .left-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
   color: $color-text-white;
 }
 

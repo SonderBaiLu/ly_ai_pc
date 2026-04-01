@@ -97,7 +97,8 @@
     <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData"
       :defaults="formDataByMenu[activeInspirationMenu].inspirationWords" @confirm="handleInspirationConfirm" />
 
-    <HistoryCreativeModal v-model="showHistoryModal" source="creative" :file-type="1" @select="selectHistoryCreation" />
+    <HistoryCreativeModal v-model="showHistoryModal" source="creative" :file-type="1" :menu-code="activeMenuCode"
+      :multi-select="false" :max-count="1" @select="selectHistoryCreation" />
   </div>
 </template>
 
@@ -267,17 +268,36 @@ const buildInspirationWordsParams = (words: any[] = []) => {
     .filter((x) => x.id && x.content)
 }
 
-const buildHistoryParams = (taskResultId: any) => {
-  if (Array.isArray(taskResultId)) {
-    return taskResultId
-      .map((id: any) => (id == null ? '' : String(id)))
-      .filter((id: string) => Boolean(id))
-      .map((id: string) => ({ taskResultId: id, type: 'ref' }))
+/**
+ * 与 algo.submit 一致：仅含来自历史/资产的图。
+ * - 提交的 image 与这里入参 imageSlots 一致，均为数组；单图模块也是 length === 1 的数组。
+ * - imageSlots.length > 1：type 与下标对应，image0、image1…
+ * - length === 1：type 用 historyImageType；未单独指定时默认为 image（与提交图片参数 key 一致）。
+ */
+const buildHistoryParams = (form: any, menuKey: LeftMenuKey | undefined, imageSlots: string[]): Array<{ taskResultId: string; type: string }> => {
+  if (!menuKey || !Array.isArray(imageSlots) || imageSlots.length === 0) return []
+
+  const useIndexedType = imageSlots.length > 1
+  const singleSlotType = () => String(form?.historyImageType || 'image').trim() || 'image'
+
+  if (menuKey === 'aiFashion') {
+    const ids = Array.isArray(form?.taskResultId) ? form.taskResultId : []
+    const out: Array<{ taskResultId: string; type: string }> = []
+    for (let i = 0; i < imageSlots.length; i++) {
+      const rawId = ids[i]
+      const id = rawId == null ? '' : String(rawId).trim()
+      if (!id) continue
+      const type = useIndexedType ? `image${i}` : singleSlotType()
+      out.push({ taskResultId: id, type })
+    }
+    return out
   }
 
-  const id = taskResultId == null ? '' : String(taskResultId)
+  const tid = form?.taskResultId
+  const id = Array.isArray(tid) ? '' : tid == null ? '' : String(tid).trim()
   if (!id) return []
-  return [{ taskResultId: id, type: 'ref' }]
+  const type = useIndexedType ? `image0` : singleSlotType()
+  return [{ taskResultId: id, type }]
 }
 
 const buildCreationStyleParams = (selection: any) => {
@@ -303,6 +323,7 @@ const buildCommonPayloadBase = (
   modelConfigName: string,
 ) => {
   const templateParams = buildTemplateParamsFromPopup(Object.values(paramsState.selectedParams || {}))
+  const menuKey = menuKeyByCode[menuCode]
   return {
     modelConfigId,
     modelConfigCode,
@@ -312,7 +333,7 @@ const buildCommonPayloadBase = (
     templateParams,
     inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
     creativeDescription: String(form.prompt || '').trim(),
-    historyParams: buildHistoryParams(form.taskResultId),
+    historyParams: buildHistoryParams(form, menuKey, images),
   }
 }
 
@@ -407,6 +428,8 @@ const submitByMenuCode = async (menuCode: string) => {
     const res = await algoApi.submit(payload)
     if (res.code === '0000') {
       ElMessage.success('已提交生成任务')
+      // 提交成功会扣灵衍值，刷新 Header 等处的潮币/余额展示
+      await refreshUserInfoIfLoggedIn()
       const orderNo = String((res as any)?.data?.orderNo ?? '')
       if (orderNo) {
         upsertGeneratingAssetByOrderNo(orderNo, String(form.prompt || '').trim(), menuCode)
@@ -577,6 +600,8 @@ const queryAlgoResultByOrderNo = async (orderNo: string) => {
     if (status === 3) {
       if (orderResultVOS.length) {
         applyQueryDoneResult(orderNo, orderResultVOS)
+        // 生成结果就绪后再拉一次用户信息，与后端最终扣费/回写余额对齐
+        void refreshUserInfoIfLoggedIn()
       } else {
         updateAssetByOrderNo(orderNo, (oldItem) => ({
           ...oldItem,
@@ -705,6 +730,7 @@ const handleTypeConfirm = (v: CreationTypeSelection) => {
 const showImageParamPopup = ref(false)
 const showInspirationLibrary = ref(false)
 const showHistoryModal = ref(false)
+const historyModalContext = ref<{ position?: string; type?: string } | null>(null)
 
 type AlgoParamsState = {
   selectedAlgorithm: any
@@ -724,6 +750,8 @@ type CreativeAndModelState = {
 
 type CommonFormState = CreativeAndModelState & {
   historyParams: any[]
+  /** 单图模块：历史/资产入图时的 type；未设时提交 historyParams 默认 image */
+  historyImageType?: string
 }
 
 type DesignFeatureParam = { id: string; configType: string; prentId: string; content: string }
@@ -953,21 +981,24 @@ const syncActiveMenuCode = () => {
   activeMenuCode.value = resolveMenuCodeByLeftMenu(leftMenu.value)
 }
 
-// 当前左侧功能模块的 menuId（用于“试一试”创意描述推荐）
-const currentMenuId = computed(() => {
-  const menuCode = resolveMenuCodeByLeftMenu(leftMenu.value)
-  if (!menuCode) return ''
-
-  const sourceItems: any[] = []
-  for (const item of allPlatformMenus.value || []) {
-    sourceItems.push(item)
-    if (Array.isArray(item.children) && item.children.length) {
-      sourceItems.push(...item.children)
-    }
+/** 在菜单树中按 menuCode 查找节点（getFunctionPrompt 要用「具体功能」节点 id，不是一级父节点 id） */
+const findPlatformMenuNodeByCode = (nodes: any[] | undefined, code: string): any | null => {
+  if (!code || !Array.isArray(nodes)) return null
+  for (const n of nodes) {
+    if (!n) continue
+    if (String(n?.menuCode ?? '') === code) return n
+    const child = findPlatformMenuNodeByCode(n?.children || [], code)
+    if (child) return child
   }
+  return null
+}
 
-  const matched = sourceItems.find((x) => String(x?.menuCode || '') === menuCode)
-  return String(matched?.id ?? '')
+// 当前左侧功能模块的 menuId（用于 getFunctionPrompt「试一试」）：与左侧 rail 对应的二级/叶子 menuCode 的 id
+const currentMenuId = computed(() => {
+  const targetCode = menuCodeByKey[leftMenu.value]
+  if (!targetCode) return ''
+  const matched = findPlatformMenuNodeByCode(allPlatformMenus.value || [], targetCode)
+  return matched?.id != null ? String(matched.id) : ''
 })
 
 const handleImageParamsConfirm = (result: any) => {
@@ -1451,6 +1482,7 @@ const handleDropFile = async (payload: any) => {
 
     currentForm.image = fileUrl
     currentForm.taskResultId = undefined
+    currentForm.historyImageType = undefined
     return
   }
 
@@ -1480,55 +1512,95 @@ const handleDropFile = async (payload: any) => {
       currentForm.image = nextImages
 
       const nextIds = Array.isArray(currentForm.taskResultId) ? [...currentForm.taskResultId] : []
-      nextIds[idx] = payload.taskResultId
+      const tid =
+        payload.taskResultId == null || payload.taskResultId === ''
+          ? ''
+          : String(payload.taskResultId).trim()
+      nextIds[idx] = tid
       nextIds.length = Math.min(6, Math.max(nextIds.length, idx + 1))
       currentForm.taskResultId = nextIds
       return
     }
 
     currentForm.image = url
-    currentForm.taskResultId = payload.taskResultId
+    const tidSingle =
+      payload.taskResultId == null || payload.taskResultId === ''
+        ? undefined
+        : String(payload.taskResultId).trim()
+    currentForm.taskResultId = tidSingle
+    // 与提交体 image 字段对应的历史参数 key，统一为 image
+    currentForm.historyImageType = tidSingle != null ? 'image' : undefined
     return
   }
 }
-
-const handleRefDelete = () => {
+// 删除参考图
+const handleRefDelete = (payload?: any) => {
   const currentForm = formDataByMenu[leftMenu.value]
   if (leftMenu.value === 'aiFashion') {
-    currentForm.image = []
-    currentForm.taskResultId = undefined
+    const parsedIdx = parseAiFashionSlotIndex(payload?.position)
+    if (parsedIdx == null) {
+      // 未带槽位时兜底全清空（兼容旧调用）
+      currentForm.image = []
+      currentForm.taskResultId = undefined
+      return
+    }
+
+    const nextImages = Array.isArray(currentForm.image) ? [...currentForm.image] : []
+    const nextIds = Array.isArray(currentForm.taskResultId) ? [...currentForm.taskResultId] : []
+    if (parsedIdx < 0 || parsedIdx >= nextImages.length) return
+
+    nextImages.splice(parsedIdx, 1)
+    if (nextIds.length) nextIds.splice(parsedIdx, 1)
+
+    currentForm.image = nextImages
+    currentForm.taskResultId = nextIds.length ? nextIds : undefined
   } else {
     currentForm.image = ''
     currentForm.taskResultId = undefined
+    currentForm.historyImageType = undefined
   }
 }
-
-const openHistoryModal = () => {
+// 打开历史创作弹窗
+const openHistoryModal = (payload?: any) => {
+  historyModalContext.value = payload && typeof payload === 'object' ? payload : null
   showHistoryModal.value = true
 }
-
+// 选择历史创作
 const selectHistoryCreation = (item: any) => {
   const imageUrl = String(item?.imageUrl || item?.resultUrl || item?.thumbUrl || item?.url || '').trim()
   if (!imageUrl) return
-  const currentForm = formDataByMenu[leftMenu.value]
-
   if (leftMenu.value === 'aiFashion') {
+    const currentForm = formDataByMenu.aiFashion
+    const parsedIdx = parseAiFashionSlotIndex(historyModalContext.value?.position)
     const nextImages = Array.isArray(currentForm.image) ? [...currentForm.image] : []
-    if (nextImages.length >= 6) {
+    const nextIds = Array.isArray(currentForm.taskResultId) ? [...currentForm.taskResultId] : []
+    const idx =
+      parsedIdx ??
+      (() => {
+        const firstEmpty = nextImages.findIndex((x) => !String(x || '').trim())
+        if (firstEmpty !== -1) return firstEmpty
+        return nextImages.length
+      })()
+    if (idx < 0 || idx > 5) {
       ElMessage.warning('最多可选择 6 张参考图')
       return
     }
-    nextImages.push(imageUrl)
+    nextImages[idx] = imageUrl
+    nextImages.length = Math.min(6, Math.max(nextImages.length, idx + 1))
+    nextIds[idx] = item?.id == null ? '' : String(item.id)
+    nextIds.length = Math.min(6, Math.max(nextIds.length, idx + 1))
     currentForm.image = nextImages
-
-    const nextIds = Array.isArray(currentForm.taskResultId) ? [...currentForm.taskResultId] : []
-    const idVal = item?.id == null ? undefined : String(item.id)
-    if (idVal) nextIds.push(idVal)
-    currentForm.taskResultId = nextIds
-  } else {
-    currentForm.image = imageUrl
-    currentForm.taskResultId = item?.id == null ? undefined : String(item.id)
+    currentForm.taskResultId = nextIds.some(Boolean) ? nextIds : undefined
+    historyModalContext.value = null
+    showHistoryModal.value = false
+    return
   }
+
+  const currentForm = formDataByMenu[leftMenu.value]
+  currentForm.image = imageUrl
+  currentForm.taskResultId = item?.id == null ? undefined : String(item.id)
+  currentForm.historyImageType = item?.id == null ? undefined : 'image'
+  historyModalContext.value = null
   showHistoryModal.value = false
 }
 
@@ -1565,6 +1637,7 @@ onMounted(async () => {
       formDataByMenu[leftMenu.value].taskResultId = [String(taskResultIdFromQuery)]
     } else {
       formDataByMenu[leftMenu.value].taskResultId = String(taskResultIdFromQuery)
+      formDataByMenu[leftMenu.value].historyImageType = 'image'
     }
   }
 
@@ -1708,7 +1781,16 @@ watch(
         .param-panel {
           padding: 17px 25px 0;
           height: 100%;
-          overflow-y: auto;
+          min-height: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+
+          >* {
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
+          }
         }
 
         .result-panel {

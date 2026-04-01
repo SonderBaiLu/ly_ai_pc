@@ -227,6 +227,8 @@ const handleDelete = async () => {
 
 <style lang="scss" scoped>
 .image-preview-modal {
+  border-radius: 16px;
+
   .preview-header-actions {
     display: flex;
     justify-content: flex-end;

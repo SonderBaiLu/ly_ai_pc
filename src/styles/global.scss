@@ -79,7 +79,9 @@ body {
   padding: 0;
   // Element Plus 默认会有 margin-top: 15vh；这里改成真正居中
   margin: 0 !important;
-  border-radius: $border-radius-2xl;
+  border-radius: 16px !important;
+  // 与 border 圆角一致，避免头/底区块背景在四角“顶出”导致圆角错位
+  overflow: hidden;
   background-color: $color-bg-dark-secondary;
   font-size: $font-size-md;
   font-family: -regular;
@@ -96,6 +98,12 @@ body {
   .el-dialog__body {
     padding: 0;
   }
+}
+
+// MessageBox（确认框等）与 Dialog 一致圆角
+.el-message-box {
+  border-radius: 16px !important;
+  overflow: hidden;
 }
 
 /* 全局主题按钮样式：覆盖 Element Plus primary 按钮 */

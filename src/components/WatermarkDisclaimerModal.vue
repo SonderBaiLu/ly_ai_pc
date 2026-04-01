@@ -173,6 +173,8 @@ const handleMoreSwitchClick = () => {
 .modal-container {
   padding: 59px 85px;
   position: relative;
+  border-radius: 16px;
+  overflow: hidden;
   color: $color-text-white;
 
   &.modal-container--more {
@@ -305,6 +307,8 @@ const handleMoreSwitchClick = () => {
 
   .modal-container {
     border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    overflow: hidden;
   }
 
   .modal-container--more {

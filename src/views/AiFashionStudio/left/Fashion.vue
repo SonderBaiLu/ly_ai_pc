@@ -1,62 +1,64 @@
 <template>
-  <div class="left-panel studio-left--select-card-bg">
-    <div class="panel-title">AI服装设计</div>
+  <div class="left-panel studio-left--select-card-bg studio-left--sticky-footer">
+    <div class="left-panel-scroll">
+      <div class="panel-title">AI服装设计</div>
 
-    <div class="block">
-      <div class="block-title">创作款型<span class="required-mark">（必选，单选）</span></div>
-      <div class="select-card" @click="emit('open-type-modal')">
-        {{ typeText ? typeText : '+ 请选择款型' }}
-      </div>
-    </div>
-
-    <div class="block">
-      <div class="block-title">设计特征<span class="required-mark">（非必选，多选）</span></div>
-      <template v-if="selectedFeatures.length">
-        <div v-if="selectedFeatures && selectedFeatures.length > 0" class="feature-chips">
-          <div class="feature-chip" v-for="x in selectedFeatures" :key="x.key"
-            @click="removeFeature(x.categoryKey, x.label)">
-            {{ x.label }}
-            <img class="feature-del-icon" :src="images.tagDel" alt="" srcset="">
-          </div>
-          <div class="feature-plus" @click="openFeatureModal">
-            <img class="feature-plus-icon" :src="images.plus" alt="">
-          </div>
+      <div class="block">
+        <div class="block-title">创作款型<span class="required-mark">（必选，单选）</span></div>
+        <div class="select-card" @click="emit('open-type-modal')">
+          {{ typeText ? typeText : '+ 请选择款型' }}
         </div>
-      </template>
-      <template v-else>
-        <div class="select-card" @click="openFeatureModal">+ 请选择设计特征</div>
-      </template>
+      </div>
+
+      <div class="block">
+        <div class="block-title">设计特征<span class="required-mark">（非必选，多选）</span></div>
+        <template v-if="selectedFeatures.length">
+          <div v-if="selectedFeatures && selectedFeatures.length > 0" class="feature-chips">
+            <div class="feature-chip" v-for="x in selectedFeatures" :key="x.key"
+              @click="removeFeature(x.categoryKey, x.label)">
+              {{ x.label }}
+              <img class="feature-del-icon" :src="images.tagDel" alt="" srcset="">
+            </div>
+            <div class="feature-plus" @click="openFeatureModal">
+              <img class="feature-plus-icon" :src="images.plus" alt="">
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="select-card" @click="openFeatureModal">+ 请选择设计特征</div>
+        </template>
+      </div>
+
+      <div class="block-title">上传参考图<span class="required-mark">（非必传）</span></div>
+      <ImageUploadArea :image-url="imageUrl?.[0] || ''" image-type="ref" image-name="slot-0"
+        :show-actions="String(imageUrl?.[0] ?? '').trim().length > 0" :clickable="true" placeholder-text="上传或拖拽参考图"
+        :show-history-tip="true" :enable-history-replace="true" @upload="emit('coming-soon')"
+        @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)" @show-history="(p: any) => emit('show-history', p)"
+        @drop-file="(p: File) => emit('drop-file', p)" v-if="imageUrl.length == 0" />
+
+      <el-scrollbar style="height: auto;" v-if="imageUrl.length > 0">
+        <div class="scrollbar-flex-content">
+          <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
+            :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)" @show-history="(p: any) => emit('show-history', p)"
+            @drop-file="(p: any) => emit('drop-file', p)" />
+          <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)" @show-history="(p: any) => emit('show-history', p)"
+            @drop-file="(p: any) => emit('drop-file', p)" v-if="imageUrl.length < 6" />
+        </div>
+      </el-scrollbar>
+
+      <CreativeDescription v-model="prompt" :optional="true" placeholder="请输入创作描述，提升设计精准度"
+        :inspiration-words="inspirationWords" :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')"
+        @update:inspiration-words="updateInspirationWords" />
     </div>
 
-    <div class="block-title">上传参考图<span class="required-mark">（非必传）</span></div>
-    <ImageUploadArea :image-url="imageUrl?.[0] || ''" image-type="ref" image-name="slot-0"
-      :show-actions="String(imageUrl?.[0] ?? '').trim().length > 0" :clickable="true" placeholder-text="上传或拖拽参考图"
-      :show-history-tip="true" :enable-history-replace="true" @upload="emit('coming-soon')"
-      @replace="emit('coming-soon')" @delete="emit('delete')" @show-history="emit('show-history')"
-      @drop-file="(p: File) => emit('drop-file', p)" v-if="imageUrl.length == 0" />
-
-    <!-- 上传之后的样式 -->
-    <el-scrollbar v-if="imageUrl.length > 0">
-      <div class="scrollbar-flex-content">
-        <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
-          :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
-          :enable-history-replace="true" @delete="emit('delete')" @show-history="emit('show-history')"
-          @drop-file="(p: any) => emit('drop-file', p)" />
-        <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
-          :enable-history-replace="true" @delete="emit('delete')" @show-history="emit('show-history')"
-          @drop-file="(p: any) => emit('drop-file', p)" v-if="imageUrl.length < 6" />
-      </div>
-    </el-scrollbar>
-
-    <!-- 创意描述 -->
-    <CreativeDescription v-model:prompt="prompt" :optional="true" placeholder="请输入创作描述，提升设计精准度"
-      :inspiration-words="inspirationWords" :menu-id="props.menuId" @inspiration-library="emit('inspiration-library')"
-      @update:inspiration-words="updateInspirationWords" />
-
-    <!-- 底部参数以及生成按钮 -->
-    <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="generateButtonDisabled"
-      :loading="submitting" button-text="立即生成" @show-params="() => emit('show-params')"
-      @generate="() => emit('generate')" />
+    <!-- 底部参数以及生成按钮（贴底） -->
+    <div class="bottom-sticky">
+      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="generateButtonDisabled"
+        :loading="submitting" button-text="立即生成" @show-params="() => emit('show-params')"
+        @generate="() => emit('generate')" />
+    </div>
 
     <!-- 设计特征弹窗 -->
     <DesignFeatureModal v-model="showFeatureModal" :selection="designFeatureSelection" :categories="featureCategories"
@@ -99,14 +101,14 @@ watch(
 
 const emit = defineEmits<{
   (e: 'drop-file', payload: any): void
-  (e: 'delete'): void
+  (e: 'delete', payload?: any): void
   (e: 'coming-soon'): void
   (e: 'show-params'): void
   (e: 'generate'): void
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
-  (e: 'show-history'): void
+  (e: 'show-history', payload?: any): void
   (e: 'update:inspiration-words', words: any[]): void
   /**
    * ai服装设计：将“设计特性”确认后的后端参数结构上抛

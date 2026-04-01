@@ -225,6 +225,7 @@ const handleConfirm = () => {
 <style scoped lang="scss">
 .design-feature-modal {
   font-family: Inter-medium;
+  border-radius: 16px;
 
   .modal-header {
     display: flex;
@@ -232,7 +233,7 @@ const handleConfirm = () => {
     justify-content: space-between;
     padding: 27px 35px;
     background: $color-bg-dark-secondary;
-    border-radius: 10px 10px 0 0;
+    border-radius: 16px 16px 0 0;
 
     .header-left {
       display: flex;
@@ -348,7 +349,7 @@ const handleConfirm = () => {
     justify-content: space-between;
     padding: 18px 42px;
     background: $color-bg-dark-secondary;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 16px 16px;
   }
 
   .footer-left {
