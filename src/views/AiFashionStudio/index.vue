@@ -1567,7 +1567,7 @@ const handleDropFile = async (payload: any) => {
   if (payload?.file) {
     const file: File = payload.file
     const uploadResult = await uploadApi.uploadImage(file, {
-      showLoading: false,
+      showLoading: true,
       showMessage: true,
     })
     if (!uploadResult.success || !uploadResult.url) {
