@@ -209,7 +209,7 @@ const submit = async () => {
       border: 1px solid rgba(55, 65, 81, 1);
       outline: none;
       transition: border-color 0.2s;
-      color: rgba(16, 16, 16, 1);
+      color: $color-text-gray;
 
       &:focus {
         border-color: #38BDF8;
@@ -237,8 +237,8 @@ const submit = async () => {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        height: 28px;
-        padding: 0 20px;
+        height: 26px;
+        padding: 0 25px;
         border-radius: 4px;
         font-size: 12px;
         font-weight: bold;
@@ -317,7 +317,6 @@ const submit = async () => {
       width: 89px;
       height: 34px;
       border-radius: 4px;
-      background-color: rgba(23, 160, 225, 1);
       color: rgba(16, 16, 16, 1);
       font-size: 14px;
       text-align: center;
@@ -327,6 +326,10 @@ const submit = async () => {
       font-weight: bold;
       cursor: pointer;
       transition: background-color 0.2s;
+      background-color: rgba(23,160,225,1);
+      &:hover{
+        background-color: #1575A2;
+      }
     }
   }
 }

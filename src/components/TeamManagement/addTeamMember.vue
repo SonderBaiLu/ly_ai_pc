@@ -136,7 +136,7 @@ const form = reactive({
 const reactiveApiTarget = ref(import.meta.env.VITE_API_PROXY_TARGET)
 // 展示/返回的数据
 const displayData = reactive({
-  mainNickName: userStore.userInfo.userName, // 修复了之前的报错
+  mainNickName: userStore.userInfo.userName,
   url: reactiveApiTarget.value,
   pwd: '',
   userName: '',
@@ -148,6 +148,9 @@ const displayData = reactive({
 // 关闭弹窗
 const closeDialog = () => {
   emit('update:visible', false)
+  if(isSuccess.value === true){
+    emit('success')
+  }
 }
 
 // 重置弹窗状态
@@ -211,9 +214,8 @@ const handleSubmit = async () => {
     } else {
       ElMessage.error(res.msg)
     }
-  } catch (e:any){
-    const errorMsg =  e.message || '添加失败'
-    ElMessage.error(errorMsg)
+  } catch{
+    ElMessage.error("添加失败，请稍后重试")
   } finally {
     loading.value = false
   }
@@ -223,12 +225,7 @@ const handleSubmit = async () => {
 const handleCopy = async () => {
   if (isCopied.value) return; // 防止重复点击
 
-  const copyText =
-      ` 团队：${displayData.mainNickName}
-网站：${displayData.url}
-账号名：${displayData.userName}
-昵称：${displayData.nickName}
-默认登录密码：${displayData.pwd}`
+  const copyText = `团队：${displayData.mainNickName}\n网站：${displayData.url}\n账号名：${displayData.userName}\n昵称：${displayData.nickName}\n默认登录密码：${displayData.pwd}`
 
   try {
     await navigator.clipboard.writeText(copyText)
@@ -237,8 +234,8 @@ const handleCopy = async () => {
 
     // 延迟 1 秒后关闭，让用户看到“复制成功”的提示
     setTimeout(() => {
-      closeDialog()
-      emit('success')
+        closeDialog()
+        emit('success')
     }, 1000)
 
   } catch {
@@ -429,7 +426,10 @@ const handleCopy = async () => {
   }
 
   .submit-btn {
-    background-color: #1575A2;
+    background-color: rgba(23,160,225,1);
+    &:hover{
+      background-color: #1575A2;
+    }
   }
 }
 

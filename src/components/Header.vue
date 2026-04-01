@@ -450,7 +450,7 @@
     </div>
   </header>
   <!-- @success="handleBindSuccess" -->
-  <OpneTeamMember ref="teamChildRef"/>
+  <OpneTeamMember @updateStatus="handleStatusUpdate" ref="teamChildRef"/>
   <InspirationValueModal v-model="showInspirationValueModal"/>
 </template>
 
@@ -754,19 +754,23 @@ const handleMenuClick = (item: { key: string; path?: string; query?: Record<stri
     }
   }
 }
+const handleStatusUpdate = (newStatus: string | boolean) => {
+  userStore.userInfo.teamStatus = newStatus
+}
 const teamChildRef = ref<InstanceType<typeof OpneTeamMember> | null>(null)
 const handleClick = () => {
   // 1. 关闭右上角的头像下拉菜单
   closeUserMenu()
-     console.log(userStore.userInfo)
-    if (userStore.userInfo.teamStatus === false || userStore.userInfo.teamStatus === 'false') {
-      if (teamChildRef.value) {
-        teamChildRef.value.openModal()
-      }
-      return
+  // 每次点击时，直接获取 store 里最新的状态，防止数据陈旧
+  const currentStatus = userStore.userInfo.teamStatus
+  if (currentStatus === false || currentStatus === 'false') {
+    if (teamChildRef.value) {
+      teamChildRef.value.openModal()
     }
+    return
+  }
     // 状态 2：已经开通了团队协作
-    if (userStore.userInfo.teamStatus === true || userStore.userInfo.teamStatus === 'true') {
+    if (currentStatus === true || currentStatus === 'true') {
       // 主账号/管理员 -> 去团队管理页面
       if (userStore.userInfo.mainAccount || userStore.userInfo.mainAdmin === true) {
         router.push('/team-management')

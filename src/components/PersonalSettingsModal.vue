@@ -86,7 +86,6 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useModalStore } from '@/stores/modal'
-import { userApi } from '@/api/user'
 import { uploadApi } from '@/api/upload'
 import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 import { images } from '@/assets'
@@ -136,7 +135,6 @@ const editingData = ref({
 })
 
 const avatarSrc = computed(() => editingData.value.headImgUrl || images.avatar)
-
 // 定义控制弹窗显示的变量 重置密码组件
 const isVisible = ref(false)
 const currentMode = ref('0')
@@ -198,15 +196,8 @@ const handleSave = async () => {
 
 // 获取密码状态
 const fetchPasswordStatus = async () => {
-  try {
-    const res = await userApi.getUserSetPwd()
-    if (String((res as any).code) === '0000') {
-      hasPassword.value = (res as any).data.setPwd;
-      console.log("密码设置状态:", res)
-    }
-  } catch (error) {
-    console.error("获取密码状态失败", error)
-  }
+  const userInfo = userStore.userInfo
+  hasPassword.value = userInfo.setPwd
 }
 // 监听弹窗打开，同步 Pinia 数据到编辑数据
 watch(

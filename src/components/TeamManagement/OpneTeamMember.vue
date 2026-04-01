@@ -55,10 +55,12 @@
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router' // 推荐的路由引入方式
 import teamApi from "@/api/teamManage.ts";
-import {ElMessage} from "element-plus";
+import { ElMessage } from "element-plus";
 
+const router = useRouter() // 初始化 router
 
 // 控制弹窗显示状态
 const showCollabModal = ref(false)
@@ -69,27 +71,44 @@ const from = ref({
   nickname: '',
   pwd: '',
 })
+
+// 抛出给父组件的事件
+const emit = defineEmits(['updateStatus'])
+
 // 点击“开启”按钮的处理逻辑
 const handleOpenCollaboration = async () => {
-  showCollabModal.value = false // 关闭第一个弹窗
-  showPwdModal.value = true     // 开启第二个弹窗
-  // 开启 页面
-  const res = await teamApi.registerByMainUser({})
-  if (String((res as any).code) === '0000') {
-    ElMessage.info("开启团队成功")
-    from.value.website = res.data.url // 网站
-    from.value.Account = res.data.userName // 团队名称 账号名称
-    from.value.nickname = res.data.nickName // 昵称
-    from.value.pwd = res.data.pwd
-  } else {
-    ElMessage.error(res.msg)
+  try {
+    const res = await teamApi.registerByMainUser({})
+
+    if (String((res as any).code) === '0000') {
+      ElMessage.info("开启团队成功")
+
+      // 1. 赋值数据
+      from.value.website = res.data.url
+      from.value.Account = res.data.userName
+      from.value.nickname = res.data.nickName
+      from.value.pwd = res.data.pwd
+
+      // 2. 接口成功且拿到数据后，再切换弹窗状态
+      showCollabModal.value = false
+      showPwdModal.value = true
+
+      // 3. 通知父组件状态已更新
+      emit('updateStatus', 'true')
+    } else {
+      ElMessage.error(res.msg || '开启失败')
+    }
+  } catch {
+    ElMessage.error('网络请求异常，请稍后重试')
   }
 }
+
 // 其他地方调用 子组件的弹窗
 const openModal = () => {
   showCollabModal.value = true
   showPwdModal.value = false // 确保密码弹窗处于关闭状态
 }
+
 // 将方法暴露给父组件
 defineExpose({
   openModal
@@ -98,18 +117,22 @@ defineExpose({
 // 复制密码逻辑
 const handleCopyPassword = async () => {
   const copyText = (
-      `团队：${from.value.Account}
-        网站：${from.value.website}
-        账号名：${from.value.Account}
-        昵称：${from.value.nickname}
-        默认登录密码：${from.value.pwd}`
+      `团队：${from.value.Account}\n网站：${from.value.website}\n账号名：${from.value.Account}\n昵称：${from.value.nickname}\n默认登录密码：${from.value.pwd}`
   )
+
   try {
     await navigator.clipboard.writeText(copyText)
     ElMessage.success('复制成功')
     showPwdModal.value = false
-  } catch (err: any) {
-    console.error('复制失败:', err.success)
+
+    setTimeout(() => {
+      router.push('/team-management').catch((err) => {
+        console.error('路由跳转被拦截或报错:', err)
+      })
+    }, 500)
+
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
   }
 }
 </script>
