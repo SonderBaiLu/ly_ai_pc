@@ -6,44 +6,35 @@
 
 /**
  * 构建可下载的 URL
- * - 全环境统一通过 /file-proxy 走同域代理，避免跨域
- * @param url 原始文件URL
- * @returns 处理后的下载URL
+ * - 全环境统一通过 /file-proxy（或配置的前缀）走同域代理，避免跨域
  */
 export const buildDownloadUrl = (url: string): string => {
   if (!url || !url.trim()) {
     return url
   }
 
-  // 如果已经是 /file-proxy/ 开头的路径（说明已经经过处理），直接返回
-  if (url.startsWith('/file-proxy/')) {
+  // 代理前缀：默认 /file-proxy，可通过 VITE_FILE_PROXY_PREFIX 覆盖
+  const fileProxyPrefix = (import.meta.env.VITE_FILE_PROXY_PREFIX || '/file-proxy') as string
+
+  // 如果已经是代理前缀开头的路径（说明已经经过处理），直接返回
+  if (url.startsWith(`${fileProxyPrefix}/`)) {
     return url
   }
 
   try {
     // 1. 处理绝对 URL（http / https）
     if (/^https?:\/\//i.test(url)) {
-      // 如果 URL 包含特殊字符（如空格），new URL() 可能无法正确解析
-      // 所以先尝试用 new URL() 解析，如果失败则手动解析
       let host: string
       let path: string
 
       try {
-        // 尝试使用 new URL() 解析（标准 URL）
         const urlObj = new URL(url)
         host = urlObj.hostname
-        // 使用 pathname + search，保持正确的路径结构
-        // 注意：如果 URL 中包含已编码的字符（如 %20），pathname 会解码它们（%20 -> 空格）
-        // 但这在开发环境代理中是可以的，因为浏览器会在发送请求时重新编码空格为 %20
         path = urlObj.pathname + urlObj.search
       } catch (error) {
-        // 如果 new URL() 失败（可能包含未编码的特殊字符，如空格），手动解析
-        // 使用正则从原始 URL 中提取 host 和 path，保持原样（不编码也不解码）
-        // 正则匹配：协议 + host + 路径 + 查询参数 + hash
         const urlMatch = url.match(/^(https?:\/\/)([^/?#]+)(\/[^?#]*)?(\?[^#]*)?(#.*)?$/i)
         if (urlMatch) {
           host = urlMatch[2]
-          // 组合路径和查询参数（如果存在），保持原样
           path = (urlMatch[3] || '/') + (urlMatch[4] || '')
           if (import.meta.env.DEV) {
             console.warn('[buildDownloadUrl] new URL() 解析失败，使用正则提取:', {
@@ -54,7 +45,6 @@ export const buildDownloadUrl = (url: string): string => {
             })
           }
         } else {
-          // 如果连正则都匹配失败，返回原 URL
           if (import.meta.env.DEV) {
             console.error('[buildDownloadUrl] URL 格式无法解析:', url)
           }
@@ -62,8 +52,7 @@ export const buildDownloadUrl = (url: string): string => {
         }
       }
 
-      // 全环境统一走同域代理：/file-proxy/<protocol>/<host>/<path>
-      const fileProxyPrefix = import.meta.env.VITE_FILE_PROXY_PREFIX || '/file-proxy'
+      // 全环境统一走同域代理：<fileProxyPrefix>/<protocol>/<host>/<path>
       const normalizedPath = path.startsWith('/') ? path : `/${path}`
       const originalProtocol = url.toLowerCase().startsWith('https://') ? 'https' : 'http'
       const proxyUrl = `${fileProxyPrefix}/${originalProtocol}/${host}${normalizedPath}`
@@ -81,11 +70,9 @@ export const buildDownloadUrl = (url: string): string => {
 
     // 2. 相对路径（以 / 开头）
     if (url.startsWith('/') && !url.startsWith('//')) {
-      // 同域相对路径，直接返回
       return url
     }
 
-    // 其他情况：直接返回原始 URL
     return url
   } catch (_error) {
     return url
@@ -148,6 +135,7 @@ export const downloadFile = async (url: string, filename: string) => {
 
     const link = document.createElement('a')
     link.href = objectUrl
+    // filename 由业务层传入，包含原始扩展名，这里不做任何改动
     link.download = filename
     document.body.appendChild(link)
     link.click()
@@ -156,7 +144,9 @@ export const downloadFile = async (url: string, filename: string) => {
   } catch (error: any) {
     clearTimeout(timeoutId)
     if (error.name === 'AbortError') {
-      throw new Error('下载超时，请稍后重试')
+      const timeoutError = new Error('下载超时，请稍后重试')
+      ;(timeoutError as any).cause = error
+      throw timeoutError
     }
     throw error
   }

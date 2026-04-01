@@ -56,9 +56,9 @@ import { algoApi } from '@/api/algo'
 
 interface Props {
   modelValue: boolean
-  userId?: string | number // 反馈用户id (必填)
-  taskId?: string | number // 任务id (必填)
-  taskResultId?: string | number // 任务结果id (必填)
+  userId?: string | number
+  algoOrderId?: string | number
+  algoOrderResultId?: string | number
 }
 
 const props = defineProps<Props>()
@@ -126,8 +126,11 @@ const handleSubmit = async () => {
     return
   }
 
-  // 检查必要参数（新接口字段：algoOrderId / algoOrderResultId）
-  if (!props.userId || !props.taskId || !props.taskResultId) {
+  const submitAlgoOrderId = String(props.algoOrderId ?? '').trim()
+  const submitAlgoOrderResultId = String(props.algoOrderResultId ?? '').trim()
+
+  // 检查必要参数（接口字段：algoOrderId / algoOrderResultId）
+  if (!submitAlgoOrderId || !submitAlgoOrderResultId) {
     ElMessage.error('反馈参数不完整，无法提交')
     return
   }
@@ -151,9 +154,8 @@ const handleSubmit = async () => {
 
   try {
     const res = await algoApi.submitAlgorithmResult({
-      // 前端入参沿用 taskId/taskResultId 命名，但后端接口要求 algoOrderId/algoOrderResultId
-      algoOrderId: String(props.taskId),
-      algoOrderResultId: String(props.taskResultId),
+      algoOrderId: submitAlgoOrderId,
+      algoOrderResultId: submitAlgoOrderResultId,
       content: selectedReasonContents.join(','),
     })
 

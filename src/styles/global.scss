@@ -618,3 +618,72 @@ img {
   background: $color-primary-dark !important;
   color: $color-text-white !important;
 }
+
+// ===================== 全局删除确认弹窗样式 =====================
+.creative-delete-confirm {
+  width: 482px;
+  padding: 33px;
+  border-radius: 16px;
+  background-color: rgba(18, 18, 18, 1);
+  font-size: 14px;
+  text-align: center;
+  font-family: -regular;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  .el-message-box__header {
+    padding: 0;
+    text-align: center;
+  }
+
+  .el-message-box__title {
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    font-family: NotoSans-bold;
+  }
+
+  .el-message-box__content {
+    padding: 17px 0 45px;
+  }
+
+  .el-message-box__container {
+    align-items: center;
+  }
+
+  .el-message-box__message {
+    color: #fff;
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  .el-message-box__status {
+    display: none;
+  }
+
+  .el-message-box__btns {
+    padding: 0;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .el-button {
+    width: 142px;
+    height: 44px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+.creative-delete-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(150, 221, 255, 1);
+  color: #fff;
+}
+
+.creative-delete-confirm-btn {
+  border: none;
+  color: #fff;
+  background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+}

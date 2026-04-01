@@ -56,8 +56,7 @@
               <div class="action-buttons">
                 <el-button class="action-btn" :class="{ 'is-collected': isCollected(asset) }" type="primary"
                   @click.stop="handleCollect(index)">
-                  <img :src="isCollected(asset) ? images.collectActive : images.collectNo" alt="收藏"
-                    class="action-icon" />
+                  <img :src="isCollected(asset) ? images.collect : images.collectNo" alt="收藏" class="action-icon" />
                   <span>{{ isCollected(asset) ? '已收藏' : '收藏' }}</span>
                 </el-button>
                 <el-popover placement="bottom" :width="146" trigger="click" popper-class="download-menu-popper"
@@ -286,8 +285,6 @@ void mediaFrameClass
 // 默认内容标签（历史/兜底用；若父级传入 contentTabs 则以父级为准）
 const defaultContentTabs = [
   { key: 'all', label: '全部' },
-  { key: 'images', label: '图片', fileType: 1 },
-  { key: 'videos', label: '视频', fileType: 2 },
   { key: 'fashion', label: '服装设计', fileType: 3 },
   { key: 'fabric', label: 'AI面料', fileType: 4 },
   { key: 'favorites', label: '收藏' },
@@ -397,7 +394,7 @@ const handleTabChange = (tabKey: string | number) => {
   const key = String(tabKey)
   activeContentTab.value = key
   const tab = contentTabs.value.find((t) => t.key === key)
-  emit('tab-change', key, tab?.fileType)
+  emit('tab-change', key, (tab as any)?.fileType)
 }
 
 // 点击标志
@@ -502,6 +499,11 @@ onMounted(() => {
     mainContentRef.value = (scrollbarRef.value?.wrapRef as HTMLElement) || mainContentRef.value
     if (mainContentRef.value) mainContentRef.value.addEventListener('scroll', handleScroll, { passive: true })
     initIntersectionObserver()
+    // 首次渲染阶段可能误触发 IntersectionObserver，导致父层 currentIndex 被自动改掉
+    // 所以要稍晚再允许自动选中逻辑（避免刷新时父层 currentIndex 还没就绪）
+    setTimeout(() => {
+      allowAutoSelect = true
+    }, 300)
   })
 })
 
@@ -523,6 +525,8 @@ onUnmounted(() => {
 // 标志位：防止 Intersection Observer 和 scrollIntoView 循环冲突
 let isAutoScrolling = false
 let isExternalScrolling = false // 标志位：防止外部调用 scrollToAsset 时触发 watch
+// 允许自动选中（避免首屏 IntersectionObserver 误触发）
+let allowAutoSelect = false
 
 // 监听当前索引变化，自动滚动到对应位置
 watch(
@@ -560,7 +564,12 @@ watch(
   () => props.assets,
   () => {
     nextTick(() => {
+      // assets 列表变化时先禁用自动选中，等待父层 currentIndex 同步完成再启用
+      allowAutoSelect = false
       observeMediaElements()
+      setTimeout(() => {
+        allowAutoSelect = true
+      }, 300)
     })
   },
   { deep: true }
@@ -675,6 +684,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
 
       // 当资产进入视口（可见度超过30%时更新选中状态）
       if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+        if (!allowAutoSelect) return
         // 更新选中状态（同步缩略图）
         if (props.currentIndex !== index) {
           isAutoScrolling = true // 标记为自动滚动触发，避免 watch 再次滚动

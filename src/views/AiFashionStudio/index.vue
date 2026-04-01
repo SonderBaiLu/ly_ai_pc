@@ -70,11 +70,10 @@
             <MainImageDisplay ref="mainImageRef" :assets="assets" :current-index="currentIndex"
               :has-more-data="hasMoreData" :loading="listLoading" :loading-more="loadingMore" :is-vip="isUserVip"
               :remove-watermark-enabled="removeWatermarkEnabled" :content-tabs="rightContentTabs"
-              :active-tab-key="currentContentTab"
-              @asset-click="(idx: number) => (currentIndex = idx as any)" @scroll-change="handleScrollChange"
-              @tab-change="handleContentTabChange" @load-more="handleLoadMore" @view-detail="handleViewDetail"
-              @collect="handleCollect" @download="showComingSoon" @delete="handleAlgoDelete"
-              @refresh="showComingSoon" />
+              :active-tab-key="currentContentTab" @asset-click="(idx: number) => (currentIndex = idx as any)"
+              @scroll-change="handleScrollChange" @tab-change="handleContentTabChange" @load-more="handleLoadMore"
+              @view-detail="handleViewDetail" @collect="handleCollect" @download="handleAssetDownload"
+              @delete="handleAlgoDelete" @refresh="showComingSoon" />
 
             <ThumbnailGallery ref="thumbnailRef" :assets="assets" :current-index="currentIndex"
               :has-more-data="hasMoreData" :loading="(listLoading || loadingMore) as any"
@@ -104,13 +103,13 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { images } from '@/assets'
 import { useUserStore } from '@/stores/user'
 import { appApi } from '@/api/app'
 import { algoApi, buildTemplateParamsFromPopup } from '@/api/algo'
 import { uploadApi } from '@/api/upload'
+import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { CreationResult } from '@/composables/useTaskPolling'
@@ -136,7 +135,12 @@ const removeWatermarkEnabled = computed(() => {
   return userStore.userInfo?.watermarkStatus === 1 ? true : false
 })
 
-const leftMenu = ref<LeftMenuKey>('aiFashion')
+const leftMenuRouteMode = route.query.mode as LeftMenuKey | undefined
+const initialLeftMenu: LeftMenuKey =
+  leftMenuRouteMode && (['aiFashion', 'sketchToReal', 'realToSketch', 'fabricCreative'] as LeftMenuKey[]).includes(leftMenuRouteMode)
+    ? leftMenuRouteMode
+    : 'aiFashion'
+const leftMenu = ref<LeftMenuKey>(initialLeftMenu)
 const isFabricEntry = route.query.mode === 'fabricCreative'
 const showComingSoon = () => ElMessage.warning('暂未开放')
 
@@ -168,7 +172,8 @@ const defaultRailLabelByKey: Record<LeftMenuKey, string> = {
 
 const allPlatformMenus = ref<any[]>([])
 const activeMenuCode = ref<string>('')
-const lastFetchedMenuCode = ref<string>('')
+// 记录已经拉取过算法模型配置的菜单 code，避免重复请求
+const fetchedAlgoMenuCodes = new Set<string>()
 
 // 右侧展示导航：只展示“一级菜单（menuCode）+ 收藏”
 const rightContentTabs = computed(() => {
@@ -630,18 +635,17 @@ const handleViewDetail = (index: number) => {
 
   // 缓存列表数据，详情页可直接用来渲染 & 支持“上一张/下一张”
   templateStore.setTemplateListData({
-    pageType: 'assets',
-    sourceTab: 'aiFashionStudio',
     list,
     currentIndex: index,
-    // 记录当前模块，详情页可用于 UI mock / 回跳
-    mode: leftMenu.value,
+    // 记录当前模块“一级菜单” code，详情页按模块动态展示
+    modeCode: activeMenuCode.value,
   })
 
   router.push({
     name: 'CreativeDetail',
     params: { id: String(item.id) },
-    query: { pageType: 'assets', sourceTab: 'aiFashionStudio', mode: leftMenu.value },
+    // 路由也携带一级菜单 code，方便详情页按模块还原 UI
+    query: { modeCode: activeMenuCode.value },
   })
 }
 
@@ -867,10 +871,10 @@ const normalizeAlgoConfigModels = (payload: any): any[] => {
 }
 
 const fetchAlgoConfigTempRelation = async (menuCode: string) => {
-  console.log('fetchAlgoConfigTempRelation', menuCode, lastFetchedMenuCode.value)
+  console.log('fetchAlgoConfigTempRelation', menuCode)
   if (!menuCode) return
-  if (lastFetchedMenuCode.value === menuCode) return
-  lastFetchedMenuCode.value = menuCode
+  // 同一个菜单 code 只加载一次算法配置
+  if (fetchedAlgoMenuCodes.has(menuCode)) return
   try {
     const res = await appApi.getAlgoConfigTempRelation({ menuCode })
     if (String((res as any)?.code) === '0000') {
@@ -890,6 +894,7 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           state.defaultModelsParams = defaultState.defaultModelsParams
           state.coinCost = defaultState.coinCost
           state.defaultParamObject = defaultState.defaultParamObject
+          fetchedAlgoMenuCodes.add(menuCode)
           return
         }
 
@@ -907,16 +912,18 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           ...selectedParamNames,
         ].filter(Boolean)
         state.coinCost = calculateCoinCost(state.selectedAlgorithm, state.selectedParams)
+        fetchedAlgoMenuCodes.add(menuCode)
       }
     }
   } catch (error) {
-    lastFetchedMenuCode.value = ''
+    fetchedAlgoMenuCodes.delete(menuCode)
     console.error('获取功能模型列表失败', error)
   }
 }
 
 const openImageParams = async () => {
-  await fetchAlgoConfigTempRelation(activeMenuCode.value)
+  // getAlgoConfigTempRelation 要求传二级菜单 code，这里直接用当前左侧模块对应的 menuCode
+  await fetchAlgoConfigTempRelation(menuCodeByKey[leftMenu.value])
   showImageParamPopup.value = true
 }
 
@@ -1032,12 +1039,31 @@ const normalizeInspirationCategories = (list: any[] = []) => {
 // 灵感词词典数据
 const libraryData = ref<any[]>([])
 
-/** 线稿转实物：左侧三组单选；与「灵感词词典」共用同一接口一次请求（functionCode=line_draw_to_phys_obj，typeCode=sketch_type） */
+/** 线稿转实物：左侧三组单选（线稿类型/线稿风格/图片类型），后端一次返回（typeCode=sketch_type） */
 const sketchToRealParamCategories = ref<any[]>([])
+
+const fetchSketchToRealParamCategories = async (functionCode: string) => {
+  try {
+    const res = await appApi.getInspirationWords({
+      functionCode,
+      typeCode: CREATION_PARAM_CODES.SKETCH_TYPE,
+    })
+    if (String((res as any)?.code) === '0000' && Array.isArray((res as any)?.data)) {
+      sketchToRealParamCategories.value = ((res as any).data as any[]).filter(
+        (x: any) => Array.isArray(x?.children) && x.children.length > 0,
+      )
+      return
+    }
+    sketchToRealParamCategories.value = []
+  } catch (_e) {
+    sketchToRealParamCategories.value = []
+  }
+}
 
 const fetchInspirationWords = async (menu: LeftMenuKey = leftMenu.value) => {
   const functionCode = menuCodeByKey[menu]
-  const typeCode = creationTypeCodeByMenu[menu]
+  // 灵感词词典固定使用 inspiration_words
+  const typeCode = CREATION_PARAM_CODES.INSPIRATION_WORDS
   if (!functionCode || !typeCode) {
     libraryData.value = []
     if (menu !== 'sketchToReal') sketchToRealParamCategories.value = []
@@ -1052,11 +1078,6 @@ const fetchInspirationWords = async (menu: LeftMenuKey = leftMenu.value) => {
       typeCode,
     })
     if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
-      if (menu === 'sketchToReal') {
-        sketchToRealParamCategories.value = (res.data as any[]).filter(
-          (x: any) => Array.isArray(x?.children) && x.children.length > 0,
-        )
-      }
       libraryData.value = normalizeInspirationCategories(res.data)
       return
     }
@@ -1096,24 +1117,9 @@ const deriveRightTabKeyFromLeftMenu = () => {
   return byLabel?.key ?? ''
 }
 
-// 同步右侧 UI（MainImageDisplay 内部 el-tabs）到当前 content tab key
-const syncMainImageDisplayTab = async () => {
-  await nextTick()
-  const child: any = mainImageRef.value
-  if (!child?.activeContentTab) return
-  if (import.meta.env.DEV) {
-    console.log('[AiFashionStudio] syncMainImageDisplayTab:', {
-      currentContentTab: currentContentTab.value,
-      childActiveBefore: child.activeContentTab.value,
-      tabs: rightContentTabs.value.map((t) => t.key),
-    })
-  }
-  child.activeContentTab.value = currentContentTab.value
-}
-
 // 右侧 tab -> 列表查询参数
-// - tabKey 是一级菜单的 menuCode（favorites 为收藏）
-// - fileType 在“一级菜单 + 收藏”场景下固定为 0（全部类型）
+// - tabKey 是一级菜单的 menuCode（favorites 为收藏）,默认空字符串
+// - fileType默认为''
 const deriveListMenuCode = (tabKey: string) => {
   // “全部”/“收藏”场景：不做 menuCode 限定（传空字符串让后端走全量）
   if (tabKey === '' || tabKey === 'favorites') return ''
@@ -1300,6 +1306,36 @@ const handleCollect = async (idx: number) => {
   }
 }
 
+// 下载生成结果：会员且开启“去除水印”时，图片优先下载 originalUrl
+const handleAssetDownload = async (idx: number, removeWatermark?: boolean) => {
+  const asset = assets.value[idx] as any
+  if (!asset) return
+
+  const isVideo = Number(asset?.fileType) === 2 || Number(asset?.fileType) === 4
+  const wantRemoveWatermark = !!removeWatermark && isUserVip.value
+  const downloadUrl = (() => {
+    if (wantRemoveWatermark && !isVideo && asset?.originalUrl) {
+      return String(asset.originalUrl)
+    }
+    // 后端当前仅返回 url/thumbUrl，这里优先用 url，再退回 thumbUrl
+    return String(asset?.url || asset?.thumbUrl || '')
+  })()
+
+  if (!downloadUrl) {
+    ElMessage.warning('文件地址无效')
+    return
+  }
+
+  try {
+    await watermarkDownloader.download(downloadUrl, {
+      silent: false,
+    })
+  } catch (error) {
+    console.error('[AiFashionStudio] 下载失败', error)
+    ElMessage.error('下载失败，请稍后重试')
+  }
+}
+
 // 删除算法生成结果（AI 工作台列表）
 const handleAlgoDelete = async (idx: number) => {
   if (!userStore.isLoggedIn) {
@@ -1314,10 +1350,17 @@ const handleAlgoDelete = async (idx: number) => {
   }
 
   try {
-    await ElMessageBox.confirm('确定要删除这个生成结果吗？删除后无法恢复。', '确认删除', {
+    await ElMessageBox.confirm('确定要删除这个生成结果吗？删除后将无法恢复。', '删除创作确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
+      customClass: 'creative-delete-confirm',
+      confirmButtonClass: 'creative-delete-confirm-btn',
+      cancelButtonClass: 'creative-delete-cancel-btn',
+      showClose: false,
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      center: true,
     })
 
     const response = await algoApi.del({
@@ -1541,10 +1584,10 @@ onMounted(async () => {
     })
   }
   void fetchMyCreations(true)
-  void syncMainImageDisplayTab()
 
   setTimeout(() => {
-    fetchAlgoConfigTempRelation(activeMenuCode.value)
+    // 这里同样传二级菜单 code
+    fetchAlgoConfigTempRelation(menuCodeByKey[leftMenu.value])
   }, 1000);
 })
 
@@ -1562,9 +1605,13 @@ watch(
   (menu) => {
     syncActiveMenuCode()
     fetchInspirationWords(menu)
-    if (activeMenuCode.value) {
-      fetchAlgoConfigTempRelation(activeMenuCode.value)
+    // 线稿转实物：进入模块时单独拉一次左侧三组选项（避免每次点“灵感词词库”都重复请求）
+    if (menu === 'sketchToReal') {
+      const functionCode = menuCodeByKey[menu]
+      if (functionCode) void fetchSketchToRealParamCategories(functionCode)
     }
+    // getAlgoConfigTempRelation 需要传二级菜单 code，这里按照左侧模块映射
+    fetchAlgoConfigTempRelation(menuCodeByKey[menu])
     // 左侧模块切换时：右侧列表默认选中“该模块对应的一级菜单”
     const moduleMenuCode = activeMenuCode.value
     const hasModuleTab = rightContentTabs.value.some((t) => t.key === moduleMenuCode)
@@ -1578,7 +1625,6 @@ watch(
       })
     }
     void fetchMyCreations(true)
-    void syncMainImageDisplayTab()
   },
   { immediate: true }
 )

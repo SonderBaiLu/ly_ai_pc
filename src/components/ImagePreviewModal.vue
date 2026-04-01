@@ -179,8 +179,8 @@ const handleDownload = async () => {
     // 如果是"未命名"或没有名字，就不加名字部分
     const filename =
       name && name !== '未命名'
-        ? `chaotuishou_${name}_${Date.now()}.png`
-        : `chaotuishou_${Date.now()}.png`
+        ? `lingyan_${name}_${Date.now()}.png`
+        : `lingyan_${Date.now()}.png`
     await downloadFile(imageUrl, filename)
     ElMessage.success('下载成功')
     emit('download')
@@ -198,10 +198,17 @@ const handleDelete = async () => {
   }
 
   try {
-    await ElMessageBox.confirm('确定要删除这张图片吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除这张图片吗？删除后将无法恢复。', '删除创作确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
+      customClass: 'creative-delete-confirm',
+      confirmButtonClass: 'creative-delete-confirm-btn',
+      cancelButtonClass: 'creative-delete-cancel-btn',
+      showClose: false,
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      center: true,
     })
 
     // 仅发出事件，由父组件决定具体删除逻辑

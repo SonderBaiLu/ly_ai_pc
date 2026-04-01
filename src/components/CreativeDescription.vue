@@ -38,8 +38,8 @@
     <!-- 试一试示例行 -->
     <div v-if="showTryLine && displayTryText" class="try-line">
       <span class="try-label">试一试：</span>
-      <div class="try-noticebar" role="button" tabindex="0" @click="handleApplyTryText">
-        <ScrollText class="try-scroll" :text="displayTryText" :speed="10" />
+      <div class="try-noticebar" role="button" tabindex="0" @click="handleApplyTryText" :class="{ 'is-try-anim': isTryAnimating }">
+        <ScrollText class="try-scroll" :text="displayTryText" :speed="10" :key="tryRefreshNonce" />
       </div>
       <span class="try-refresh" title="换一换" @click="handleShuffle">
         <img :src="images.refreshTry" alt="" class="refresh-icon" />
@@ -142,6 +142,8 @@ const isFocused = ref(false)
 const isFetchingTryPrompt = ref(false)
 const displayTryText = ref<string>('')
 const hasFetchedTryPromptOnce = ref(false)
+const tryRefreshNonce = ref(0)
+const isTryAnimating = ref(false)
 
 // 监听外部传入的值变化
 watch(
@@ -203,6 +205,9 @@ const handleRemoveTag = (id: string): void => {
 const handleShuffle = async () => {
   if (isFetchingTryPrompt.value) return
   if (!props.menuId) return
+  // 强制让 UI 动画/文本区域重新挂载一次：即便接口返回相同内容，也能看出“换了一次”
+  tryRefreshNonce.value += 1
+  isTryAnimating.value = true
   isFetchingTryPrompt.value = true
   try {
     const res = await algoApi.getFunctionPrompt({ menuId: String(props.menuId) })
@@ -217,6 +222,10 @@ const handleShuffle = async () => {
     return displayTryText.value
   } finally {
     isFetchingTryPrompt.value = false
+    // 给出肉眼可见的短暂动画反馈
+    window.setTimeout(() => {
+      isTryAnimating.value = false
+    }, 650)
   }
 }
 
@@ -443,6 +452,28 @@ watch(
         height: 16px;
       }
     }
+
+    .try-noticebar.is-try-anim {
+      animation: tryBarBlink 0.65s ease-in-out;
+    }
+  }
+}
+
+@keyframes tryBarBlink {
+  0% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 1;
   }
 }
 </style>
