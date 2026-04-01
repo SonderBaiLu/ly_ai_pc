@@ -17,7 +17,7 @@
             <span>选择，</span>
             <span v-if="historyMaxCount > 1">最多可选择{{ historyMaxCount }}张，</span>
             <span v-if="historyMinSizeKB && historyMaxSizeMB">文件大小{{ historyMinSizeKB }}KB - {{ historyMaxSizeMB
-            }}MB之间，</span>
+              }}MB之间，</span>
             <span v-if="historyMinResolution">分辨率大于{{ historyMinResolution }}，</span>
           </div>
           <div class="placeholder-text-box" v-if="historyFormats && showHistoryTip">
@@ -221,7 +221,7 @@ const handleDrop = (e: DragEvent) => {
     return
   }
 
-  // 其次处理从"我的资产"拖过来的 JSON 数据（application/json）
+  // 其次处理从"我的创作"拖过来的 JSON 数据（application/json）
   const jsonText = dt.getData('application/json')
   if (jsonText) {
     try {
@@ -235,7 +235,7 @@ const handleDrop = (e: DragEvent) => {
         // 如果已有图片，仍然触发 drop-file 事件，让父组件决定是否替换
         emit('drop-file', {
           url: data.imageUrl || data.fileUrl,
-          // 从“我的资产/缩略图”拖拽过来时，认为是历史资产图片，需要把 id 透传出去
+          // 从“我的创作/缩略图”拖拽过来时，认为是历史创作图片，需要把 id 透传出去
           // 统一命名为 taskResultId，提交时组装 historyParams 使用
           taskResultId: data.id,
           type: props.imageType,
@@ -245,7 +245,7 @@ const handleDrop = (e: DragEvent) => {
         return
       }
     } catch (error) {
-      console.error('[ImageUploadArea] 解析拖拽资产失败:', error)
+      console.error('[ImageUploadArea] 解析拖拽创作失败:', error)
     }
   }
 
@@ -416,7 +416,7 @@ onBeforeUnmount(() => {
 
       .history-link {
         color: $color-primary-dark;
-          cursor: pointer;
+        cursor: pointer;
       }
     }
   }
