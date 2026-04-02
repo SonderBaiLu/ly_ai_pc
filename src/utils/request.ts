@@ -173,10 +173,10 @@ request.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-const handleAuthExpired = () => {
+const handleAuthExpired = (msg?: string) => {
   if (isHandlingAuthExpired) return
   isHandlingAuthExpired = true
-
+  ElMessage.error(msg || '登录状态已失效，请重新登录')
   // 清理本地登录态
   try {
     localStorage.removeItem('token')
@@ -197,7 +197,7 @@ const handleAuthExpired = () => {
     }
     isHandlingAuthExpired = false
     authExpiredTimer = null
-  }, 0)
+  }, 2000)
 }
 
 // 响应拦截器：统一返回 ApiResponse（仅支持新结构），并处理登录过期/102
@@ -218,6 +218,7 @@ const handleAuthExpired = () => {
     // 业务码由调用方根据 res.code 处理；此处仅在 HTTP 成功且 body 结构合法时 resolve
     if (code === '102') {
       handleAuthExpired()
+      handleAuthExpired('该账号已被管理员停用或删除，请联系管理员')
     }
 
     return data as any
@@ -230,6 +231,7 @@ const handleAuthExpired = () => {
         return Promise.reject(error)
       }
       handleAuthExpired()
+      handleAuthExpired('登录状态已失效，请重新登录')
       const authError: any = error
       authError.__AUTH_EXPIRED__ = true
       return Promise.reject(authError)
