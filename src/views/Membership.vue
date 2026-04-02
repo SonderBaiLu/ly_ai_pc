@@ -15,7 +15,8 @@
               <!-- 基本信息 -->
               <div class="user-details">
                 <div class="user-nickname">{{ userInfo?.userName || '' }}</div>
-                <div class="user-mobile" v-if="userInfo?.mobile">+86 {{ userInfo?.mobile || '' }}</div>
+                <div class="user-mobile" v-if="userInfo?.mainAccount">+86 {{ userInfo?.mobile || '' }}</div>
+                <div class="user-mobile" v-else>{{ userInfo?.nickName || '' }}</div>
               </div>
               <!-- 右侧：灵衍与订单 -->
               <div class="user-extra">

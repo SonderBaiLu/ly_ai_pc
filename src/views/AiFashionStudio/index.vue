@@ -56,15 +56,19 @@
               @update:sketch-param-selections="(v) => (formDataByMenu.sketchToReal.sketchParamSelections = v)"
               @update:inspiration-words="(words) => (formDataByMenu.sketchToReal.inspirationWords = words)" />
             <RealToSketch v-else v-model:image-url="formDataByMenu.realToSketch.image"
-              :task-result-id="formDataByMenu.realToSketch.taskResultId"
+              v-model:prompt="formDataByMenu.realToSketch.prompt"
+              :sketch-param-selections="formDataByMenu.realToSketch.sketchParamSelections"
+              :param-categories="realToSketchParamCategories" :task-result-id="formDataByMenu.realToSketch.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
               :inspiration-words="formDataByMenu.realToSketch.inspirationWords" :coin="imageCoin"
-              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('realToSketch')"
+              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+              @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleRealToSketchGenerate" @inspiration-library="handleInspirationLibrary"
               @show-history="openHistoryModal"
-              @update:inspiration-words="(words) => formDataByMenu.realToSketch.inspirationWords = words" />
+              @update:sketch-param-selections="(v) => (formDataByMenu.realToSketch.sketchParamSelections = v)"
+              @update:inspiration-words="(words) => (formDataByMenu.realToSketch.inspirationWords = words)" />
           </section>
 
           <!-- 结果列表（主图 + 缩略图） -->
@@ -88,8 +92,8 @@
 
     <!-- 模型参数弹窗（父层统一管理，子组件只负责触发 show-params） -->
     <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="currentImageDefaultParams"
-      :default-selection="currentImageDefaultSelection" :algorithm-models="currentImageAlgorithmModels" @confirm="handleImageParamsConfirm"
-      @close="handleImageParamsClose" />
+      :default-selection="currentImageDefaultSelection" :algorithm-models="currentImageAlgorithmModels"
+      @confirm="handleImageParamsConfirm" @close="handleImageParamsClose" />
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
     <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
@@ -159,6 +163,10 @@ const menuCodeByKey: Record<LeftMenuKey, string> = {
   realToSketch: APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW,
   fabricCreative: APP_MENU_CODES.FABRIC_DESIGN_CONCEPT,
 }
+/**
+ * 款型弹窗拉树用的 typeCode（getInspirationWords）
+ * - 实物转线稿：garment_style（创作款型）
+ */
 const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
   aiFashion: CREATION_PARAM_CODES.CREATION_STYLE,
   // 线稿转实物：款型选择与 AI 服装设计一致，typeCode 为 creation_style
@@ -377,6 +385,58 @@ const buildSketchToRealSegmentParams = (
   return { sketchTypeParams, sketchStyleParams, imageTypeParams }
 }
 
+/** 实物转线稿：两组单选 → sketchGenerationTypeParams / sketchGenerationStyleParams */
+const classifyRealToSketchCategory = (cat: any, index: number): 'genType' | 'genStyle' | null => {
+  const code = String(cat?.code ?? cat?.typeCode ?? '').toLowerCase()
+  if (code === CREATION_PARAM_CODES.SKETCH_GENERATION_TYPE || code.endsWith('sketch_generation_type')) return 'genType'
+  if (code === CREATION_PARAM_CODES.SKETCH_GENERATION_STYLE || code.endsWith('sketch_generation_style')) return 'genStyle'
+  const title = String(cat?.content ?? cat?.title ?? '').trim()
+  if (title.includes('线稿生成类型')) return 'genType'
+  if (title.includes('线稿生成风格')) return 'genStyle'
+  if (index === 0) return 'genType'
+  if (index === 1) return 'genStyle'
+  return null
+}
+
+const buildRealToSketchSegmentParams = (
+  categories: any[],
+  selections: Record<string, string>,
+): {
+  sketchGenerationTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+  sketchGenerationStyleParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+} => {
+  const sketchGenerationTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+  const sketchGenerationStyleParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+
+  const push = (
+    bucket: Array<{ id: string; configType: string; prentId: string; content: string }>,
+    category: any,
+    opt: any,
+  ) => {
+    bucket.push({
+      id: String(opt?.id ?? ''),
+      configType: String(opt?.configType ?? 'class'),
+      prentId: String(category?.id ?? ''),
+      content: String(opt?.content ?? opt?.name ?? opt?.wordsName ?? ''),
+    })
+  }
+
+  const list = Array.isArray(categories) ? categories : []
+  list.forEach((cat, index) => {
+    const classId = String(cat?.id ?? '')
+    const selId = String((selections || {})[classId] ?? '').trim()
+    if (!classId || !selId) return
+    const children = Array.isArray(cat?.children) ? cat.children : []
+    const opt = children.find((c: any) => String(c?.id ?? '') === selId)
+    if (!opt) return
+    const kind = classifyRealToSketchCategory(cat, index)
+    if (kind === 'genType') push(sketchGenerationTypeParams, cat, opt)
+    else if (kind === 'genStyle') push(sketchGenerationStyleParams, cat, opt)
+  })
+
+  return { sketchGenerationTypeParams, sketchGenerationStyleParams }
+}
+
 // ==================== payload 公共部分（各模块只补差异字段） ====================
 const buildCommonPayloadBase = (
   form: any,
@@ -446,11 +506,6 @@ const submitByMenuCode = async (menuCode: string) => {
       ElMessage.error('请先上传线稿参考图')
       return
     }
-    const creationRows = buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal)
-    if (!creationRows.length) {
-      ElMessage.error('请先选择款型')
-      return
-    }
     const segCats = sketchToRealParamCategories.value || []
     const selMap = form.sketchParamSelections || {}
     for (const cat of segCats) {
@@ -460,13 +515,24 @@ const submitByMenuCode = async (menuCode: string) => {
         return
       }
     }
-  } else {
-    // realToSketch
+  } else if (menuKey === 'realToSketch') {
     images = String(form.image || '').trim() ? [String(form.image).trim()] : []
     if (!images.length) {
       ElMessage.error('请先上传实物参考图')
       return
     }
+    const segCats = realToSketchParamCategories.value || []
+    const selMap = form.sketchParamSelections || {}
+    for (const cat of segCats) {
+      const cid = String(cat?.id ?? '')
+      if (!cid || !String(selMap[cid] ?? '').trim()) {
+        ElMessage.error('请完成线稿生成类型与线稿生成风格的选择')
+        return
+      }
+    }
+  } else {
+    ElMessage.error('功能模块未就绪')
+    return
   }
 
   const basePayload = buildCommonPayloadBase(form, paramsState, menuCode, images, modelConfigId, modelConfigCode, modelConfigName)
@@ -487,19 +553,24 @@ const submitByMenuCode = async (menuCode: string) => {
       sketchToRealParamCategories.value,
       form.sketchParamSelections || {},
     )
+    const creationRows = buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal)
     diffPayload = {
-      // 与 AI 服装设计一致：款型走 creationStyleParams，详情页「款型」展示用
-      creationStyleParams: buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal),
+      // 与 AI 服装设计一致：款型走 creationStyleParams，详情页「款型」展示用（款型非必选）
+      ...(creationRows.length ? { creationStyleParams: creationRows } : {}),
       sketchTypeParams,
       sketchStyleParams,
       imageTypeParams,
     }
   } else {
-    // realToSketch
+    const { sketchGenerationTypeParams, sketchGenerationStyleParams } = buildRealToSketchSegmentParams(
+      realToSketchParamCategories.value,
+      form.sketchParamSelections || {},
+    )
+    const garmentRows = buildCreationStyleParams(creationTypeSelectionByMenu.realToSketch)
     diffPayload = {
-      garmentStyleParams: buildCreationStyleParams(creationTypeSelectionByMenu.realToSketch),
-      sketchGenerationTypeParams: [],
-      sketchGenerationStyleParams: [],
+      ...(garmentRows.length ? { garmentStyleParams: garmentRows } : {}),
+      sketchGenerationTypeParams,
+      sketchGenerationStyleParams,
     }
   }
 
@@ -1127,6 +1198,101 @@ const currentMenuId = computed(() => {
   return matched?.id != null ? String(matched.id) : ''
 })
 
+// ==================== 灵衍值试算（点击“确定”时调用一次） ====================
+const calculationToken = ref(0)
+
+const triggerCalculationPointNow = async (selectionResult: any) => {
+  const targetMenuKey = leftMenu.value
+  const state = formDataByMenu[targetMenuKey].params
+  const form = formDataByMenu[targetMenuKey]
+  const formAny: any = form as any
+  const creationAny: any = creationTypeSelectionByMenu as any
+
+  const menuCode = menuCodeByKey[targetMenuKey]
+  const modelConfigId = Number(selectionResult?.algorithmId ?? 0)
+  const modelConfigCode = String(selectionResult?.algorithmCode ?? '')
+  const modelConfigName = String(selectionResult?.algorithmName ?? '')
+  if (!menuCode || !modelConfigId || !modelConfigCode || !modelConfigName) return
+
+  // 图片字段：接口 schema 要 string[]，单图模块也按 [image] 传
+  const images: string[] =
+    targetMenuKey === 'aiFashion'
+      ? Array.isArray(form.image)
+        ? form.image.map((v: any) => String(v ?? '').trim()).filter(Boolean)
+        : []
+      : String(form.image ?? '').trim()
+          ? [String(form.image).trim()]
+          : []
+
+  const templateParams = buildTemplateParamsFromPopup(selectionResult?.paramList || [])
+
+  const basePayload: any = {
+    modelConfigId,
+    modelConfigCode,
+    modelConfigName,
+    menuCode,
+    image: images,
+    templateParams,
+    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
+    creativeDescription: String(form.prompt || '').trim(),
+    historyParams: buildHistoryParams(form, targetMenuKey, images),
+  }
+
+  const diffPayload: any =
+    targetMenuKey === 'aiFashion'
+      ? {
+          creationStyleParams: buildCreationStyleParams(creationAny?.aiFashion?.creationTypeSelection),
+          designFeaturesParams: formAny?.designFeaturesParams || [],
+        }
+      : targetMenuKey === 'fabricCreative'
+        ? {
+            imageTypeParams: buildCreationStyleParams(creationAny?.fabricCreative),
+          }
+        : targetMenuKey === 'sketchToReal'
+          ? (() => {
+              const { sketchTypeParams, sketchStyleParams, imageTypeParams } = buildSketchToRealSegmentParams(
+                sketchToRealParamCategories.value,
+                formAny?.sketchParamSelections || {},
+              )
+              return {
+                creationStyleParams: buildCreationStyleParams(creationAny?.sketchToReal),
+                sketchTypeParams,
+                sketchStyleParams,
+                imageTypeParams,
+              }
+            })()
+          : (() => {
+              const { sketchGenerationTypeParams, sketchGenerationStyleParams } = buildRealToSketchSegmentParams(
+                realToSketchParamCategories.value,
+                formAny?.sketchParamSelections || {},
+              )
+              return {
+                garmentStyleParams: buildCreationStyleParams(creationAny?.realToSketch),
+                sketchGenerationTypeParams,
+                sketchGenerationStyleParams,
+              }
+            })()
+
+  const payload = { ...basePayload, ...diffPayload }
+
+  const currentToken = ++calculationToken.value
+  try {
+    const res = await algoApi.doCalculationPoint(payload)
+    if (currentToken !== calculationToken.value) return
+
+    const data: any = (res as any)?.data ?? (res as any)
+    if (String((res as any)?.code) !== '0000') return
+
+    // 按你的要求：直接使用接口返回 points 字段
+    const points = Number(data?.points ?? 0)
+    if (Number.isFinite(points) && points >= 0) {
+      state.coinCost = points
+    }
+  } catch (_e) {
+    // 试算失败不影响生成，只保留本地 coinCost
+  }
+}
+
 const handleImageParamsConfirm = (result: any) => {
   // ImageParamPopup 的 result: { algorithmId, algorithmName, paramList: [{templateName,...}, ...] }
   const state = getCurrentParams()
@@ -1155,10 +1321,12 @@ const handleImageParamsConfirm = (result: any) => {
   )
   state.coinCost = modelCoin + paramsCoin
   state.defaultParamObject = result
+
+  void triggerCalculationPointNow(result)
 }
 
 const handleImageParamsClose = (_result: any) => {
-  // 关闭时不强制更新；需要更新走 confirm 即可
+  // 关闭时不做试算；credits 只在“确定”后更新
 }
 
 // ==================== 灵感词词典弹窗（父层统一管理） ====================
@@ -1199,6 +1367,12 @@ const libraryData = ref<any[]>([])
 /** 线稿转实物：左侧三组单选（线稿类型/线稿风格/图片类型），后端一次返回（typeCode=sketch_type） */
 const sketchToRealParamCategories = ref<any[]>([])
 
+/**
+ * 实物转线稿-页面配置：左侧分段单选（线稿生成类型/风格等）
+ * typeCode = sketch_generation_type（与线稿转实物的 sketch_type 用法一致，一次返回多组 class）
+ */
+const realToSketchParamCategories = ref<any[]>([])
+
 const fetchSketchToRealParamCategories = async (functionCode: string) => {
   try {
     const res = await appApi.getInspirationWords({
@@ -1217,17 +1391,39 @@ const fetchSketchToRealParamCategories = async (functionCode: string) => {
   }
 }
 
+const fetchRealToSketchParamCategories = async (functionCode: string) => {
+  try {
+    const res = await appApi.getInspirationWords({
+      functionCode,
+      typeCode: CREATION_PARAM_CODES.SKETCH_GENERATION_TYPE,
+    })
+    if (String((res as any)?.code) === '0000' && Array.isArray((res as any)?.data)) {
+      realToSketchParamCategories.value = ((res as any).data as any[]).filter(
+        (x: any) => Array.isArray(x?.children) && x.children.length > 0,
+      )
+      return
+    }
+    realToSketchParamCategories.value = []
+  } catch (_e) {
+    realToSketchParamCategories.value = []
+  }
+}
+
 const fetchInspirationWords = async (menu: LeftMenuKey = leftMenu.value) => {
   const functionCode = menuCodeByKey[menu]
-  // 灵感词词典固定使用 inspiration_words
+  // 灵感词词典：typeCode = inspiration_words，按当前模块 functionCode（如实物转线稿 phys_obj_to_line_draw）区分配置
   const typeCode = CREATION_PARAM_CODES.INSPIRATION_WORDS
   if (!functionCode || !typeCode) {
     libraryData.value = []
     if (menu !== 'sketchToReal') sketchToRealParamCategories.value = []
+    if (menu !== 'realToSketch') realToSketchParamCategories.value = []
     return
   }
   if (menu !== 'sketchToReal') {
     sketchToRealParamCategories.value = []
+  }
+  if (menu !== 'realToSketch') {
+    realToSketchParamCategories.value = []
   }
   try {
     const res = await appApi.getInspirationWords({
@@ -1240,16 +1436,19 @@ const fetchInspirationWords = async (menu: LeftMenuKey = leftMenu.value) => {
     }
     libraryData.value = []
     if (menu === 'sketchToReal') sketchToRealParamCategories.value = []
+    if (menu === 'realToSketch') realToSketchParamCategories.value = []
   } catch (error) {
     libraryData.value = []
     if (menu === 'sketchToReal') sketchToRealParamCategories.value = []
+    if (menu === 'realToSketch') realToSketchParamCategories.value = []
     console.error('获取灵感词词典失败', error)
   }
 }
 
 // ==================== 右侧：我的创作（列表 + 缩略图） ====================
 // 列表分页/加载状态（避免与左侧“提交生成”loading 互相干扰）
-const listLoading = ref(false)
+// 初始为 true：避免首屏/从详情 router.back 重新挂载时，在 onMounted 拉列表前误展示「空状态」闪一下
+const listLoading = ref(true)
 
 const listPageSize = ref(12)
 const listPage = ref(1)
@@ -1320,16 +1519,23 @@ const mapRecordToCreationResult = (r: any): CreationResult | null => {
   }
 }
 
+type FetchCreationsOpts = { clearList?: boolean }
+
 // 拉取“我的创作列表”（支持 reset=重置分页、并把新结果合并去重）
-const fetchMyCreations = async (reset = false) => {
-  if (listLoading.value || loadingMore.value) return
+const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
+  if (loadingMore.value) return
+  // 加载更多走 reset=false；全量刷新走 reset=true。初始 listLoading=true 时仍允许首次 reset 进入
+  if (listLoading.value && !reset) return
 
   if (reset) {
     stopAllQueryTimers()
     listPage.value = 1
     hasMoreData.value = false
-    assets.value = []
-    currentIndex.value = 0
+    // 仅切换 tab 等需要「立刻换一批」时清空；从详情返回重挂载时不先清空，避免空状态闪烁
+    if (opts?.clearList) {
+      assets.value = []
+      currentIndex.value = 0
+    }
   }
 
   const tabKey = currentContentTab.value
@@ -1389,7 +1595,9 @@ const fetchMyCreations = async (reset = false) => {
     else if (currentIndex.value >= assets.value.length) currentIndex.value = 0
   } catch (e) {
     console.error('[AiFashionStudio] fetchMyCreations failed:', e)
-    assets.value = reset ? [] : assets.value
+    if (reset && opts?.clearList) {
+      assets.value = []
+    }
     hasMoreData.value = false
   } finally {
     listLoading.value = false
@@ -1400,7 +1608,7 @@ const fetchMyCreations = async (reset = false) => {
 // 右侧 tab 切换：重置列表并重新加载
 const handleContentTabChange = (tabKey: string, _fileType?: number) => {
   currentContentTab.value = tabKey === 'favorites' ? 'favorites' : String(tabKey)
-  void fetchMyCreations(true)
+  void fetchMyCreations(true, { clearList: true })
 }
 
 // 无限滚动加载更多：分页 +1 并继续追加到 assets
@@ -1809,21 +2017,12 @@ watch(
       const functionCode = menuCodeByKey[menu]
       if (functionCode) void fetchSketchToRealParamCategories(functionCode)
     }
+    if (menu === 'realToSketch') {
+      const functionCode = menuCodeByKey[menu]
+      if (functionCode) void fetchRealToSketchParamCategories(functionCode)
+    }
     // getAlgoConfigTempRelation 需要传二级菜单 code，这里按照左侧模块映射
     fetchAlgoConfigTempRelation(menuCodeByKey[menu])
-    // 左侧模块切换时：右侧列表默认选中“该模块对应的一级菜单”
-    const moduleMenuCode = activeMenuCode.value
-    const hasModuleTab = rightContentTabs.value.some((t) => t.key === moduleMenuCode)
-    currentContentTab.value = hasModuleTab ? moduleMenuCode : deriveRightTabKeyFromLeftMenu()
-    if (import.meta.env.DEV) {
-      console.log('[AiFashionStudio] leftMenu watch tab:', {
-        activeMenuCode: moduleMenuCode,
-        hasModuleTab,
-        currentContentTab: currentContentTab.value,
-        rightTabs: rightContentTabs.value.map((t) => t.key),
-      })
-    }
-    void fetchMyCreations(true)
   },
   { immediate: true }
 )

@@ -108,8 +108,12 @@ export const appApi = {
   },
 
   /**
-   * 获取灵感词词典
+   * 获取灵感词 / 参数字典树（创作款型、页面分段、灵感词库等）
    * - GET /api/v1/app/getInspirationWords
+   * 实物转线稿（functionCode=phys_obj_to_line_draw）常用 typeCode：
+   * - sketch_generation_type：页面配置（左侧线稿生成类型/风格等）
+   * - garment_style：创作款型（款型弹窗）
+   * - inspiration_words：灵感词词典
    */
   getInspirationWords(params: { functionCode: string; typeCode: string }) {
     return request.get('/v1/app/getInspirationWords', { params }) as unknown as Promise<ApiResponse<InspirationWordsCategory[]>>

@@ -184,7 +184,9 @@ const props = defineProps({
 })
 
 // 定义事件
-const emit = defineEmits(['update:modelValue', 'close', 'confirm'])
+// - confirm：用户点击“确定”
+// - selection-change：用户在弹窗内切换算法/参数后，实时通知父层做灵衍值试算（防抖在父层完成）
+const emit = defineEmits(['update:modelValue', 'close', 'confirm', 'selection-change'])
 
 // 响应式数据
 const showPopup = ref(props.modelValue)
@@ -417,6 +419,9 @@ const selectAlgorithm = (algorithm: any) => {
   initSelectedParams(algorithm)
   // 标记用户进行了选择操作
   hasUserInteraction.value = true
+
+  // 算法切换后，立即把当前选择结果抛给父层做试算
+  emit('selection-change', buildResult())
 }
 
 // 选择参数
@@ -435,6 +440,9 @@ const selectParam = (type: number, param: any, paramIndex?: number) => {
   if (type === 1 && paramIndex !== undefined) {
     scrollToParam(paramIndex)
   }
+
+  // 参数切换后，立即把当前选择结果抛给父层做试算
+  emit('selection-change', buildResult())
 }
 
 // 滚动到指定参数位置
