@@ -26,21 +26,14 @@ export const getSmsCodeApi = (mobile: number) => {
 }
 
 // 短信验证码登录（手机号 + 验证码）
-// 后端字段为 mobile / verifyCode
+// 后端字段为 mobile / verifyCode / invitationsCode
 export const loginBySmsCodeApi = (
-    payload: {
-        mobile: string;
-        verifyCode: string;
-        confirmedInviteCode?: string
-    }) => {
+    payload: { mobile: string; verifyCode: string; invitationsCode?: string }) => {
     return request.post('/v1/login/loginBySmsCode', payload) as unknown as Promise<ApiResponse<any>>
 }
 // 用户密码登录 
 export const loginByPwd = (
-    payload: {
-        mobile: string;
-        pwd: string
-    }
+    payload: { mobile: string; pwd: string; invitationsCode?: string | undefined }
 ) => {
     return request.post('/v1/login/loginByPwd', payload) as unknown as Promise<ApiResponse<any>>
 }

@@ -491,7 +491,7 @@ const handleSubmit = async () => {
       }
     } else {
       if (!formData.password) return ElMessage.error(t('LoginPopUpPage.passwordPlaceholder') || '请输入密码')
-      const res = await userStore.loginWithPassword(formData.phone, formData.password)
+      const res = await userStore.loginWithPassword(formData.phone, formData.password,confirmedInviteCode.value)
       if (String((res as any).code) === '0000') {
         ElMessage.success(t('LoginPopUpPage.loginSuccess') || '登录成功')
         emit('close')
