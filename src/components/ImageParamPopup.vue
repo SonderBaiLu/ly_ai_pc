@@ -185,7 +185,7 @@ const props = defineProps({
 
 // 定义事件
 // - confirm：用户点击“确定”
-// - selection-change：用户在弹窗内切换算法/参数后，实时通知父层做灵衍值试算（防抖在父层完成）
+// - selection-change：用户在弹窗内切换算法/参数后，实时通知父层（父层决定是否触发灵衍值试算）
 const emit = defineEmits(['update:modelValue', 'close', 'confirm', 'selection-change'])
 
 // 响应式数据
@@ -740,8 +740,6 @@ const onClose = () => {
       .ratio-option {
         width: 78px;
         height: 78px;
-        padding: $spacing-xs 0;
-        justify-content: flex-start;
         flex-shrink: 0;
         gap: 4px;
 

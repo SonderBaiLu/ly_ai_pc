@@ -9,7 +9,7 @@
             上传面料图<span class="required-mark">（必传）</span>
           </div>
           <el-button class="upload-btn" size="small" type="primary" plain
-            @click="emit('open-type-modal')">选择款型</el-button>
+          @click="emit('open-type-modal')">选择款型</el-button>
         </div>
         <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
           :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
@@ -37,10 +37,17 @@
         </div>
 
         <!-- 款型选择回显 -->
-        <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
-          {{ typeText }}
-          <img class="select-del-icon" :src="images.tagDel" alt="" srcset="" @click.stop="emit('clear-type-selection')">
-        </div>
+      <div class="select-card" @click="emit('open-type-modal')">
+        {{ typeText ? typeText : '+ 请选择创作款型' }}
+        <img
+          v-if="typeText"
+          class="select-del-icon"
+          :src="images.tagDel"
+          alt=""
+          srcset=""
+          @click.stop="emit('clear-type-selection')"
+        >
+      </div>
       </div>
 
       <div class="block">
@@ -65,7 +72,7 @@
     </div>
 
     <div class="bottom-sticky">
-      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
+      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="generateButtonDisabled" :loading="isGenerating"
         button-text="立即生成" @show-params="() => emit('show-params')" @generate="handleGenerate" />
     </div>
   </div>
@@ -75,8 +82,7 @@
 import { images } from '@/assets'
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 
-// const imageUrl = defineModel<string>('imageUrl', { default: '' })
-const imageUrl = ref('https://image-prod.chaotuishou.com/erp/2025/11/27/ML-38%E7%BB%B8%E7%BC%8E%E8%A3%85%E7%BD%AE.jpg')
+const imageUrl = defineModel<string>('imageUrl', { default: '' })
 
 const props = defineProps<{
   taskResultId?: string | number
@@ -102,7 +108,7 @@ const emit = defineEmits<{
   (e: 'delete', payload?: any): void
   (e: 'coming-soon'): void
   (e: 'show-params'): void
-  (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number }): void
+  (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number; outputType: OutputType }): void
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
@@ -131,6 +137,12 @@ const typeText = computed(() => {
   if (!s?.category || !s?.clothType || !s?.subKind) return ''
   return `${s.category}-${s.clothType}-${s.subKind}`
 })
+
+const isCreationTypeReady = computed(() => Boolean(typeText.value))
+
+const generateButtonDisabled = computed(
+  () => !isCreationTypeReady.value || !String(imageUrl.value || '').trim() || isGenerating.value,
+)
 
 // 将 -4~4 映射为倍率：2^(scale/2)（变化更平滑，也更像“纹理变大/变小”）
 const fabricMultiplier = computed(() => Math.pow(2, fabricScale.value / 2))
@@ -191,7 +203,7 @@ const handleGenerate = async () => {
   isGenerating.value = true
   try {
     const { file, multiplier, size } = await exportTiledTextureFile(url, fabricScale.value)
-    emit('generate', { file, scale: fabricScale.value, multiplier, size })
+    emit('generate', { file, scale: fabricScale.value, multiplier, size, outputType: outputType.value })
   } finally {
     isGenerating.value = false
   }

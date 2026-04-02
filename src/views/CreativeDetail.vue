@@ -51,12 +51,12 @@
         <div class="info-body pending-body">
           <p class="pending-text">
             <template v-if="detailStatus === 4">
-              生成失败，失败记录不会展示，请稍后查看潮币余额是否回退。
+              生成失败，失败记录不会展示，请稍后查看灵衍值是否回退。
             </template>
             <template v-else>
-              当前作品仍在处理或刚刚生成完成，详情数据尚未同步。
+              当前作品正在生成中，请稍后刷新页面查看。
               <br />
-              请稍候片刻后，在右侧缩略图中重新进入详情查看完整信息。
+              生成完成后会展示完整详情。
             </template>
           </p>
         </div>

@@ -72,7 +72,7 @@
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{
             t('header.register')
-            }}</span>
+          }}</span>
           <div v-show="isUserCardOpen" class="user-card" @mouseenter="openPersonalCenterOnHover"
             @mouseleave="scheduleCloseUserCard">
             <el-button class="invitation-btn" type="primary"
@@ -165,7 +165,7 @@
           <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{
             t('header.register')
-            }}</span>
+          }}</span>
         </div>
       </div>
       <div v-if="showMonthlyLoginPointsTip" class="monthly-login-points-tip"
@@ -291,7 +291,7 @@
               </div>
             </template>
 
-            <div class="header-msg-panel">
+            <!-- <div class="header-msg-panel">
               <div class="header-msg-header">
                 <div class="header-msg-title">官方消息</div>
                 <button type="button" class="mark-all" @click="markOfficialAllRead">一键全部已读</button>
@@ -327,7 +327,7 @@
                   <div v-else class="header-msg-empty">暂无消息</div>
                 </div>
               </el-scrollbar>
-            </div>
+            </div> -->
           </el-popover>
           <div class="user-menu" @mouseleave="scheduleCloseUserCard">
             <div class="user-avatar" @mouseenter="openPersonalCenterOnHover">

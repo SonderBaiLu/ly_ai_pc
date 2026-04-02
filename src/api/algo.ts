@@ -15,7 +15,7 @@ export type DoCalculationPointModelParam = {
 // 模型参数入参
 export type DoCalculationPointTemplateParam = {
   /** 模版入参主键（后端：modelConfigTemplateId） */
-  modelConfigTemplateId: number
+  modelConfigTemplateId: string
   /** 模版入参 code（后端：modelConfigTemplateCode） */
   modelConfigTemplateCode: string
   /** 模版入参名称（后端：modelConfigTemplateName） */
@@ -87,15 +87,15 @@ export type DoCalculationPointPayload = {
 export const buildTemplateParamsFromPopup = (paramList: any[] = []): DoCalculationPointTemplateParam[] => {
   return (Array.isArray(paramList) ? paramList : [])
     .map((p) => {
-      const id = Number(p?.templateId ?? p?.templateID ?? p?.id ?? 0)
       return {
-        modelConfigTemplateId: Number.isFinite(id) ? id : 0,
+        // 后端下发是什么类型就原样透传（目前为 string）
+        modelConfigTemplateId: String(p?.templateId ?? p?.templateID ?? p?.id ?? '').trim(),
         modelConfigTemplateCode: String(p?.templateCode ?? p?.templateCode ?? p?.code ?? ''),
         modelConfigTemplateName: String(p?.templateName ?? p?.name ?? ''),
         modelConfigTemplateType: String(p?.type ?? ''),
       }
     })
-    .filter((p) => p.modelConfigTemplateId > 0 && p.modelConfigTemplateCode && p.modelConfigTemplateName)
+    .filter((p) => p.modelConfigTemplateId && p.modelConfigTemplateCode && p.modelConfigTemplateName)
 }
 
 export const algoApi = {

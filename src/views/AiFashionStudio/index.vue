@@ -93,7 +93,8 @@
     <!-- 模型参数弹窗（父层统一管理，子组件只负责触发 show-params） -->
     <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="currentImageDefaultParams"
       :default-selection="currentImageDefaultSelection" :algorithm-models="currentImageAlgorithmModels"
-      @confirm="handleImageParamsConfirm" @close="handleImageParamsClose" />
+      @selection-change="handleImageParamsSelectionChange" @confirm="handleImageParamsConfirm"
+      @close="handleImageParamsClose" />
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
     <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
@@ -172,7 +173,8 @@ const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
   // 线稿转实物：款型选择与 AI 服装设计一致，typeCode 为 creation_style
   sketchToReal: CREATION_PARAM_CODES.CREATION_STYLE,
   realToSketch: CREATION_PARAM_CODES.GARMENT_STYLE,
-  fabricCreative: CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE,
+  // 面料创拍：弹窗选择“创作款型”（creation_style）
+  fabricCreative: CREATION_PARAM_CODES.CREATION_STYLE,
 }
 
 const defaultRailLabelByKey: Record<LeftMenuKey, string> = {
@@ -264,7 +266,9 @@ const fetchSysPlatformMenu = async () => {
   }
 }
 // ==================== 面料创拍：提交生成 ====================
-const handleFabricGenerate = async (_payload: any) => {
+const handleFabricGenerate = async (payload: any) => {
+  // 保存左侧“生成图片类型”结果，便于 submitByMenuCode 构造 fabric_image_type 的 imageTypeParams
+  formDataByMenu.fabricCreative.fabricImageOutputType = (payload?.outputType || 'flat') as any
   await submitByMenuCode(menuCodeByKey.fabricCreative)
 }
 
@@ -321,6 +325,71 @@ const buildCreationStyleParams = (selection: any) => {
     prentId: String(idx > 0 ? (ids[idx - 1] ?? '') : ''),
     content: String(content ?? ''),
   })).filter((x) => x.content)
+}
+
+const getFabricImageLeafContentByOutputType = (outputType: string) => {
+  if (outputType === 'model') return '模特图'
+  if (outputType === '3d') return '3D图'
+  return '平铺图'
+}
+
+const buildFabricImageTypeParamsByOutputType = (outputType: string, tree: any[]) => {
+  const leafCandidatesByOutputType: Record<string, string[]> = {
+    flat: ['平铺图', '平铺', 'flat'],
+    model: ['模特图', '模特', 'model'],
+    '3d': ['3D图', '3D', '三维图', '3d'],
+  }
+
+  const candidates = leafCandidatesByOutputType[outputType] || leafCandidatesByOutputType.flat
+
+  const getContent = (node: any) =>
+    String(node?.content ?? node?.title ?? node?.typeName ?? node?.name ?? node?.wordsName ?? '').trim()
+  const getId = (node: any) => String(node?.id ?? node?.wordsId ?? node?.code ?? '').trim()
+  const getChildren = (node: any) => (Array.isArray(node?.children) ? node.children : [])
+
+  const dfs = (
+    nodes: any[],
+    pathValues: string[],
+    pathNodeIds: string[],
+  ): { pathValues: string[]; pathNodeIds: string[] } | null => {
+    for (const node of nodes || []) {
+      const content = getContent(node)
+      const id = getId(node)
+      const nextValues = [...pathValues, content]
+      const nextIds = [...pathNodeIds, id]
+      const children = getChildren(node)
+      const isLeaf = !Array.isArray(children) || children.length === 0
+
+      const isMatch = Boolean(content) && candidates.includes(content)
+      if (isMatch && isLeaf) {
+        const pairs = nextValues
+          .map((v, idx) => ({ v, id: nextIds[idx] }))
+          .filter((x) => String(x.v || '').trim().length > 0)
+        return { pathValues: pairs.map((x) => x.v), pathNodeIds: pairs.map((x) => x.id) }
+      }
+
+      if (children.length) {
+        const found = dfs(children, nextValues, nextIds)
+        if (found) return found
+      }
+
+      // 没找到严格叶子匹配时，允许中间节点兜底（至少把 content 传给后端）
+      if (isMatch) {
+        const pairs = nextValues
+          .map((v, idx) => ({ v, id: nextIds[idx] }))
+          .filter((x) => String(x.v || '').trim().length > 0)
+        return { pathValues: pairs.map((x) => x.v), pathNodeIds: pairs.map((x) => x.id) }
+      }
+    }
+    return null
+  }
+
+  const resolved = Array.isArray(tree) && tree.length ? dfs(tree, [], []) : null
+  if (resolved?.pathValues?.length) return buildCreationStyleParams(resolved)
+
+  // 兜底：未知树结构时，仅把叶子 content 传给后端（id/prentId 为空）
+  const leafContent = getFabricImageLeafContentByOutputType(outputType)
+  return buildCreationStyleParams({ pathValues: [leafContent], pathNodeIds: [''] })
 }
 
 /** 线稿转实物：左侧三组单选 → sketchTypeParams / sketchStyleParams / imageTypeParams（与详情页字段一致） */
@@ -437,28 +506,21 @@ const buildRealToSketchSegmentParams = (
   return { sketchGenerationTypeParams, sketchGenerationStyleParams }
 }
 
-// ==================== payload 公共部分（各模块只补差异字段） ====================
+// ==================== payload 公共部分（仅 doCalculationPoint 入参） ====================
 const buildCommonPayloadBase = (
-  form: any,
-  paramsState: any,
   menuCode: string,
-  images: string[],
   modelConfigId: number,
   modelConfigCode: string,
   modelConfigName: string,
+  paramListOrSelectedParams: any[],
 ) => {
-  const templateParams = buildTemplateParamsFromPopup(Object.values(paramsState.selectedParams || {}))
-  const menuKey = menuKeyByCode[menuCode]
+  const templateParams = buildTemplateParamsFromPopup(paramListOrSelectedParams)
   return {
     modelConfigId,
     modelConfigCode,
     modelConfigName,
     menuCode,
-    image: images,
     templateParams,
-    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
-    creativeDescription: String(form.prompt || '').trim(),
-    historyParams: buildHistoryParams(form, menuKey, images),
   }
 }
 
@@ -535,7 +597,20 @@ const submitByMenuCode = async (menuCode: string) => {
     return
   }
 
-  const basePayload = buildCommonPayloadBase(form, paramsState, menuCode, images, modelConfigId, modelConfigCode, modelConfigName)
+  const basePayload = buildCommonPayloadBase(
+    menuCode,
+    modelConfigId,
+    modelConfigCode,
+    modelConfigName,
+    Object.values(paramsState.selectedParams || {}),
+  )
+  const submitPayloadBase: any = {
+    ...basePayload,
+    image: images,
+    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
+    creativeDescription: String(form.prompt || '').trim(),
+    historyParams: buildHistoryParams(form, menuKey, images),
+  }
 
   let diffPayload: any
   if (menuKey === 'aiFashion') {
@@ -544,9 +619,18 @@ const submitByMenuCode = async (menuCode: string) => {
       designFeaturesParams: form.designFeaturesParams || [],
     }
   } else if (menuKey === 'fabricCreative') {
+    const creationStyleParams = buildCreationStyleParams(creationTypeSelectionByMenu.fabricCreative)
+    if (!creationStyleParams.length) {
+      ElMessage.error('请先选择创作款型')
+      return
+    }
+
+    const outputType = String(form.fabricImageOutputType || 'flat')
+    const imageTypeParams = buildFabricImageTypeParamsByOutputType(outputType, fabricImageTypeOptionTree.value || [])
+
     diffPayload = {
-      // 面料创款：只需要 imageTypeParams（由款型选择树生成）
-      imageTypeParams: buildCreationStyleParams(creationTypeSelectionByMenu.fabricCreative),
+      creationStyleParams,
+      imageTypeParams,
     }
   } else if (menuKey === 'sketchToReal') {
     const { sketchTypeParams, sketchStyleParams, imageTypeParams } = buildSketchToRealSegmentParams(
@@ -574,17 +658,14 @@ const submitByMenuCode = async (menuCode: string) => {
     }
   }
 
-  const payload: any = {
-    ...basePayload,
-    ...diffPayload,
-  }
+  const payload: any = { ...submitPayloadBase, ...diffPayload }
 
   try {
     loading.value = true
     const res = await algoApi.submit(payload)
     if (res.code === '0000') {
       ElMessage.success('已提交生成任务')
-      // 提交成功会扣灵衍值，刷新 Header 等处的潮币/余额展示
+      // 提交成功会扣灵衍值，刷新 Header 等处的灵衍值/余额展示
       await refreshUserInfoIfLoggedIn()
       const orderNo = String((res as any)?.data?.orderNo ?? '')
       if (orderNo) {
@@ -926,6 +1007,8 @@ type SingleImageFormState = CommonFormState & {
   image: string
   taskResultId?: string | number
   sketchParamSelections: Record<string, string>
+  /** 面料创拍：左侧“生成图片类型”按钮值（flat/model/3d），用于映射后端 fabric_image_type */
+  fabricImageOutputType?: 'flat' | 'model' | '3d'
 }
 
 type SketchToRealFormState = SingleImageFormState
@@ -967,6 +1050,7 @@ const createSingleImageFormState = (): SingleImageFormState => ({
   historyParams: [],
   sketchParamSelections: {},
   params: createAlgoParamsState(),
+  fabricImageOutputType: 'flat',
 })
 
 const formDataByMenu = reactive<FormStateByMenu>({
@@ -1110,6 +1194,42 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
         const state = formDataByMenu[menuKey].params
         state.algorithmModels = models
 
+        const triggerCoinCostCalculationOnce = () => {
+          // 每个模块仅在“首次加载模型配置”时触发一次试算
+          if (coinCostCalculatedOnceByMenu.has(menuKey)) return
+          activeImageParamsMenuKey.value = menuKey
+          // 优先使用“默认模型参数数据”（defaultParamObject），确保试算输入与弹窗默认回显一致
+          const defaultParamObject = state?.defaultParamObject
+          const hasDefaultParamObject =
+            defaultParamObject &&
+            Number(defaultParamObject?.algorithmId ?? 0) > 0 &&
+            Array.isArray(defaultParamObject?.paramList)
+
+          const selectionResult = hasDefaultParamObject
+            ? defaultParamObject
+            : (() => {
+                const selectedAlgorithm = state?.selectedAlgorithm
+                const selectedParams = state?.selectedParams || {}
+                return {
+                  algorithmId: selectedAlgorithm?.algorithmId ?? selectedAlgorithm?.id ?? 0,
+                  algorithmCode: selectedAlgorithm?.code ?? selectedAlgorithm?.algorithmCode ?? '',
+                  algorithmName: selectedAlgorithm?.name ?? selectedAlgorithm?.algorithmName ?? '',
+                  paramList: Object.values(selectedParams).map((p: any) => ({
+                    templateId: p?.templateId || '',
+                    templateCode: p?.templateCode || '',
+                    templateName: p?.templateName || '',
+                    type: p?.type,
+                    vipStatus: p?.vipStatus,
+                    waveCoin: p?.waveCoin,
+                    templateDesc: p?.templateDesc || '',
+                    imageUrl: p?.imageUrl || '',
+                  })),
+                }
+              })()
+          triggerCalculationPointNow(selectionResult, { debounceMs: 0 })
+          coinCostCalculatedOnceByMenu.add(menuKey)
+        }
+
         const hasSelectedParams = Object.keys(state.selectedParams || {}).length > 0
         // 接口仅返回 algorithmModels：默认值从数组内逐层按 defaultStatus 提取
         if (!hasSelectedParams) {
@@ -1120,6 +1240,7 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           state.coinCost = defaultState.coinCost
           state.defaultParamObject = defaultState.defaultParamObject
           fetchedAlgoMenuCodes.add(menuCode)
+          triggerCoinCostCalculationOnce()
           return
         }
 
@@ -1137,7 +1258,24 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           ...selectedParamNames,
         ].filter(Boolean)
         state.coinCost = calculateCoinCost(state.selectedAlgorithm, state.selectedParams)
+        // 兼容：首次试算优先使用 defaultParamObject
+        state.defaultParamObject = {
+          algorithmId: state.selectedAlgorithm?.algorithmId ?? state.selectedAlgorithm?.id ?? 0,
+          algorithmCode: state.selectedAlgorithm?.code ?? state.selectedAlgorithm?.algorithmCode ?? '',
+          algorithmName: state.selectedAlgorithm?.name ?? state.selectedAlgorithm?.algorithmName ?? '',
+          paramList: Object.values(state.selectedParams || {}).map((p: any) => ({
+            templateId: p?.templateId || '',
+            templateCode: p?.templateCode || '',
+            templateName: p?.templateName || '',
+            type: p?.type,
+            vipStatus: p?.vipStatus,
+            waveCoin: p?.waveCoin,
+            templateDesc: p?.templateDesc || '',
+            imageUrl: p?.imageUrl || '',
+          })),
+        }
         fetchedAlgoMenuCodes.add(menuCode)
+        triggerCoinCostCalculationOnce()
       }
     }
   } catch (error) {
@@ -1148,7 +1286,10 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
 
 const openImageParams = async () => {
   // getAlgoConfigTempRelation 要求传二级菜单 code，这里直接用当前左侧模块对应的 menuCode
-  await fetchAlgoConfigTempRelation(menuCodeByKey[leftMenu.value])
+  // 锁定弹窗对应的模块：防止用户切换左侧模块后，回显/试算更新到错误模块（避免“串联”）
+  activeImageParamsMenuKey.value = leftMenu.value
+  await fetchAlgoConfigTempRelation(menuCodeByKey[activeImageParamsMenuKey.value])
+
   showImageParamPopup.value = true
 }
 
@@ -1198,15 +1339,19 @@ const currentMenuId = computed(() => {
   return matched?.id != null ? String(matched.id) : ''
 })
 
-// ==================== 灵衍值试算（点击“确定”时调用一次） ====================
+// ==================== 灵衍值试算（首次加载一次 + 弹窗“确定”再触发） ====================
 const calculationToken = ref(0)
+const calculationDebounceTimer = ref<number | null>(null)
+// 记录当前“试算”绑定的模块：首次加载与弹窗确定时，都严格用它更新对应模块数据
+const activeImageParamsMenuKey = ref<LeftMenuKey>('aiFashion')
 
-const triggerCalculationPointNow = async (selectionResult: any) => {
-  const targetMenuKey = leftMenu.value
+// 记录每个模块是否已完成“首次加载”试算（后续只在弹窗确定时再试算一次）
+const coinCostCalculatedOnceByMenu = new Set<LeftMenuKey>()
+
+// 灵衍值试算
+const triggerCalculationPointNow = (selectionResult: any, opts?: { debounceMs?: number }) => {
+  const targetMenuKey = activeImageParamsMenuKey.value
   const state = formDataByMenu[targetMenuKey].params
-  const form = formDataByMenu[targetMenuKey]
-  const formAny: any = form as any
-  const creationAny: any = creationTypeSelectionByMenu as any
 
   const menuCode = menuCodeByKey[targetMenuKey]
   const modelConfigId = Number(selectionResult?.algorithmId ?? 0)
@@ -1214,88 +1359,43 @@ const triggerCalculationPointNow = async (selectionResult: any) => {
   const modelConfigName = String(selectionResult?.algorithmName ?? '')
   if (!menuCode || !modelConfigId || !modelConfigCode || !modelConfigName) return
 
-  // 图片字段：接口 schema 要 string[]，单图模块也按 [image] 传
-  const images: string[] =
-    targetMenuKey === 'aiFashion'
-      ? Array.isArray(form.image)
-        ? form.image.map((v: any) => String(v ?? '').trim()).filter(Boolean)
-        : []
-      : String(form.image ?? '').trim()
-          ? [String(form.image).trim()]
-          : []
-
-  const templateParams = buildTemplateParamsFromPopup(selectionResult?.paramList || [])
-
-  const basePayload: any = {
+  // doCalculationPoint 只需要公共字段：算法模型 + menuCode + templateParams
+  const payload = buildCommonPayloadBase(
+    menuCode,
     modelConfigId,
     modelConfigCode,
     modelConfigName,
-    menuCode,
-    image: images,
-    templateParams,
-    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
-    creativeDescription: String(form.prompt || '').trim(),
-    historyParams: buildHistoryParams(form, targetMenuKey, images),
-  }
+    selectionResult?.paramList || [],
+  )
 
-  const diffPayload: any =
-    targetMenuKey === 'aiFashion'
-      ? {
-          creationStyleParams: buildCreationStyleParams(creationAny?.aiFashion?.creationTypeSelection),
-          designFeaturesParams: formAny?.designFeaturesParams || [],
-        }
-      : targetMenuKey === 'fabricCreative'
-        ? {
-            imageTypeParams: buildCreationStyleParams(creationAny?.fabricCreative),
-          }
-        : targetMenuKey === 'sketchToReal'
-          ? (() => {
-              const { sketchTypeParams, sketchStyleParams, imageTypeParams } = buildSketchToRealSegmentParams(
-                sketchToRealParamCategories.value,
-                formAny?.sketchParamSelections || {},
-              )
-              return {
-                creationStyleParams: buildCreationStyleParams(creationAny?.sketchToReal),
-                sketchTypeParams,
-                sketchStyleParams,
-                imageTypeParams,
-              }
-            })()
-          : (() => {
-              const { sketchGenerationTypeParams, sketchGenerationStyleParams } = buildRealToSketchSegmentParams(
-                realToSketchParamCategories.value,
-                formAny?.sketchParamSelections || {},
-              )
-              return {
-                garmentStyleParams: buildCreationStyleParams(creationAny?.realToSketch),
-                sketchGenerationTypeParams,
-                sketchGenerationStyleParams,
-              }
-            })()
-
-  const payload = { ...basePayload, ...diffPayload }
-
+  // token 用于丢弃过期响应；debounce 用于减少短时间内的重复试算
   const currentToken = ++calculationToken.value
-  try {
-    const res = await algoApi.doCalculationPoint(payload)
+  if (calculationDebounceTimer.value != null) window.clearTimeout(calculationDebounceTimer.value)
+  const debounceMs = typeof opts?.debounceMs === 'number' ? opts.debounceMs : 300
+  calculationDebounceTimer.value = window.setTimeout(async () => {
+    // 只要有新的选择触发，就丢弃当前请求结果
     if (currentToken !== calculationToken.value) return
+    try {
+      const res = await algoApi.doCalculationPoint(payload)
+      if (currentToken !== calculationToken.value) return
 
-    const data: any = (res as any)?.data ?? (res as any)
-    if (String((res as any)?.code) !== '0000') return
+      const data: any = (res as any)?.data ?? (res as any)
+      if (String((res as any)?.code) !== '0000') return
 
-    // 按你的要求：直接使用接口返回 points 字段
-    const points = Number(data?.points ?? 0)
-    if (Number.isFinite(points) && points >= 0) {
-      state.coinCost = points
+      // 按你的要求：直接使用接口返回 points 字段
+      const points = Number(data?.points ?? 0)
+      if (Number.isFinite(points) && points >= 0) {
+        state.coinCost = points
+      }
+    } catch (_e) {
+      // 试算失败不影响生成，只保留本地 coinCost
     }
-  } catch (_e) {
-    // 试算失败不影响生成，只保留本地 coinCost
-  }
+  }, debounceMs)
 }
 
 const handleImageParamsConfirm = (result: any) => {
   // ImageParamPopup 的 result: { algorithmId, algorithmName, paramList: [{templateName,...}, ...] }
-  const state = getCurrentParams()
+  const state = formDataByMenu[activeImageParamsMenuKey.value].params
   const algorithmName = String(result?.algorithmName || '').trim()
   const paramNames: string[] = Array.isArray(result?.paramList)
     ? result.paramList.map((p: any) => String(p?.templateName || '').trim()).filter(Boolean)
@@ -1325,8 +1425,12 @@ const handleImageParamsConfirm = (result: any) => {
   void triggerCalculationPointNow(result)
 }
 
+const handleImageParamsSelectionChange = (_result: any) => {
+  // 本需求：灵衍值试算不随弹窗内切换实时触发，避免多次扣灵衍值请求
+}
+
 const handleImageParamsClose = (_result: any) => {
-  // 关闭时不做试算；credits 只在“确定”后更新
+  // 关闭弹窗不触发试算；coinCost/credits 由“首次加载”和“确定”触发后更新
 }
 
 // ==================== 灵感词词典弹窗（父层统一管理） ====================
@@ -1363,6 +1467,30 @@ const normalizeInspirationCategories = (list: any[] = []) => {
 
 // 灵感词词典数据
 const libraryData = ref<any[]>([])
+
+// 面料创拍：fabric_image_type 词典（用于把“生成图片类型”(flat/model/3d)映射成后端 imageTypeParams）
+const fabricImageTypeOptionTree = ref<any[]>([])
+
+const fetchFabricImageTypeOptionTree = async () => {
+  try {
+    const functionCode = menuCodeByKey.fabricCreative
+    const typeCode = CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE
+    if (!functionCode || !typeCode) {
+      fabricImageTypeOptionTree.value = []
+      return
+    }
+
+    const res = await appApi.getInspirationWords({ functionCode, typeCode })
+    if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
+      fabricImageTypeOptionTree.value = res.data as any[]
+      return
+    }
+    fabricImageTypeOptionTree.value = []
+  } catch (error) {
+    fabricImageTypeOptionTree.value = []
+    console.error('获取面料创拍 fabric_image_type 词典失败', error)
+  }
+}
 
 /** 线稿转实物：左侧三组单选（线稿类型/线稿风格/图片类型），后端一次返回（typeCode=sketch_type） */
 const sketchToRealParamCategories = ref<any[]>([])
@@ -1589,6 +1717,58 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
     } else {
       hasMoreData.value = mapped.length >= listPageSize.value
     }
+
+    // 开发环境兜底：用于直观看“生成中(status=2)/失败(status=4)”占位 UI
+    // - 若列表缺少 status=2 或 status=4，则补入一条假数据（避免每次 reset 都重复插入）
+    // if (import.meta.env.DEV && reset) {
+    //   const wasEmpty = assets.value.length === 0
+    //   const hasGen = assets.value.some((a: any) => Number(a?.status) === 2)
+    //   const hasFail = assets.value.some((a: any) => Number(a?.status) === 4)
+    //   if (!hasGen || !hasFail) {
+    //     const now = new Date().toISOString()
+    //     const menu = String(menuCode || 'dev')
+
+    //     const mocks: any[] = []
+    //     if (!hasGen) {
+    //       mocks.push({
+    //         id: 'dev-mock-order-gen-2',
+    //         algoOrderId: 'dev-mock-order-gen-2',
+    //         algoUuId: null,
+    //         menuCode: menu,
+    //         thumbUrl: null,
+    //         url: null,
+    //         originalUrl: null,
+    //         fileType: 1,
+    //         collectStatus: 0,
+    //         status: 2,
+    //         prompt: '生成中（假数据）',
+    //         createTime: now,
+    //         progress: 30,
+    //       })
+    //     }
+    //     if (!hasFail) {
+    //       mocks.push({
+    //         id: 'dev-mock-order-fail-4',
+    //         algoOrderId: 'dev-mock-order-fail-4',
+    //         algoUuId: null,
+    //         menuCode: menu,
+    //         thumbUrl: null,
+    //         url: null,
+    //         originalUrl: null,
+    //         fileType: 1,
+    //         collectStatus: 0,
+    //         status: 4,
+    //         prompt: '生成失败（假数据）',
+    //         createTime: now,
+    //         progress: 0,
+    //       })
+    //     }
+
+    //     assets.value = [...mocks, ...assets.value] as any
+    //     currentIndex.value = 0
+    //     if (wasEmpty) hasMoreData.value = false
+    //   }
+    // }
 
     // 如果首次加载没数据，确保 currentIndex 不越界
     if (assets.value.length === 0) currentIndex.value = 0
@@ -2012,6 +2192,7 @@ watch(
   (menu) => {
     syncActiveMenuCode()
     fetchInspirationWords(menu)
+    if (menu === 'fabricCreative') void fetchFabricImageTypeOptionTree()
     // 线稿转实物：进入模块时单独拉一次左侧三组选项（避免每次点“灵感词词库”都重复请求）
     if (menu === 'sketchToReal') {
       const functionCode = menuCodeByKey[menu]
