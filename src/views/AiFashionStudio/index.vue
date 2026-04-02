@@ -677,7 +677,7 @@ const submitByMenuCode = async (menuCode: string) => {
     }
   } catch (e) {
     console.error('[AiFashionStudio] doCalculationPoint failed:', e)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   } finally {
     loading.value = false
   }
@@ -1843,11 +1843,11 @@ const handleCollect = async (idx: number) => {
       }
       ElMessage.success(wasCollected ? '取消收藏' : '收藏成功')
     } else {
-      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
+      ElMessage.error(response.msg || '网络开小差了，请稍后重试~')
     }
   } catch (e) {
     console.error('[AiFashionStudio] collect failed:', e)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 
@@ -1930,7 +1930,7 @@ const handleAlgoDelete = async (idx: number) => {
   } catch (e: any) {
     if (e === 'cancel') return
     console.error('[AiFashionStudio] del failed:', e)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 

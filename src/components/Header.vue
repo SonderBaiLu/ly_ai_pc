@@ -558,7 +558,7 @@ type OfficialMsgItem = {
 
 const officialMessages = ref<OfficialMsgItem[]>([])
 
-const officialMsgTab = ref<'all' | 'unread'>('all')
+// const officialMsgTab = ref<'all' | 'unread'>('all')
 
 const officialMsgLoading = ref(false)
 const officialMsgLastFetchAt = ref(0)
@@ -619,23 +619,23 @@ const fetchOfficialMessages = async (force = false) => {
 
 const officialUnreadCount = computed(() => officialMessages.value.filter((m) => Number(m.readStatus) === 0).length)
 
-const displayedOfficialMessages = computed(() => {
-  if (officialMsgTab.value === 'unread') {
-    return officialMessages.value.filter((m) => Number(m.readStatus) === 0)
-  }
-  return officialMessages.value
-})
+// const displayedOfficialMessages = computed(() => {
+//   if (officialMsgTab.value === 'unread') {
+//     return officialMessages.value.filter((m) => Number(m.readStatus) === 0)
+//   }
+//   return officialMessages.value
+// })
 
-const markOfficialAllRead = () => {
-  officialMessages.value = officialMessages.value.map((m) => ({ ...m, readStatus: 1 }))
-}
+// const markOfficialAllRead = () => {
+//   officialMessages.value = officialMessages.value.map((m) => ({ ...m, readStatus: 1 }))
+// }
 
-const handleOfficialMsgDetail = (msg: OfficialMsgItem) => {
-  const idx = officialMessages.value.findIndex((m) => m.id === msg.id)
-  if (idx !== -1 && Number(officialMessages.value[idx].readStatus) === 0) {
-    officialMessages.value[idx] = { ...officialMessages.value[idx], readStatus: 1 }
-  }
-}
+// const handleOfficialMsgDetail = (msg: OfficialMsgItem) => {
+//   const idx = officialMessages.value.findIndex((m) => m.id === msg.id)
+//   if (idx !== -1 && Number(officialMessages.value[idx].readStatus) === 0) {
+//     officialMessages.value[idx] = { ...officialMessages.value[idx], readStatus: 1 }
+//   }
+// }
 
 const handleOfficialMsgPopoverShow = () => {
   void fetchOfficialMessages()

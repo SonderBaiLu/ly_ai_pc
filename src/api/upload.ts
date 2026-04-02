@@ -109,7 +109,7 @@ export const uploadApi = {
       console.error('图片上传失败:', error)
       const failMsg = pickErrorMsg(error)
       if (showMessage) {
-        ElMessage.error(failMsg || '网络开小差了，请稍后重试')
+        ElMessage.error(failMsg || '网络开小差了，请稍后重试~')
       }
       return { success: false, message: failMsg || '网络错误' }
     }
@@ -185,7 +185,7 @@ export const uploadApi = {
       console.error('视频上传失败:', error)
       const failMsg = pickErrorMsg(error)
       if (showMessage) {
-        ElMessage.error(failMsg || '网络开小差了，请稍后重试')
+        ElMessage.error(failMsg || '网络开小差了，请稍后重试~')
       }
       return { success: false, message: failMsg || '网络错误' }
     }
@@ -250,7 +250,7 @@ export const uploadApi = {
       console.error('文件上传失败:', error)
       const failMsg = pickErrorMsg(error)
       if (showMessage) {
-        ElMessage.error(failMsg || '网络开小差了，请稍后重试')
+        ElMessage.error(failMsg || '网络开小差了，请稍后重试~')
       }
       return { success: false, message: failMsg || '网络错误' }
     }

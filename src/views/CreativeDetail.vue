@@ -1801,7 +1801,7 @@ const handleAssetsCollect = async () => {
         templateDetail.value.collectId = nextCollectId || null
         ElMessage.success(isCollecting ? '收藏成功' : '取消收藏')
       } else {
-        ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
+        ElMessage.error(response.msg || '网络开小差了，请稍后重试~')
       }
     } else {
       // 其它来源创作：旧接口 creative.ts / asset.ts 已下线
@@ -1810,7 +1810,7 @@ const handleAssetsCollect = async () => {
     }
   } catch (error) {
     console.error('收藏操作失败:', error)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 
@@ -1887,7 +1887,7 @@ const handleDelete = async () => {
       return
     }
     console.error('删除操作失败:', error)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 

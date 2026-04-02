@@ -9,7 +9,7 @@
             上传面料图<span class="required-mark">（必传）</span>
           </div>
           <el-button class="upload-btn" size="small" type="primary" plain
-          @click="emit('open-type-modal')">选择款型</el-button>
+            @click="emit('open-type-modal')">选择款型</el-button>
         </div>
         <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
           :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
@@ -37,17 +37,11 @@
         </div>
 
         <!-- 款型选择回显 -->
-      <div class="select-card" @click="emit('open-type-modal')">
-        {{ typeText ? typeText : '+ 请选择创作款型' }}
-        <img
-          v-if="typeText"
-          class="select-del-icon"
-          :src="images.tagDel"
-          alt=""
-          srcset=""
-          @click.stop="emit('clear-type-selection')"
-        >
-      </div>
+        <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
+          {{ typeText ? typeText : '+ 请选择创作款型' }}
+          <img v-if="typeText" class="select-del-icon" :src="images.tagDel" alt="" srcset=""
+            @click.stop="emit('clear-type-selection')">
+        </div>
       </div>
 
       <div class="block">
@@ -72,8 +66,9 @@
     </div>
 
     <div class="bottom-sticky">
-      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="generateButtonDisabled" :loading="isGenerating"
-        button-text="立即生成" @show-params="() => emit('show-params')" @generate="handleGenerate" />
+      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="generateButtonDisabled"
+        :loading="isGenerating" button-text="立即生成" @show-params="() => emit('show-params')"
+        @generate="handleGenerate" />
     </div>
   </div>
 </template>
