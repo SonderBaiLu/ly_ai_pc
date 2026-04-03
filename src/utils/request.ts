@@ -195,10 +195,18 @@ const handleAuthExpired = (msg?: string) => {
     } catch {
       // ignore redirect failures
     }
+     // 跳转到首页后自动打开登录弹窗
+    try {
+      localStorage.setItem('openLoginModalAfterRedirect', '1')
+    } catch {
+      // ignore
+    }
     isHandlingAuthExpired = false
     authExpiredTimer = null
   }, 2000)
 }
+
+const SERVER_ERROR_TOAST = '网络开小差了，请稍后重试~'
 
 // 响应拦截器：统一返回 ApiResponse（仅支持新结构），并处理登录过期/102
 ;(request.interceptors.response as any).use(
@@ -224,6 +232,8 @@ const handleAuthExpired = (msg?: string) => {
     return data as any
   },
   (error: any) => {
+    const status = Number(error?.response?.status ?? 0)
+
     // HTTP 401：未授权
     if (error?.response?.status === 401) {
       // 支持单次请求禁用跳转
@@ -235,6 +245,13 @@ const handleAuthExpired = (msg?: string) => {
       const authError: any = error
       authError.__AUTH_EXPIRED__ = true
       return Promise.reject(authError)
+    }
+
+    // HTTP 5xx / 网关错误：统一提示
+    // - status === 0：通常为断网/跨域/被浏览器拦截，统一按网络问题提示
+    // - 5xx：nginx / 服务端异常
+    if (!status || status >= 500) {
+      ElMessage.error(SERVER_ERROR_TOAST)
     }
 
     return Promise.reject(error)

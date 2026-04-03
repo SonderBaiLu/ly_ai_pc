@@ -26,6 +26,30 @@ export const userApi = {
   userCollect(params: any) {
     return request.post('/user/userCollect', params) as unknown as Promise<ApiResponse<{ collectId?: string | number }>>
   },
+
+  /**
+   * 用户消息列表
+   * - POST /v1/user/getUserMsgPage
+   *
+   * 规则：
+   * - readStatus 不传 或为 '-'：不带该字段，让后端走默认“全部”
+   */
+  getUserMsgPage(params: { currentPage: number; offset: number; readStatus?: string }) {
+    const { currentPage, offset, readStatus } = params
+
+    const payload: any = {
+      currentPage,
+      // swagger 文案：offset=每页数量
+      offset,
+    }
+
+    const rs = readStatus == null ? '' : String(readStatus).trim()
+    if (rs && rs !== '-') {
+      payload.readStatus = rs
+    }
+
+    return request.post('/v1/user/getUserMsgPage', payload) as unknown as Promise<ApiResponse<any>>
+  },
   // 用户注销
   usercancellation() {
     return request.get('/v1/login/userCancellation')

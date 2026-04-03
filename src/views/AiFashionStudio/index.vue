@@ -32,10 +32,12 @@
               @show-history="openHistoryModal"
               @update:inspiration-words="(words) => formDataByMenu.aiFashion.inspirationWords = words" />
             <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="formDataByMenu.fabricCreative.image"
+              v-model:prompt="formDataByMenu.fabricCreative.prompt"
               :task-result-id="formDataByMenu.fabricCreative.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
               :inspiration-words="formDataByMenu.fabricCreative.inspirationWords" :coin="imageCoin"
-              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('fabricCreative')"
+              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+              @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
@@ -56,15 +58,19 @@
               @update:sketch-param-selections="(v) => (formDataByMenu.sketchToReal.sketchParamSelections = v)"
               @update:inspiration-words="(words) => (formDataByMenu.sketchToReal.inspirationWords = words)" />
             <RealToSketch v-else v-model:image-url="formDataByMenu.realToSketch.image"
-              :task-result-id="formDataByMenu.realToSketch.taskResultId"
+              v-model:prompt="formDataByMenu.realToSketch.prompt"
+              :sketch-param-selections="formDataByMenu.realToSketch.sketchParamSelections"
+              :param-categories="realToSketchParamCategories" :task-result-id="formDataByMenu.realToSketch.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
               :inspiration-words="formDataByMenu.realToSketch.inspirationWords" :coin="imageCoin"
-              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('realToSketch')"
+              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+              @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleRealToSketchGenerate" @inspiration-library="handleInspirationLibrary"
               @show-history="openHistoryModal"
-              @update:inspiration-words="(words) => formDataByMenu.realToSketch.inspirationWords = words" />
+              @update:sketch-param-selections="(v) => (formDataByMenu.realToSketch.sketchParamSelections = v)"
+              @update:inspiration-words="(words) => (formDataByMenu.realToSketch.inspirationWords = words)" />
           </section>
 
           <!-- 结果列表（主图 + 缩略图） -->
@@ -88,7 +94,8 @@
 
     <!-- 模型参数弹窗（父层统一管理，子组件只负责触发 show-params） -->
     <ImageParamPopup v-model="showImageParamPopup" title="参数设置" :default-params="currentImageDefaultParams"
-      :default-selection="currentImageDefaultSelection" :algorithm-models="currentImageAlgorithmModels" @confirm="handleImageParamsConfirm"
+      :default-selection="currentImageDefaultSelection" :algorithm-models="currentImageAlgorithmModels"
+      @selection-change="handleImageParamsSelectionChange" @confirm="handleImageParamsConfirm"
       @close="handleImageParamsClose" />
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
@@ -159,12 +166,17 @@ const menuCodeByKey: Record<LeftMenuKey, string> = {
   realToSketch: APP_MENU_CODES.PHYS_OBJ_TO_LINE_DRAW,
   fabricCreative: APP_MENU_CODES.FABRIC_DESIGN_CONCEPT,
 }
+/**
+ * 款型弹窗拉树用的 typeCode（getInspirationWords）
+ * - 实物转线稿：garment_style（创作款型）
+ */
 const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
   aiFashion: CREATION_PARAM_CODES.CREATION_STYLE,
   // 线稿转实物：款型选择与 AI 服装设计一致，typeCode 为 creation_style
   sketchToReal: CREATION_PARAM_CODES.CREATION_STYLE,
   realToSketch: CREATION_PARAM_CODES.GARMENT_STYLE,
-  fabricCreative: CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE,
+  // 面料创拍：弹窗选择“创作款型”（creation_style）
+  fabricCreative: CREATION_PARAM_CODES.CREATION_STYLE,
 }
 
 const defaultRailLabelByKey: Record<LeftMenuKey, string> = {
@@ -256,8 +268,34 @@ const fetchSysPlatformMenu = async () => {
   }
 }
 // ==================== 面料创拍：提交生成 ====================
-const handleFabricGenerate = async (_payload: any) => {
-  await submitByMenuCode(menuCodeByKey.fabricCreative)
+const handleFabricGenerate = async (payload: any) => {
+  loading.value = true
+  try {
+    const currentForm: any = formDataByMenu.fabricCreative
+    const original = String(currentForm?.image ?? '').trim()
+
+    currentForm.originalImage = original ? [original] : []
+    currentForm.zoomRatio = Number(payload?.scale ?? payload?.zoomRatio ?? 0)
+    currentForm.fabricImageOutputType = (payload?.outputType || 'flat') as any
+
+    if (!(payload?.file instanceof File)) {
+      ElMessage.error('面料处理图生成失败，请重试')
+      return
+    }
+    const uploadResult = await uploadApi.uploadImage(payload.file as File, {
+      showLoading: false,
+      showMessage: false,
+    })
+    if (!uploadResult.success || !uploadResult.url) {
+      ElMessage.error(String(uploadResult.message || '').trim() || '上传缩放后的面料图失败，请重试')
+      return
+    }
+    currentForm.fabricProcessedImageUrl = String(uploadResult.url).trim()
+
+    await submitByMenuCode(menuCodeByKey.fabricCreative, { skipLoading: true })
+  } finally {
+    loading.value = false
+  }
 }
 
 const buildInspirationWordsParams = (words: any[] = []) => {
@@ -313,6 +351,71 @@ const buildCreationStyleParams = (selection: any) => {
     prentId: String(idx > 0 ? (ids[idx - 1] ?? '') : ''),
     content: String(content ?? ''),
   })).filter((x) => x.content)
+}
+
+const getFabricImageLeafContentByOutputType = (outputType: string) => {
+  if (outputType === 'model') return '模特图'
+  if (outputType === '3d') return '3D图'
+  return '平铺图'
+}
+
+const buildFabricImageTypeParamsByOutputType = (outputType: string, tree: any[]) => {
+  const leafCandidatesByOutputType: Record<string, string[]> = {
+    flat: ['平铺图', '平铺', 'flat'],
+    model: ['模特图', '模特', 'model'],
+    '3d': ['3D图', '3D', '三维图', '3d'],
+  }
+
+  const candidates = leafCandidatesByOutputType[outputType] || leafCandidatesByOutputType.flat
+
+  const getContent = (node: any) =>
+    String(node?.content ?? node?.title ?? node?.typeName ?? node?.name ?? node?.wordsName ?? '').trim()
+  const getId = (node: any) => String(node?.id ?? node?.wordsId ?? node?.code ?? '').trim()
+  const getChildren = (node: any) => (Array.isArray(node?.children) ? node.children : [])
+
+  const dfs = (
+    nodes: any[],
+    pathValues: string[],
+    pathNodeIds: string[],
+  ): { pathValues: string[]; pathNodeIds: string[] } | null => {
+    for (const node of nodes || []) {
+      const content = getContent(node)
+      const id = getId(node)
+      const nextValues = [...pathValues, content]
+      const nextIds = [...pathNodeIds, id]
+      const children = getChildren(node)
+      const isLeaf = !Array.isArray(children) || children.length === 0
+
+      const isMatch = Boolean(content) && candidates.includes(content)
+      if (isMatch && isLeaf) {
+        const pairs = nextValues
+          .map((v, idx) => ({ v, id: nextIds[idx] }))
+          .filter((x) => String(x.v || '').trim().length > 0)
+        return { pathValues: pairs.map((x) => x.v), pathNodeIds: pairs.map((x) => x.id) }
+      }
+
+      if (children.length) {
+        const found = dfs(children, nextValues, nextIds)
+        if (found) return found
+      }
+
+      // 没找到严格叶子匹配时，允许中间节点兜底（至少把 content 传给后端）
+      if (isMatch) {
+        const pairs = nextValues
+          .map((v, idx) => ({ v, id: nextIds[idx] }))
+          .filter((x) => String(x.v || '').trim().length > 0)
+        return { pathValues: pairs.map((x) => x.v), pathNodeIds: pairs.map((x) => x.id) }
+      }
+    }
+    return null
+  }
+
+  const resolved = Array.isArray(tree) && tree.length ? dfs(tree, [], []) : null
+  if (resolved?.pathValues?.length) return buildCreationStyleParams(resolved)
+
+  // 兜底：未知树结构时，仅把叶子 content 传给后端（id/prentId 为空）
+  const leafContent = getFabricImageLeafContentByOutputType(outputType)
+  return buildCreationStyleParams({ pathValues: [leafContent], pathNodeIds: [''] })
 }
 
 /** 线稿转实物：左侧三组单选 → sketchTypeParams / sketchStyleParams / imageTypeParams（与详情页字段一致） */
@@ -377,33 +480,82 @@ const buildSketchToRealSegmentParams = (
   return { sketchTypeParams, sketchStyleParams, imageTypeParams }
 }
 
-// ==================== payload 公共部分（各模块只补差异字段） ====================
+/** 实物转线稿：两组单选 → sketchGenerationTypeParams / sketchGenerationStyleParams */
+const classifyRealToSketchCategory = (cat: any, index: number): 'genType' | 'genStyle' | null => {
+  const code = String(cat?.code ?? cat?.typeCode ?? '').toLowerCase()
+  if (code === CREATION_PARAM_CODES.SKETCH_GENERATION_TYPE || code.endsWith('sketch_generation_type')) return 'genType'
+  if (code === CREATION_PARAM_CODES.SKETCH_GENERATION_STYLE || code.endsWith('sketch_generation_style')) return 'genStyle'
+  const title = String(cat?.content ?? cat?.title ?? '').trim()
+  if (title.includes('线稿生成类型')) return 'genType'
+  if (title.includes('线稿生成风格')) return 'genStyle'
+  if (index === 0) return 'genType'
+  if (index === 1) return 'genStyle'
+  return null
+}
+
+const buildRealToSketchSegmentParams = (
+  categories: any[],
+  selections: Record<string, string>,
+): {
+  sketchGenerationTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+  sketchGenerationStyleParams: Array<{ id: string; configType: string; prentId: string; content: string }>
+} => {
+  const sketchGenerationTypeParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+  const sketchGenerationStyleParams: Array<{ id: string; configType: string; prentId: string; content: string }> = []
+
+  const push = (
+    bucket: Array<{ id: string; configType: string; prentId: string; content: string }>,
+    category: any,
+    opt: any,
+  ) => {
+    bucket.push({
+      id: String(opt?.id ?? ''),
+      configType: String(opt?.configType ?? 'class'),
+      prentId: String(category?.id ?? ''),
+      content: String(opt?.content ?? opt?.name ?? opt?.wordsName ?? ''),
+    })
+  }
+
+  const list = Array.isArray(categories) ? categories : []
+  list.forEach((cat, index) => {
+    const classId = String(cat?.id ?? '')
+    const selId = String((selections || {})[classId] ?? '').trim()
+    if (!classId || !selId) return
+    const children = Array.isArray(cat?.children) ? cat.children : []
+    const opt = children.find((c: any) => String(c?.id ?? '') === selId)
+    if (!opt) return
+    const kind = classifyRealToSketchCategory(cat, index)
+    if (kind === 'genType') push(sketchGenerationTypeParams, cat, opt)
+    else if (kind === 'genStyle') push(sketchGenerationStyleParams, cat, opt)
+  })
+
+  return { sketchGenerationTypeParams, sketchGenerationStyleParams }
+}
+
+// ==================== payload 公共部分（仅 doCalculationPoint 入参） ====================
 const buildCommonPayloadBase = (
-  form: any,
-  paramsState: any,
   menuCode: string,
-  images: string[],
   modelConfigId: number,
   modelConfigCode: string,
   modelConfigName: string,
+  paramListOrSelectedParams: any[],
 ) => {
-  const templateParams = buildTemplateParamsFromPopup(Object.values(paramsState.selectedParams || {}))
-  const menuKey = menuKeyByCode[menuCode]
+  const templateParams = buildTemplateParamsFromPopup(paramListOrSelectedParams)
   return {
     modelConfigId,
     modelConfigCode,
     modelConfigName,
     menuCode,
-    image: images,
     templateParams,
-    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
-    creativeDescription: String(form.prompt || '').trim(),
-    historyParams: buildHistoryParams(form, menuKey, images),
   }
 }
 
 // ==================== 统一提交入口：按 menuCode 构造差异字段 ====================
-const submitByMenuCode = async (menuCode: string) => {
+const submitByMenuCode = async (
+  menuCode: string,
+  options?: { skipLoading?: boolean },
+) => {
+  const manageLoading = !options?.skipLoading
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     return
@@ -435,7 +587,12 @@ const submitByMenuCode = async (menuCode: string) => {
       .filter(Boolean)
       .slice(0, 6)
   } else if (menuKey === 'fabricCreative') {
-    images = String(form.image || '').trim() ? [String(form.image).trim()] : []
+    const processed = String(form.fabricProcessedImageUrl || '').trim()
+    images = processed
+      ? [processed]
+      : String(form.image || '').trim()
+        ? [String(form.image).trim()]
+        : []
     if (!images.length) {
       ElMessage.error('请先上传面料参考图')
       return
@@ -444,11 +601,6 @@ const submitByMenuCode = async (menuCode: string) => {
     images = String(form.image || '').trim() ? [String(form.image).trim()] : []
     if (!images.length) {
       ElMessage.error('请先上传线稿参考图')
-      return
-    }
-    const creationRows = buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal)
-    if (!creationRows.length) {
-      ElMessage.error('请先选择款型')
       return
     }
     const segCats = sketchToRealParamCategories.value || []
@@ -460,16 +612,40 @@ const submitByMenuCode = async (menuCode: string) => {
         return
       }
     }
-  } else {
-    // realToSketch
+  } else if (menuKey === 'realToSketch') {
     images = String(form.image || '').trim() ? [String(form.image).trim()] : []
     if (!images.length) {
       ElMessage.error('请先上传实物参考图')
       return
     }
+    const segCats = realToSketchParamCategories.value || []
+    const selMap = form.sketchParamSelections || {}
+    for (const cat of segCats) {
+      const cid = String(cat?.id ?? '')
+      if (!cid || !String(selMap[cid] ?? '').trim()) {
+        ElMessage.error('请完成线稿生成类型与线稿生成风格的选择')
+        return
+      }
+    }
+  } else {
+    ElMessage.error('功能模块未就绪')
+    return
   }
 
-  const basePayload = buildCommonPayloadBase(form, paramsState, menuCode, images, modelConfigId, modelConfigCode, modelConfigName)
+  const basePayload = buildCommonPayloadBase(
+    menuCode,
+    modelConfigId,
+    modelConfigCode,
+    modelConfigName,
+    Object.values(paramsState.selectedParams || {}),
+  )
+  const submitPayloadBase: any = {
+    ...basePayload,
+    image: images,
+    inspirationWordsParams: buildInspirationWordsParams(form.inspirationWords),
+    creativeDescription: String(form.prompt || '').trim(),
+    historyParams: buildHistoryParams(form, menuKey, images),
+  }
 
   let diffPayload: any
   if (menuKey === 'aiFashion') {
@@ -478,42 +654,51 @@ const submitByMenuCode = async (menuCode: string) => {
       designFeaturesParams: form.designFeaturesParams || [],
     }
   } else if (menuKey === 'fabricCreative') {
+    const creationStyleParams = buildCreationStyleParams(creationTypeSelectionByMenu.fabricCreative)
+
+    const outputType = String(form.fabricImageOutputType || 'flat')
+    const imageTypeParams = buildFabricImageTypeParamsByOutputType(outputType, fabricImageTypeOptionTree.value || [])
+
     diffPayload = {
-      // 面料创款：只需要 imageTypeParams（由款型选择树生成）
-      imageTypeParams: buildCreationStyleParams(creationTypeSelectionByMenu.fabricCreative),
+      creationStyleParams,
+      imageTypeParams,
+      originalImage: (form.originalImage && form.originalImage.length ? form.originalImage : images) || [],
+      zoomRatio: Number(form.zoomRatio ?? 0),
     }
   } else if (menuKey === 'sketchToReal') {
     const { sketchTypeParams, sketchStyleParams, imageTypeParams } = buildSketchToRealSegmentParams(
       sketchToRealParamCategories.value,
       form.sketchParamSelections || {},
     )
+    const creationRows = buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal)
     diffPayload = {
-      // 与 AI 服装设计一致：款型走 creationStyleParams，详情页「款型」展示用
-      creationStyleParams: buildCreationStyleParams(creationTypeSelectionByMenu.sketchToReal),
+      // 与 AI 服装设计一致：款型走 creationStyleParams，详情页「款型」展示用（款型非必选）
+      ...(creationRows.length ? { creationStyleParams: creationRows } : {}),
       sketchTypeParams,
       sketchStyleParams,
       imageTypeParams,
     }
   } else {
-    // realToSketch
+    const { sketchGenerationTypeParams, sketchGenerationStyleParams } = buildRealToSketchSegmentParams(
+      realToSketchParamCategories.value,
+      form.sketchParamSelections || {},
+    )
+    const garmentRows = buildCreationStyleParams(creationTypeSelectionByMenu.realToSketch)
     diffPayload = {
-      garmentStyleParams: buildCreationStyleParams(creationTypeSelectionByMenu.realToSketch),
-      sketchGenerationTypeParams: [],
-      sketchGenerationStyleParams: [],
+      ...(garmentRows.length ? { garmentStyleParams: garmentRows } : {}),
+      sketchGenerationTypeParams,
+      sketchGenerationStyleParams,
     }
   }
 
-  const payload: any = {
-    ...basePayload,
-    ...diffPayload,
-  }
+  const payload: any = { ...submitPayloadBase, ...diffPayload }
 
   try {
-    loading.value = true
+    if (manageLoading) loading.value = true
     const res = await algoApi.submit(payload)
     if (res.code === '0000') {
       ElMessage.success('已提交生成任务')
-      // 提交成功会扣灵衍值，刷新 Header 等处的潮币/余额展示
+      // 提交成功会扣灵衍值，刷新 Header 等处的灵衍值/余额展示
       await refreshUserInfoIfLoggedIn()
       const orderNo = String((res as any)?.data?.orderNo ?? '')
       if (orderNo) {
@@ -525,9 +710,9 @@ const submitByMenuCode = async (menuCode: string) => {
     }
   } catch (e) {
     console.error('[AiFashionStudio] doCalculationPoint failed:', e)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   } finally {
-    loading.value = false
+    if (manageLoading) loading.value = false
   }
 }
 
@@ -853,8 +1038,16 @@ type AiFashionFormState = CommonFormState & {
 // 线稿转实物/实物转线稿/面料创拍：参考图单张
 type SingleImageFormState = CommonFormState & {
   image: string
+  /** 面料创拍：原图（后端需要的原始输入数组） */
+  originalImage?: string[]
+  /** 面料创拍：缩放比例（zoomRatio） */
+  zoomRatio?: number
+  /** 面料创拍：canvas 缩放纹理图上传后的 URL（仅提交用；左侧展示仍用 image 原图） */
+  fabricProcessedImageUrl?: string
   taskResultId?: string | number
   sketchParamSelections: Record<string, string>
+  /** 面料创拍：左侧“生成图片类型”按钮值（flat/model/3d），用于映射后端 fabric_image_type */
+  fabricImageOutputType?: 'flat' | 'model' | '3d'
 }
 
 type SketchToRealFormState = SingleImageFormState
@@ -890,12 +1083,16 @@ const createAiFashionFormState = (): AiFashionFormState => ({
 
 const createSingleImageFormState = (): SingleImageFormState => ({
   image: '',
+  originalImage: [],
+  zoomRatio: undefined,
+  fabricProcessedImageUrl: undefined,
   taskResultId: undefined,
   prompt: '',
   inspirationWords: [],
   historyParams: [],
   sketchParamSelections: {},
   params: createAlgoParamsState(),
+  fabricImageOutputType: 'flat',
 })
 
 const formDataByMenu = reactive<FormStateByMenu>({
@@ -1039,6 +1236,42 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
         const state = formDataByMenu[menuKey].params
         state.algorithmModels = models
 
+        const triggerCoinCostCalculationOnce = () => {
+          // 每个模块仅在“首次加载模型配置”时触发一次试算
+          if (coinCostCalculatedOnceByMenu.has(menuKey)) return
+          activeImageParamsMenuKey.value = menuKey
+          // 优先使用“默认模型参数数据”（defaultParamObject），确保试算输入与弹窗默认回显一致
+          const defaultParamObject = state?.defaultParamObject
+          const hasDefaultParamObject =
+            defaultParamObject &&
+            Number(defaultParamObject?.algorithmId ?? 0) > 0 &&
+            Array.isArray(defaultParamObject?.paramList)
+
+          const selectionResult = hasDefaultParamObject
+            ? defaultParamObject
+            : (() => {
+                const selectedAlgorithm = state?.selectedAlgorithm
+                const selectedParams = state?.selectedParams || {}
+                return {
+                  algorithmId: selectedAlgorithm?.algorithmId ?? selectedAlgorithm?.id ?? 0,
+                  algorithmCode: selectedAlgorithm?.code ?? selectedAlgorithm?.algorithmCode ?? '',
+                  algorithmName: selectedAlgorithm?.name ?? selectedAlgorithm?.algorithmName ?? '',
+                  paramList: Object.values(selectedParams).map((p: any) => ({
+                    templateId: p?.templateId || '',
+                    templateCode: p?.templateCode || '',
+                    templateName: p?.templateName || '',
+                    type: p?.type,
+                    vipStatus: p?.vipStatus,
+                    waveCoin: p?.waveCoin,
+                    templateDesc: p?.templateDesc || '',
+                    imageUrl: p?.imageUrl || '',
+                  })),
+                }
+              })()
+          triggerCalculationPointNow(selectionResult, { debounceMs: 0 })
+          coinCostCalculatedOnceByMenu.add(menuKey)
+        }
+
         const hasSelectedParams = Object.keys(state.selectedParams || {}).length > 0
         // 接口仅返回 algorithmModels：默认值从数组内逐层按 defaultStatus 提取
         if (!hasSelectedParams) {
@@ -1049,6 +1282,7 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           state.coinCost = defaultState.coinCost
           state.defaultParamObject = defaultState.defaultParamObject
           fetchedAlgoMenuCodes.add(menuCode)
+          triggerCoinCostCalculationOnce()
           return
         }
 
@@ -1066,7 +1300,24 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           ...selectedParamNames,
         ].filter(Boolean)
         state.coinCost = calculateCoinCost(state.selectedAlgorithm, state.selectedParams)
+        // 兼容：首次试算优先使用 defaultParamObject
+        state.defaultParamObject = {
+          algorithmId: state.selectedAlgorithm?.algorithmId ?? state.selectedAlgorithm?.id ?? 0,
+          algorithmCode: state.selectedAlgorithm?.code ?? state.selectedAlgorithm?.algorithmCode ?? '',
+          algorithmName: state.selectedAlgorithm?.name ?? state.selectedAlgorithm?.algorithmName ?? '',
+          paramList: Object.values(state.selectedParams || {}).map((p: any) => ({
+            templateId: p?.templateId || '',
+            templateCode: p?.templateCode || '',
+            templateName: p?.templateName || '',
+            type: p?.type,
+            vipStatus: p?.vipStatus,
+            waveCoin: p?.waveCoin,
+            templateDesc: p?.templateDesc || '',
+            imageUrl: p?.imageUrl || '',
+          })),
+        }
         fetchedAlgoMenuCodes.add(menuCode)
+        triggerCoinCostCalculationOnce()
       }
     }
   } catch (error) {
@@ -1077,7 +1328,10 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
 
 const openImageParams = async () => {
   // getAlgoConfigTempRelation 要求传二级菜单 code，这里直接用当前左侧模块对应的 menuCode
-  await fetchAlgoConfigTempRelation(menuCodeByKey[leftMenu.value])
+  // 锁定弹窗对应的模块：防止用户切换左侧模块后，回显/试算更新到错误模块（避免“串联”）
+  activeImageParamsMenuKey.value = leftMenu.value
+  await fetchAlgoConfigTempRelation(menuCodeByKey[activeImageParamsMenuKey.value])
+
   showImageParamPopup.value = true
 }
 
@@ -1127,9 +1381,63 @@ const currentMenuId = computed(() => {
   return matched?.id != null ? String(matched.id) : ''
 })
 
+// ==================== 灵衍值试算（首次加载一次 + 弹窗“确定”再触发） ====================
+const calculationToken = ref(0)
+const calculationDebounceTimer = ref<number | null>(null)
+// 记录当前“试算”绑定的模块：首次加载与弹窗确定时，都严格用它更新对应模块数据
+const activeImageParamsMenuKey = ref<LeftMenuKey>('aiFashion')
+
+// 记录每个模块是否已完成“首次加载”试算（后续只在弹窗确定时再试算一次）
+const coinCostCalculatedOnceByMenu = new Set<LeftMenuKey>()
+
+// 灵衍值试算
+const triggerCalculationPointNow = (selectionResult: any, opts?: { debounceMs?: number }) => {
+  const targetMenuKey = activeImageParamsMenuKey.value
+  const state = formDataByMenu[targetMenuKey].params
+
+  const menuCode = menuCodeByKey[targetMenuKey]
+  const modelConfigId = Number(selectionResult?.algorithmId ?? 0)
+  const modelConfigCode = String(selectionResult?.algorithmCode ?? '')
+  const modelConfigName = String(selectionResult?.algorithmName ?? '')
+  if (!menuCode || !modelConfigId || !modelConfigCode || !modelConfigName) return
+
+  // doCalculationPoint 只需要公共字段：算法模型 + menuCode + templateParams
+  const payload = buildCommonPayloadBase(
+    menuCode,
+    modelConfigId,
+    modelConfigCode,
+    modelConfigName,
+    selectionResult?.paramList || [],
+  )
+
+  // token 用于丢弃过期响应；debounce 用于减少短时间内的重复试算
+  const currentToken = ++calculationToken.value
+  if (calculationDebounceTimer.value != null) window.clearTimeout(calculationDebounceTimer.value)
+  const debounceMs = typeof opts?.debounceMs === 'number' ? opts.debounceMs : 300
+  calculationDebounceTimer.value = window.setTimeout(async () => {
+    // 只要有新的选择触发，就丢弃当前请求结果
+    if (currentToken !== calculationToken.value) return
+    try {
+      const res = await algoApi.doCalculationPoint(payload)
+      if (currentToken !== calculationToken.value) return
+
+      const data: any = (res as any)?.data ?? (res as any)
+      if (String((res as any)?.code) !== '0000') return
+
+      // 按你的要求：直接使用接口返回 points 字段
+      const points = Number(data?.points ?? 0)
+      if (Number.isFinite(points) && points >= 0) {
+        state.coinCost = points
+      }
+    } catch (_e) {
+      // 试算失败不影响生成，只保留本地 coinCost
+    }
+  }, debounceMs)
+}
+
 const handleImageParamsConfirm = (result: any) => {
   // ImageParamPopup 的 result: { algorithmId, algorithmName, paramList: [{templateName,...}, ...] }
-  const state = getCurrentParams()
+  const state = formDataByMenu[activeImageParamsMenuKey.value].params
   const algorithmName = String(result?.algorithmName || '').trim()
   const paramNames: string[] = Array.isArray(result?.paramList)
     ? result.paramList.map((p: any) => String(p?.templateName || '').trim()).filter(Boolean)
@@ -1155,10 +1463,16 @@ const handleImageParamsConfirm = (result: any) => {
   )
   state.coinCost = modelCoin + paramsCoin
   state.defaultParamObject = result
+
+  void triggerCalculationPointNow(result)
+}
+
+const handleImageParamsSelectionChange = (_result: any) => {
+  // 本需求：灵衍值试算不随弹窗内切换实时触发，避免多次扣灵衍值请求
 }
 
 const handleImageParamsClose = (_result: any) => {
-  // 关闭时不强制更新；需要更新走 confirm 即可
+  // 关闭弹窗不触发试算；coinCost/credits 由“首次加载”和“确定”触发后更新
 }
 
 // ==================== 灵感词词典弹窗（父层统一管理） ====================
@@ -1196,8 +1510,38 @@ const normalizeInspirationCategories = (list: any[] = []) => {
 // 灵感词词典数据
 const libraryData = ref<any[]>([])
 
+// 面料创拍：fabric_image_type 词典（用于把“生成图片类型”(flat/model/3d)映射成后端 imageTypeParams）
+const fabricImageTypeOptionTree = ref<any[]>([])
+
+const fetchFabricImageTypeOptionTree = async () => {
+  try {
+    const functionCode = menuCodeByKey.fabricCreative
+    const typeCode = CREATION_PARAM_CODES.FABRIC_IMAGE_TYPE
+    if (!functionCode || !typeCode) {
+      fabricImageTypeOptionTree.value = []
+      return
+    }
+
+    const res = await appApi.getInspirationWords({ functionCode, typeCode })
+    if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
+      fabricImageTypeOptionTree.value = res.data as any[]
+      return
+    }
+    fabricImageTypeOptionTree.value = []
+  } catch (error) {
+    fabricImageTypeOptionTree.value = []
+    console.error('获取面料创拍 fabric_image_type 词典失败', error)
+  }
+}
+
 /** 线稿转实物：左侧三组单选（线稿类型/线稿风格/图片类型），后端一次返回（typeCode=sketch_type） */
 const sketchToRealParamCategories = ref<any[]>([])
+
+/**
+ * 实物转线稿-页面配置：左侧分段单选（线稿生成类型/风格等）
+ * typeCode = sketch_generation_type（与线稿转实物的 sketch_type 用法一致，一次返回多组 class）
+ */
+const realToSketchParamCategories = ref<any[]>([])
 
 const fetchSketchToRealParamCategories = async (functionCode: string) => {
   try {
@@ -1217,17 +1561,39 @@ const fetchSketchToRealParamCategories = async (functionCode: string) => {
   }
 }
 
+const fetchRealToSketchParamCategories = async (functionCode: string) => {
+  try {
+    const res = await appApi.getInspirationWords({
+      functionCode,
+      typeCode: CREATION_PARAM_CODES.SKETCH_GENERATION_TYPE,
+    })
+    if (String((res as any)?.code) === '0000' && Array.isArray((res as any)?.data)) {
+      realToSketchParamCategories.value = ((res as any).data as any[]).filter(
+        (x: any) => Array.isArray(x?.children) && x.children.length > 0,
+      )
+      return
+    }
+    realToSketchParamCategories.value = []
+  } catch (_e) {
+    realToSketchParamCategories.value = []
+  }
+}
+
 const fetchInspirationWords = async (menu: LeftMenuKey = leftMenu.value) => {
   const functionCode = menuCodeByKey[menu]
-  // 灵感词词典固定使用 inspiration_words
+  // 灵感词词典：typeCode = inspiration_words，按当前模块 functionCode（如实物转线稿 phys_obj_to_line_draw）区分配置
   const typeCode = CREATION_PARAM_CODES.INSPIRATION_WORDS
   if (!functionCode || !typeCode) {
     libraryData.value = []
     if (menu !== 'sketchToReal') sketchToRealParamCategories.value = []
+    if (menu !== 'realToSketch') realToSketchParamCategories.value = []
     return
   }
   if (menu !== 'sketchToReal') {
     sketchToRealParamCategories.value = []
+  }
+  if (menu !== 'realToSketch') {
+    realToSketchParamCategories.value = []
   }
   try {
     const res = await appApi.getInspirationWords({
@@ -1240,16 +1606,19 @@ const fetchInspirationWords = async (menu: LeftMenuKey = leftMenu.value) => {
     }
     libraryData.value = []
     if (menu === 'sketchToReal') sketchToRealParamCategories.value = []
+    if (menu === 'realToSketch') realToSketchParamCategories.value = []
   } catch (error) {
     libraryData.value = []
     if (menu === 'sketchToReal') sketchToRealParamCategories.value = []
+    if (menu === 'realToSketch') realToSketchParamCategories.value = []
     console.error('获取灵感词词典失败', error)
   }
 }
 
 // ==================== 右侧：我的创作（列表 + 缩略图） ====================
 // 列表分页/加载状态（避免与左侧“提交生成”loading 互相干扰）
-const listLoading = ref(false)
+// 初始为 true：避免首屏/从详情 router.back 重新挂载时，在 onMounted 拉列表前误展示「空状态」闪一下
+const listLoading = ref(true)
 
 const listPageSize = ref(12)
 const listPage = ref(1)
@@ -1320,16 +1689,33 @@ const mapRecordToCreationResult = (r: any): CreationResult | null => {
   }
 }
 
+const dedupeCreationResultsByIdPreserveOrder = (arr: CreationResult[]): CreationResult[] => {
+  const map = new Map<string, CreationResult>()
+  for (const item of arr) {
+    const id = item?.id
+    if (!id) continue
+    if (!map.has(id)) map.set(id, item)
+  }
+  return Array.from(map.values())
+}
+
+type FetchCreationsOpts = { clearList?: boolean }
+
 // 拉取“我的创作列表”（支持 reset=重置分页、并把新结果合并去重）
-const fetchMyCreations = async (reset = false) => {
-  if (listLoading.value || loadingMore.value) return
+const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
+  if (loadingMore.value) return
+  // 加载更多走 reset=false；全量刷新走 reset=true。初始 listLoading=true 时仍允许首次 reset 进入
+  if (listLoading.value && !reset) return
 
   if (reset) {
     stopAllQueryTimers()
     listPage.value = 1
     hasMoreData.value = false
-    assets.value = []
-    currentIndex.value = 0
+    // 仅切换 tab 等需要「立刻换一批」时清空；从详情返回重挂载时不先清空，避免空状态闪烁
+    if (opts?.clearList) {
+      assets.value = []
+      currentIndex.value = 0
+    }
   }
 
   const tabKey = currentContentTab.value
@@ -1362,17 +1748,38 @@ const fetchMyCreations = async (reset = false) => {
       (Array.isArray(data?.list) && data.list) ||
       (Array.isArray(data) ? data : [])
 
-    const mapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    const recordsMapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    // 进行中：后端会单独返回 orderResulGenerated，需要插入到列表最前面
+    const inProgressRaw: any[] = Array.isArray(data?.orderResulGenerated) ? data.orderResulGenerated : []
+    const inProgressMapped = inProgressRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
 
     if (reset) {
-      assets.value = mapped
+      // 首次/重置：inProgress + 当前页 records
+      assets.value = dedupeCreationResultsByIdPreserveOrder([...inProgressMapped, ...recordsMapped])
     } else {
-      // 合并去重
-      const map = new Map<string, CreationResult>()
-      for (const item of assets.value) map.set(item.id, item)
-      for (const item of mapped) map.set(item.id, item)
-      assets.value = Array.from(map.values())
+      // 加载更多：保持当前选中项不跳动，同时把 inProgress 提到最前
+      const selectedId = assets.value[currentIndex.value]?.id
+      assets.value = dedupeCreationResultsByIdPreserveOrder([...inProgressMapped, ...assets.value, ...recordsMapped])
+      if (selectedId) {
+        const nextIdx = assets.value.findIndex((a) => a?.id === selectedId)
+        currentIndex.value = nextIdx >= 0 ? nextIdx : 0
+      }
     }
+
+    // 如果列表里已经包含“进行中”记录（orderResulGenerated），需要补上轮询，
+    // 以便后端返回 status=3 后自动刷新 UI。
+    const inProgressAssets = assets.value.filter((a) => {
+      const st = Number(a?.status ?? 0)
+      return st === 1 || st === 2
+    })
+    for (const a of inProgressAssets) {
+      const key = String(a?.algoOrderNo ?? a?.algoOrderId ?? a?.id ?? '')
+      if (!key) continue
+      if (queryTimerMap.has(key)) continue
+      void startQueryByOrderNo(key)
+    }
+
+    // TODO: 如果后续发现分页 total 口径不包含 orderResulGenerated，需要再按后端约定调整 hasMoreData 计算逻辑
 
     // 有更多数据判断
     const total = Number(data?.total ?? data?.totalCount ?? 0)
@@ -1381,15 +1788,69 @@ const fetchMyCreations = async (reset = false) => {
     } else if (total > 0) {
       hasMoreData.value = assets.value.length < total
     } else {
-      hasMoreData.value = mapped.length >= listPageSize.value
+      hasMoreData.value = recordsMapped.length >= listPageSize.value
     }
+
+    // 开发环境兜底：用于直观看“生成中(status=2)/失败(status=4)”占位 UI
+    // - 若列表缺少 status=2 或 status=4，则补入一条假数据（避免每次 reset 都重复插入）
+    // if (import.meta.env.DEV && reset) {
+    //   const wasEmpty = assets.value.length === 0
+    //   const hasGen = assets.value.some((a: any) => Number(a?.status) === 2)
+    //   const hasFail = assets.value.some((a: any) => Number(a?.status) === 4)
+    //   if (!hasGen || !hasFail) {
+    //     const now = new Date().toISOString()
+    //     const menu = String(menuCode || 'dev')
+
+    //     const mocks: any[] = []
+    //     if (!hasGen) {
+    //       mocks.push({
+    //         id: 'dev-mock-order-gen-2',
+    //         algoOrderId: 'dev-mock-order-gen-2',
+    //         algoUuId: null,
+    //         menuCode: menu,
+    //         thumbUrl: null,
+    //         url: null,
+    //         originalUrl: null,
+    //         fileType: 1,
+    //         collectStatus: 0,
+    //         status: 2,
+    //         prompt: '生成中（假数据）',
+    //         createTime: now,
+    //         progress: 30,
+    //       })
+    //     }
+    //     if (!hasFail) {
+    //       mocks.push({
+    //         id: 'dev-mock-order-fail-4',
+    //         algoOrderId: 'dev-mock-order-fail-4',
+    //         algoUuId: null,
+    //         menuCode: menu,
+    //         thumbUrl: null,
+    //         url: null,
+    //         originalUrl: null,
+    //         fileType: 1,
+    //         collectStatus: 0,
+    //         status: 4,
+    //         prompt: '生成失败（假数据）',
+    //         createTime: now,
+    //         progress: 0,
+    //       })
+    //     }
+
+    //     assets.value = [...mocks, ...assets.value] as any
+    //     currentIndex.value = 0
+    //     if (wasEmpty) hasMoreData.value = false
+    //   }
+    // }
 
     // 如果首次加载没数据，确保 currentIndex 不越界
     if (assets.value.length === 0) currentIndex.value = 0
     else if (currentIndex.value >= assets.value.length) currentIndex.value = 0
   } catch (e) {
     console.error('[AiFashionStudio] fetchMyCreations failed:', e)
-    assets.value = reset ? [] : assets.value
+    if (reset && opts?.clearList) {
+      assets.value = []
+    }
     hasMoreData.value = false
   } finally {
     listLoading.value = false
@@ -1400,7 +1861,7 @@ const fetchMyCreations = async (reset = false) => {
 // 右侧 tab 切换：重置列表并重新加载
 const handleContentTabChange = (tabKey: string, _fileType?: number) => {
   currentContentTab.value = tabKey === 'favorites' ? 'favorites' : String(tabKey)
-  void fetchMyCreations(true)
+  void fetchMyCreations(true, { clearList: true })
 }
 
 // 无限滚动加载更多：分页 +1 并继续追加到 assets
@@ -1455,11 +1916,11 @@ const handleCollect = async (idx: number) => {
       }
       ElMessage.success(wasCollected ? '取消收藏' : '收藏成功')
     } else {
-      ElMessage.error(response.msg || '网络开小差了~，请稍后再试')
+      ElMessage.error(response.msg || '网络开小差了，请稍后重试~')
     }
   } catch (e) {
     console.error('[AiFashionStudio] collect failed:', e)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 
@@ -1542,7 +2003,7 @@ const handleAlgoDelete = async (idx: number) => {
   } catch (e: any) {
     if (e === 'cancel') return
     console.error('[AiFashionStudio] del failed:', e)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 
@@ -1557,6 +2018,13 @@ const parseAiFashionSlotIndex = (position: any): number | null => {
   if (!Number.isFinite(idx)) return null
   if (idx < 0 || idx > 5) return null
   return idx
+}
+
+/** 面料创拍：换图/选历史时清理“纹理图上传缓存”，避免与左侧原图预览混用 */
+const clearFabricCreativeTransientFields = (form: any) => {
+  form.fabricProcessedImageUrl = undefined
+  form.originalImage = []
+  form.zoomRatio = undefined
 }
 
 const handleDropFile = async (payload: any) => {
@@ -1579,6 +2047,17 @@ const handleDropFile = async (payload: any) => {
     if (leftMenu.value === 'aiFashion') {
       const parsedIdx = parseAiFashionSlotIndex(payload.position)
       const nextImages = Array.isArray(currentForm.image) ? [...currentForm.image] : []
+
+      const normalizeAiFashionPairs = (imgs: string[], ids: any[], max = 6) => {
+        // 始终保持 imgs/ids 一一对应；过滤掉空字符串，避免出现“空位挤在中间”
+        const pairs = imgs.map((img, i) => ({ img, id: ids[i] }))
+          .filter((p) => String(p.img ?? '').trim().length > 0)
+          .slice(0, max)
+        return {
+          imgs: pairs.map((p) => String(p.img)),
+          ids: pairs.map((p) => String(p.id ?? '')),
+        }
+      }
 
       // 如果 position 解析不到（例如本地上传某些入口没带 slot 信息），则自动填充“下一个空位”
       const idx =
@@ -1603,9 +2082,25 @@ const handleDropFile = async (payload: any) => {
       nextIds[idx] = ''
       nextIds.length = Math.min(6, Math.max(nextIds.length, idx + 1))
       currentForm.taskResultId = nextIds
+
+      // 将“最新上传的这张图”移动到最前面（index=0），保证 UI 从前到后是最新优先
+      const movedImg = currentForm.image[idx]
+      const movedId = (currentForm.taskResultId || [])[idx] ?? ''
+      const imgs2 = [...currentForm.image]
+      const ids2 = [...(currentForm.taskResultId || [])]
+      if (idx >= 0 && idx < imgs2.length) {
+        imgs2.splice(idx, 1)
+        ids2.splice(idx, 1)
+        imgs2.unshift(movedImg)
+        ids2.unshift(movedId)
+        const normalized = normalizeAiFashionPairs(imgs2, ids2)
+        currentForm.image = normalized.imgs
+        currentForm.taskResultId = normalized.ids
+      }
       return
     }
 
+    if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
     currentForm.image = fileUrl
     currentForm.taskResultId = undefined
     currentForm.historyImageType = undefined
@@ -1618,6 +2113,16 @@ const handleDropFile = async (payload: any) => {
     if (leftMenu.value === 'aiFashion') {
       const parsedIdx = parseAiFashionSlotIndex(payload.position)
       const nextImages = Array.isArray(currentForm.image) ? [...currentForm.image] : []
+
+      const normalizeAiFashionPairs = (imgs: string[], ids: any[], max = 6) => {
+        const pairs = imgs.map((img, i) => ({ img, id: ids[i] }))
+          .filter((p) => String(p.img ?? '').trim().length > 0)
+          .slice(0, max)
+        return {
+          imgs: pairs.map((p) => String(p.img)),
+          ids: pairs.map((p) => String(p.id ?? '')),
+        }
+      }
 
       // 拖拽/历史带 position 的场景优先使用解析值；如果解析不到，仍然按“下一个空位”补位
       const idx =
@@ -1645,9 +2150,25 @@ const handleDropFile = async (payload: any) => {
       nextIds[idx] = tid
       nextIds.length = Math.min(6, Math.max(nextIds.length, idx + 1))
       currentForm.taskResultId = nextIds
+
+      // 将“最新拖拽/选中的这张图”移动到最前面（index=0）
+      const movedImg = currentForm.image[idx]
+      const movedId = (currentForm.taskResultId || [])[idx] ?? ''
+      const imgs2 = [...currentForm.image]
+      const ids2 = [...(currentForm.taskResultId || [])]
+      if (idx >= 0 && idx < imgs2.length) {
+        imgs2.splice(idx, 1)
+        ids2.splice(idx, 1)
+        imgs2.unshift(movedImg)
+        ids2.unshift(movedId)
+        const normalized = normalizeAiFashionPairs(imgs2, ids2)
+        currentForm.image = normalized.imgs
+        currentForm.taskResultId = normalized.ids
+      }
       return
     }
 
+    if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
     currentForm.image = url
     const tidSingle =
       payload.taskResultId == null || payload.taskResultId === ''
@@ -1681,6 +2202,7 @@ const handleRefDelete = (payload?: any) => {
     currentForm.image = nextImages
     currentForm.taskResultId = nextIds.length ? nextIds : undefined
   } else {
+    if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
     currentForm.image = ''
     currentForm.taskResultId = undefined
     currentForm.historyImageType = undefined
@@ -1723,6 +2245,7 @@ const selectHistoryCreation = (item: any) => {
   }
 
   const currentForm = formDataByMenu[leftMenu.value]
+  if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
   currentForm.image = imageUrl
   currentForm.taskResultId = item?.id == null ? undefined : String(item.id)
   currentForm.historyImageType = item?.id == null ? undefined : 'image'
@@ -1804,26 +2327,18 @@ watch(
   (menu) => {
     syncActiveMenuCode()
     fetchInspirationWords(menu)
+    if (menu === 'fabricCreative') void fetchFabricImageTypeOptionTree()
     // 线稿转实物：进入模块时单独拉一次左侧三组选项（避免每次点“灵感词词库”都重复请求）
     if (menu === 'sketchToReal') {
       const functionCode = menuCodeByKey[menu]
       if (functionCode) void fetchSketchToRealParamCategories(functionCode)
     }
+    if (menu === 'realToSketch') {
+      const functionCode = menuCodeByKey[menu]
+      if (functionCode) void fetchRealToSketchParamCategories(functionCode)
+    }
     // getAlgoConfigTempRelation 需要传二级菜单 code，这里按照左侧模块映射
     fetchAlgoConfigTempRelation(menuCodeByKey[menu])
-    // 左侧模块切换时：右侧列表默认选中“该模块对应的一级菜单”
-    const moduleMenuCode = activeMenuCode.value
-    const hasModuleTab = rightContentTabs.value.some((t) => t.key === moduleMenuCode)
-    currentContentTab.value = hasModuleTab ? moduleMenuCode : deriveRightTabKeyFromLeftMenu()
-    if (import.meta.env.DEV) {
-      console.log('[AiFashionStudio] leftMenu watch tab:', {
-        activeMenuCode: moduleMenuCode,
-        hasModuleTab,
-        currentContentTab: currentContentTab.value,
-        rightTabs: rightContentTabs.value.map((t) => t.key),
-      })
-    }
-    void fetchMyCreations(true)
   },
   { immediate: true }
 )

@@ -140,8 +140,6 @@ const typeText = computed(() => {
   return `${s.category}-${s.clothType}-${s.subKind}`
 })
 
-const isCreationTypeReady = computed(() => Boolean(typeText.value))
-
 const hasSketchImage = computed(() => String(imageUrl.value || '').trim().length > 0)
 
 const allSegmentCategoriesSelected = computed(() => {
@@ -169,12 +167,9 @@ const modelParamSummary = computed(() => {
 
 const submitting = computed(() => Boolean(props.submitting))
 
+/** 进行中用 :loading，勿再写入 disabled */
 const generateButtonDisabled = computed(
-  () =>
-    !isCreationTypeReady.value ||
-    !hasSketchImage.value ||
-    !segmentParamsReady.value ||
-    submitting.value,
+  () => !hasSketchImage.value || !segmentParamsReady.value,
 )
 </script>
 

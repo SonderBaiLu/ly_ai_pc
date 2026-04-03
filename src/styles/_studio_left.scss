@@ -16,6 +16,14 @@
   text-align: center;
 }
 
+.block-bordered-bg {
+  padding: 25px 10px 26px;
+  margin-bottom: $spacing-sm;
+  border-radius: $border-radius-md;
+  background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .block-title {
   margin-bottom: $spacing-md;
   padding: 0 $spacing-sm-xs;

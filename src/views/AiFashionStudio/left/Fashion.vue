@@ -3,14 +3,14 @@
     <div class="left-panel-scroll">
       <div class="panel-title">AI服装设计</div>
 
-      <div class="block">
+      <div class="block-bordered-bg">
         <div class="block-title">创作款型<span class="required-mark">（必选，单选）</span></div>
         <div class="select-card" @click="emit('open-type-modal')">
           {{ typeText ? typeText : '+ 请选择款型' }}
         </div>
       </div>
 
-      <div class="block">
+      <div class="block-bordered-bg">
         <div class="block-title">设计特征<span class="required-mark">（非必选，多选）</span></div>
         <template v-if="selectedFeatures.length">
           <div v-if="selectedFeatures && selectedFeatures.length > 0" class="feature-chips">
@@ -33,18 +33,21 @@
       <ImageUploadArea :image-url="imageUrl?.[0] || ''" image-type="ref" image-name="slot-0"
         :show-actions="String(imageUrl?.[0] ?? '').trim().length > 0" :clickable="true" placeholder-text="上传或拖拽参考图"
         :show-history-tip="true" :enable-history-replace="true" @upload="emit('coming-soon')"
-        @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)" @show-history="(p: any) => emit('show-history', p)"
-        @drop-file="(p: File) => emit('drop-file', p)" v-if="imageUrl.length == 0" />
+        @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)"
+        @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)"
+        v-if="imageUrl.length == 0" />
 
-      <el-scrollbar style="height: auto;" v-if="imageUrl.length > 0">
+      <el-scrollbar :style="{ height: 'auto', marginBottom: imageUrl.length > 0 ? '15px' : '0' }"
+        v-if="imageUrl.length > 0">
         <div class="scrollbar-flex-content">
+          <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
+            @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)"
+            v-if="imageUrl.length < 6" />
           <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
             :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
-            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)" @show-history="(p: any) => emit('show-history', p)"
-            @drop-file="(p: any) => emit('drop-file', p)" />
-          <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
-            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)" @show-history="(p: any) => emit('show-history', p)"
-            @drop-file="(p: any) => emit('drop-file', p)" v-if="imageUrl.length < 6" />
+            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
+            @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)" />
         </div>
       </el-scrollbar>
 
@@ -129,8 +132,8 @@ const typeText = computed(() => {
 /** 创作款型（必选）已选满三级 */
 const isCreationTypeReady = computed(() => Boolean(typeText.value))
 
-/** 默认不可点；选完款型后可点；提交中不可点 */
-const generateButtonDisabled = computed(() => !isCreationTypeReady.value || Boolean(props.submitting))
+/** 选完款型后可点；提交中仅用 :loading，勿叠 disabled 以免转圈不显示 */
+const generateButtonDisabled = computed(() => !isCreationTypeReady.value)
 
 const showFeatureModal = ref(false)
 const designFeatureSelection = ref<DesignFeatureSelection>({})
@@ -246,14 +249,6 @@ const removeFeature = (categoryKey: string, label: string) => {
 
 .left-panel {
 
-  .block {
-    padding: 25px 10px 26px;
-    margin-bottom: $spacing-sm;
-    border-radius: $border-radius-md;
-    background: linear-gradient(135deg, rgba(9, 17, 37, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-
   .feature-chips {
     display: flex;
     flex-wrap: wrap;
@@ -299,7 +294,7 @@ const removeFeature = (categoryKey: string, label: string) => {
     display: flex;
     flex-wrap: nowrap;
     gap: 11px;
-    padding-bottom: 10px;
+    padding-bottom: 20px;
   }
 }
 </style>

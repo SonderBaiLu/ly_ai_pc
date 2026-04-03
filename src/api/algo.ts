@@ -15,7 +15,7 @@ export type DoCalculationPointModelParam = {
 // 模型参数入参
 export type DoCalculationPointTemplateParam = {
   /** 模版入参主键（后端：modelConfigTemplateId） */
-  modelConfigTemplateId: number
+  modelConfigTemplateId: string
   /** 模版入参 code（后端：modelConfigTemplateCode） */
   modelConfigTemplateCode: string
   /** 模版入参名称（后端：modelConfigTemplateName） */
@@ -51,6 +51,10 @@ export type DoCalculationPointPayload = {
   menuCode: string
   /** 需要操作的图片路径集合 */
   image: string[]
+  /** 面料创拍：原图（未拼接/缩放前的输入图片） */
+  originalImage?: string[]
+  /** 面料创拍：缩放比例（用于复现前端缩放/平铺逻辑） */
+  zoomRatio?: number
   /** 模版入参（后端：templateParams） */
   templateParams: DoCalculationPointTemplateParam[]
 
@@ -87,15 +91,15 @@ export type DoCalculationPointPayload = {
 export const buildTemplateParamsFromPopup = (paramList: any[] = []): DoCalculationPointTemplateParam[] => {
   return (Array.isArray(paramList) ? paramList : [])
     .map((p) => {
-      const id = Number(p?.templateId ?? p?.templateID ?? p?.id ?? 0)
       return {
-        modelConfigTemplateId: Number.isFinite(id) ? id : 0,
+        // 后端下发是什么类型就原样透传（目前为 string）
+        modelConfigTemplateId: String(p?.templateId ?? p?.templateID ?? p?.id ?? '').trim(),
         modelConfigTemplateCode: String(p?.templateCode ?? p?.templateCode ?? p?.code ?? ''),
         modelConfigTemplateName: String(p?.templateName ?? p?.name ?? ''),
         modelConfigTemplateType: String(p?.type ?? ''),
       }
     })
-    .filter((p) => p.modelConfigTemplateId > 0 && p.modelConfigTemplateCode && p.modelConfigTemplateName)
+    .filter((p) => p.modelConfigTemplateId && p.modelConfigTemplateCode && p.modelConfigTemplateName)
 }
 
 export const algoApi = {

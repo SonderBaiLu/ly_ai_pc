@@ -55,6 +55,17 @@ onMounted(() => {
   // 自动打开一下登录弹窗
   // modalStore.openLoginModal()
 
+  // 兼容：token 过期等场景下，request.ts 会先跳转首页再打开登录弹窗
+  try {
+    const flag = localStorage.getItem('openLoginModalAfterRedirect')
+    if (flag === '1') {
+      modalStore.openLoginModal()
+      localStorage.removeItem('openLoginModalAfterRedirect')
+    }
+  } catch {
+    // ignore
+  }
+
   // 自动打开一下灵衍AI 生成内容标识规则及责任声明弹窗
   // modalStore.openWatermarkDisclaimerModal()
 })

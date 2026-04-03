@@ -219,11 +219,11 @@ const handleCollect = async () => {
       })
       ElMessage.success(wasCollected ? '取消收藏' : '收藏成功')
     } else {
-      ElMessage.error(res.msg || '网络开小差了~，请稍后再试')
+      ElMessage.error(res.msg || '网络开小差了，请稍后重试~')
     }
   } catch (error) {
     console.error('收藏操作失败:', error)
-    ElMessage.error('网络开小差了~，请稍后再试')
+    ElMessage.error('网络开小差了，请稍后重试~')
   }
 }
 

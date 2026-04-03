@@ -16,11 +16,11 @@
           @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)"
           @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)" />
 
-        <!-- 面料缩放设置（上传后展示；生成前会用 canvas 导出平铺+缩放后的纹理图） -->
+        <!-- 面料缩放设置（上传后展示；生成前导出「缩放后 + 正方形中心裁切」图供后端） -->
         <div v-if="imageUrl" class="fabric-scale-card">
           <div class="fabric-scale-title">面料缩放设置</div>
           <div class="fabric-scale-body">
-            <div class="fabric-scale-preview" :style="fabricPreviewStyle" />
+            <canvas ref="fabricPreviewCanvasRef" class="fabric-scale-preview" aria-hidden="true" />
             <div class="fabric-scale-slider">
               <div class="fabric-scale-slider-header flex align-center flex-between">
                 <div class="fabric-scale-label">缩放设置</div>
@@ -38,8 +38,9 @@
 
         <!-- 款型选择回显 -->
         <div class="select-card" @click="emit('open-type-modal')" v-if="typeText">
-          {{ typeText }}
-          <img class="select-del-icon" :src="images.tagDel" alt="" srcset="" @click.stop="emit('clear-type-selection')">
+          {{ typeText ? typeText : '+ 请选择创作款型' }}
+          <img v-if="typeText" class="select-del-icon" :src="images.tagDel" alt="" srcset=""
+            @click.stop="emit('clear-type-selection')">
         </div>
       </div>
 
@@ -65,8 +66,9 @@
     </div>
 
     <div class="bottom-sticky">
-      <VideoOptionsSection :options="defaultImageParams" :credits="coin" :disabled="true" :loading="isGenerating"
-        button-text="立即生成" @show-params="() => emit('show-params')" @generate="handleGenerate" />
+      <VideoOptionsSection :options="modelParamSummary" :credits="coin" :disabled="generateButtonDisabled"
+        :loading="sectionLoading" button-text="立即生成" @show-params="() => emit('show-params')"
+        @generate="handleGenerate" />
     </div>
   </div>
 </template>
@@ -75,8 +77,8 @@
 import { images } from '@/assets'
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 
-// const imageUrl = defineModel<string>('imageUrl', { default: '' })
-const imageUrl = ref('https://image-prod.chaotuishou.com/erp/2025/11/27/ML-38%E7%BB%B8%E7%BC%8E%E8%A3%85%E7%BD%AE.jpg')
+const imageUrl = defineModel<string>('imageUrl', { default: '' })
+const prompt = defineModel<string>('prompt', { default: '' })
 
 const props = defineProps<{
   taskResultId?: string | number
@@ -84,6 +86,10 @@ const props = defineProps<{
   inspirationWords?: any[]
   coin?: number
   menuId?: string | number
+  /** 与 AI 服装设计 / 线稿转实物一致：ImageParamPopup 回显的模型+维度摘要 */
+  defaultImageParams?: string[]
+  /** 父级提交生成中（与 index loading 同步） */
+  submitting?: boolean
 }>()
 
 // 监听inspirationWords变化
@@ -102,7 +108,7 @@ const emit = defineEmits<{
   (e: 'delete', payload?: any): void
   (e: 'coming-soon'): void
   (e: 'show-params'): void
-  (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number }): void
+  (e: 'generate', payload: { file: File; scale: number; multiplier: number; size: number; outputType: OutputType }): void
   (e: 'open-type-modal'): void
   (e: 'clear-type-selection'): void
   (e: 'inspiration-library'): void
@@ -112,7 +118,6 @@ const emit = defineEmits<{
 
 type OutputType = 'flat' | 'model' | '3d'
 const outputType = ref<OutputType>('flat')
-const prompt = ref('')
 const inspirationWords = ref<any[]>([])
 const fabricScale = ref(0) // -4 ~ 4
 
@@ -121,10 +126,19 @@ const updateInspirationWords = (words: any[]) => {
   emit('update:inspiration-words', words)
 }
 
-// 底部参数区（先给默认展示，后续接生成/参数弹窗时可从父层传入真实值）
-const defaultImageParams = computed<string[]>(() => ['LingImage 1.0', '自适应', '2K', '1'])
 const coin = computed(() => Number(props.coin ?? 0))
 const isGenerating = ref(false)
+
+/** 与线稿转实物一致：优先展示父层从算法配置回显的模型参数摘要 */
+const modelParamSummary = computed(() => {
+  const fromParent = props.defaultImageParams
+  if (Array.isArray(fromParent) && fromParent.length > 0) return fromParent
+  return ['请点击参数设置']
+})
+
+const submitting = computed(() => Boolean(props.submitting))
+/** 父级提交中 或 本地面料纹理导出中 */
+const sectionLoading = computed(() => submitting.value || isGenerating.value)
 
 const typeText = computed(() => {
   const s = props.creationTypeSelection
@@ -132,21 +146,80 @@ const typeText = computed(() => {
   return `${s.category}-${s.clothType}-${s.subKind}`
 })
 
-// 将 -4~4 映射为倍率：2^(scale/2)（变化更平滑，也更像“纹理变大/变小”）
-const fabricMultiplier = computed(() => Math.pow(2, fabricScale.value / 2))
+/** 进行中用 :loading，勿再 disabled，否则与 Element Plus 的 loading 叠在一起不显示转圈 */
+const generateButtonDisabled = computed(() => !String(imageUrl.value || '').trim())
 
-const fabricPreviewStyle = computed(() => {
-  const url = String(imageUrl.value || '').trim()
-  if (!url) return {}
-  const base = 80 // 基础平铺尺寸（px）
-  const size = Math.max(16, Math.round(base * fabricMultiplier.value))
-  return {
-    backgroundImage: `url(${url})`,
-    backgroundRepeat: 'repeat',
-    backgroundPosition: 'center',
-    backgroundSize: `${size}px ${size}px`,
+/** 滑块 scale∈[-4,4] → 相对默认铺满尺度的倍率：2^(scale/2)（0→1，+4→4，-4→1/4） */
+const fabricZoomFromSlider = (scale: number) => Math.pow(2, scale / 2)
+
+const fabricPreviewCanvasRef = ref<HTMLCanvasElement | null>(null)
+const PREVIEW_CSS = 80
+const EXPORT_SIZE = 1024
+
+/**
+ * 后端出图：cover 基准 × 滑块倍率 z。
+ * - z ≥ 1（放大/默认）：单张居中绘制，画布裁出中心（与 object-fit: cover 再放大一致）
+ * - z < 1（缩小）：整图缩到 tile 后「密铺」铺满画布，无白边；网格相对画布居中
+ */
+const drawFabricExport = (
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  output: number,
+  scale: number,
+) => {
+  const W = img.naturalWidth || img.width
+  const H = img.naturalHeight || img.height
+  if (!W || !H) return
+  const z = fabricZoomFromSlider(scale)
+  const cover = Math.max(output / W, output / H)
+
+  if (z >= 1) {
+    const drawW = W * cover * z
+    const drawH = H * cover * z
+    const x = (output - drawW) / 2
+    const y = (output - drawH) / 2
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, output, output)
+    ctx.drawImage(img, 0, 0, W, H, x, y, drawW, drawH)
+    return
   }
-})
+
+  const tileW = Math.max(1, W * cover * z)
+  const tileH = Math.max(1, H * cover * z)
+  const nCol = Math.ceil(output / tileW)
+  const nRow = Math.ceil(output / tileH)
+  const ox = (output - nCol * tileW) / 2
+  const oy = (output - nRow * tileH) / 2
+  for (let row = 0; row < nRow; row++) {
+    for (let col = 0; col < nCol; col++) {
+      ctx.drawImage(img, 0, 0, W, H, ox + col * tileW, oy + row * tileH, tileW, tileH)
+    }
+  }
+}
+
+const paintFabricPreview = async () => {
+  const canvas = fabricPreviewCanvasRef.value
+  const url = String(imageUrl.value || '').trim()
+  if (!canvas || !url) return
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+  canvas.width = Math.round(PREVIEW_CSS * dpr)
+  canvas.height = Math.round(PREVIEW_CSS * dpr)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+  try {
+    const img = await loadImage(url)
+    drawFabricExport(ctx, img, PREVIEW_CSS, Number(fabricScale.value))
+  } catch {
+    ctx.clearRect(0, 0, PREVIEW_CSS, PREVIEW_CSS)
+  }
+}
+
+watch([imageUrl, fabricScale], () => {
+  void nextTick(() => paintFabricPreview())
+}, { immediate: true })
 
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -159,30 +232,21 @@ const loadImage = (src: string) =>
 
 const exportTiledTextureFile = async (src: string, scale: number) => {
   const img = await loadImage(src)
-  const multiplier = Math.pow(2, scale / 2)
-  const size = 1024 // 输出纹理尺寸：可按算法要求调整（1024/2048）
+  const size = EXPORT_SIZE
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas 2D context unavailable')
 
-  // 纹理平铺单元尺寸：按倍率缩放
-  const baseTile = 256
-  const tile = Math.max(32, Math.round(baseTile * multiplier))
-
-  // 平铺绘制
-  for (let y = 0; y < size; y += tile) {
-    for (let x = 0; x < size; x += tile) {
-      ctx.drawImage(img, x, y, tile, tile)
-    }
-  }
+  drawFabricExport(ctx, img, size, Number(scale))
 
   const blob: Blob = await new Promise((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
   })
-  const file = new File([blob], `fabric_texture_${size}_${scale}x.png`, { type: 'image/png' })
-  return { file, multiplier, size }
+  const file = new File([blob], `fabric_crop_${size}_${scale}x.png`, { type: 'image/png' })
+  // multiplier 与滑块刻度一致（-4 即 -4），供父层兜底；提交 zoomRatio 以 scale 为准
+  return { file, multiplier: scale, size }
 }
 
 const handleGenerate = async () => {
@@ -191,7 +255,7 @@ const handleGenerate = async () => {
   isGenerating.value = true
   try {
     const { file, multiplier, size } = await exportTiledTextureFile(url, fabricScale.value)
-    emit('generate', { file, scale: fabricScale.value, multiplier, size })
+    emit('generate', { file, scale: fabricScale.value, multiplier, size, outputType: outputType.value })
   } finally {
     isGenerating.value = false
   }

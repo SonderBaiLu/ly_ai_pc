@@ -154,6 +154,7 @@ export const images = {
   // M
   more: new URL('./images/more.png', import.meta.url).href,
   msg: new URL('./images/msg.png', import.meta.url).href,
+  message: new URL('./images/message.png', import.meta.url).href,
   money: new URL('./images/money.png', import.meta.url).href,
   magic: new URL('./images/magic.png', import.meta.url).href,
 
@@ -176,6 +177,7 @@ export const images = {
   refreshCode: new URL('./images/refresh_code.png', import.meta.url).href,
   right: new URL('./images/right.png', import.meta.url).href,
   rightTop: new URL('./images/right_top.png', import.meta.url).href,
+  rightWhite: new URL('./images/right_white.png', import.meta.url).href,
   replace: new URL('./images/replace.png', import.meta.url).href,
   reset: new URL('./images/team/reset.png', import.meta.url).href,
   recaptureQR: new URL('./images/login_popup/recaptureQR.png', import.meta.url).href,

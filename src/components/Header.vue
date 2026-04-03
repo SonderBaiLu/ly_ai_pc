@@ -10,10 +10,10 @@
       <nav class="nav-menu">
         <template v-for="item in menuItems" :key="item.key">
           <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
-                      :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
+            :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
             <template #reference>
               <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
-                 @click.prevent="handleMenuClick(item)">
+                @click.prevent="handleMenuClick(item)">
                 {{ t(`header.${item.key}`) }}
               </a>
             </template>
@@ -21,7 +21,7 @@
               <div v-for="(x, index) in pcCustomerService" :key="index" class="qrcode-popover-item">
                 <h3 class="qrcode-popover-title">{{ x.title }}</h3>
                 <div class="qrcode-popover-box">
-                  <img :src="x.url" :alt="x.desc" class="qrcode-image"/>
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
                 </div>
                 <p class="qrcode-popover-label">{{ x.desc }}</p>
               </div>
@@ -29,10 +29,10 @@
           </el-popover>
 
           <el-popover v-else-if="item.key === 'followUs' && followUsList.length > 0" placement="bottom" trigger="hover"
-                      :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
+            :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
             <template #reference>
               <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
-                 @click.prevent="handleMenuClick(item)">
+                @click.prevent="handleMenuClick(item)">
                 {{ t(`header.${item.key}`) }}
               </a>
             </template>
@@ -40,7 +40,7 @@
               <div v-for="(x, index) in followUsList" :key="index" class="qrcode-popover-item">
                 <h3 v-if="x.title" class="qrcode-popover-title">{{ x.title }}</h3>
                 <div class="qrcode-popover-box">
-                  <img :src="x.url" :alt="x.desc" class="qrcode-image"/>
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
                 </div>
                 <p class="qrcode-popover-label">{{ x.desc }}</p>
               </div>
@@ -48,7 +48,7 @@
           </el-popover>
 
           <a v-else href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
-             @click.prevent="handleMenuClick(item)">
+            @click.prevent="handleMenuClick(item)">
             {{ t(`header.${item.key}`) }}
           </a>
         </template>
@@ -56,35 +56,35 @@
 
       <div class="nav-right">
         <div class="lang-select-wrapper">
-          <img class="globe-icon" src="@/assets/images/language.png" alt="Globe"/>
+          <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
           <el-select v-model="locale" @change="handleLanguageChangeSelect" class="lang-select">
             <template #suffix>
-              <img src="@/assets/images/down.png" alt="Arrow" class="custom-down"/>
+              <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
             </template>
             <el-option v-for="option in languageOptions" :key="option.value" :label="option.label"
-                       :value="option.value"/>
+              :value="option.value" />
           </el-select>
         </div>
         <!-- 登录状态：显示头像 + 个人信息卡片（hover 展开，带延迟）；未登录：显示登录/注册按钮 -->
         <div v-if="isAuthed" class="user-menu user-menu--home">
           <div class="user-avatar" @mouseenter="openPersonalCenterOnHover" @mouseleave="scheduleCloseUserCard">
-            <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon"/>
+            <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{
-              t('header.register')
-            }}</span>
+            t('header.register')
+          }}</span>
           <div v-show="isUserCardOpen" class="user-card" @mouseenter="openPersonalCenterOnHover"
-               @mouseleave="scheduleCloseUserCard">
+            @mouseleave="scheduleCloseUserCard">
             <el-button class="invitation-btn" type="primary"
-                       @click="enterModule(() => router.push('/invitation-gift'))">
+              @click="enterModule(() => router.push('/invitation-gift'))">
               邀请有礼
             </el-button>
             <div @click="openUserInfo()" class="user-card-header">
               <div class="user-card-avatar">
                 <img class="user-card-avatar-img" :src="userStore.userInfo?.headImgUrl || images.avatarHeader"
-                     alt="User Avatar"/>
+                  alt="User Avatar" />
                 <div class="user-edit">
-                  <img :src="images.editMini" alt="User Avatar"/>
+                  <img :src="images.editMini" alt="User Avatar" />
                 </div>
               </div>
               <div class="user-card-main">
@@ -111,10 +111,10 @@
               </div>
 
               <div class="user-card-row" role="button" tabindex="0" @click="handleOpenInspirationDetail"
-                   @keydown.enter.prevent="handleOpenInspirationDetail">
+                @keydown.enter.prevent="handleOpenInspirationDetail">
                 <span>灵衍值</span>
                 <div class="user-money flex items-center">
-                  <img :src="images.money" alt=""/>
+                  <img :src="images.money" alt="" />
                   <span>{{ userStore.userInfo?.wavePoints || 0 }}</span>
                 </div>
               </div>
@@ -122,42 +122,41 @@
 
             <!-- 语言行 + 自定义语言弹窗 -->
             <div class="user-item flex-between user-item--language" @mouseenter="openLanguagePopover"
-                 @mouseleave="scheduleCloseLanguagePopover">
+              @mouseleave="scheduleCloseLanguagePopover">
               <div class="flex items-center">
-                <img :src="images.languageBlack" alt="" class="user-icon"/>
+                <img :src="images.languageBlack" alt="" class="user-icon" />
                 <span class="row-label">语言</span>
               </div>
               <div class="flex items-center">
                 <span class="user-language">{{ getCurrentLanguageLabel() }}</span>
-                <img :src="images.arrowRight" alt="" class="user-icon"/>
+                <img :src="images.arrowRight" alt="" class="user-icon" />
               </div>
 
               <!-- 语言选择小窗 -->
               <div v-show="isLanguagePopoverOpen" class="language-popover" @mouseenter.stop="openLanguagePopover"
-                   @mouseleave.stop="scheduleCloseLanguagePopover">
-                <el-button class="language-option"
-                           :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
-                           :link="getCurrentLanguageLabel() != '简体中文'"
-                           @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文
+                @mouseleave.stop="scheduleCloseLanguagePopover">
+                <el-button class="language-option" :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
+                  :link="getCurrentLanguageLabel() != '简体中文'"
+                  @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文
                 </el-button>
                 <el-button class="language-option"
-                           :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
-                           :link="getCurrentLanguageLabel() != 'English'"
-                           @click.stop="handleLanguageChange('en'); closeLanguagePopover()">English
+                  :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
+                  :link="getCurrentLanguageLabel() != 'English'"
+                  @click.stop="handleLanguageChange('en'); closeLanguagePopover()">English
                 </el-button>
               </div>
             </div>
             <div class="user-item flex items-center" @click="modalStore.openContactUsModal()">
-              <img :src="images.customer" alt="Customer" class="user-icon"/>
+              <img :src="images.customer" alt="Customer" class="user-icon" />
               <span class="row-label">客服</span>
             </div>
             <div class="user-item flex items-center" @click="handleProductTutorialClick">
-              <img :src="images.product" alt="Product" class="user-icon"/>
+              <img :src="images.product" alt="Product" class="user-icon" />
               <span class="row-label">产品教程</span>
             </div>
 
             <div class="user-item user-card-footer" @click="handleLogout">
-              <img :src="images.logout" alt="Logout" class="user-icon"/>
+              <img :src="images.logout" alt="Logout" class="user-icon" />
               <span class="row-label">退出登录</span>
             </div>
           </div>
@@ -165,12 +164,12 @@
         <div class="auth-buttons" v-if="!isAuthed">
           <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{
-              t('header.register')
-            }}</span>
+            t('header.register')
+          }}</span>
         </div>
       </div>
       <div v-if="showMonthlyLoginPointsTip" class="monthly-login-points-tip"
-           :class="{ 'is-hiding': isMonthlyTipHiding }">
+        :class="{ 'is-hiding': isMonthlyTipHiding }">
         每月{{ monthlyLoginPoints }}免费灵衍值已到账
       </div>
     </div>
@@ -182,13 +181,13 @@
       </div>
 
       <div class="lang-select-wrapper">
-        <img class="globe-icon" src="@/assets/images/language.png" alt="Globe"/>
+        <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
         <el-select v-model="locale" @change="handleLanguageChangeSelect" class="lang-select">
           <template #suffix>
-            <img src="@/assets/images/down.png" alt="Arrow" class="custom-down"/>
+            <img src="@/assets/images/down.png" alt="Arrow" class="custom-down" />
           </template>
           <el-option v-for="option in languageOptions" :key="option.value" :label="option.label"
-                     :value="option.value"/>
+            :value="option.value" />
         </el-select>
       </div>
 
@@ -196,7 +195,7 @@
       <nav class="nav-menu">
         <template v-for="item in menuData" :key="item.key">
           <el-popover v-if="item.key === 'contactUs'" placement="bottom" trigger="hover"
-                      :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
+            :width="Math.min(672, 160 * pcCustomerService.length)" popper-class="header-qrcode-popper">
             <template #reference>
               <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }">
                 {{ t(`header.${item.key}`) }}
@@ -206,7 +205,7 @@
               <div v-for="(x, index) in pcCustomerService" :key="index" class="qrcode-popover-item">
                 <h3 class="qrcode-popover-title">{{ x.title }}</h3>
                 <div class="qrcode-popover-box">
-                  <img :src="x.url" :alt="x.desc" class="qrcode-image"/>
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
                 </div>
                 <p class="qrcode-popover-label">{{ x.desc }}</p>
               </div>
@@ -214,10 +213,10 @@
           </el-popover>
 
           <el-popover v-else-if="item.key === 'followUs' && followUsList.length > 0" placement="bottom" trigger="hover"
-                      :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
+            :width="Math.min(672, 160 * followUsList.length)" popper-class="header-qrcode-popper">
             <template #reference>
               <a href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
-                 @click.prevent="handleMenuClick(item)">
+                @click.prevent="handleMenuClick(item)">
                 {{ t(`header.${item.key}`) }}
               </a>
             </template>
@@ -225,7 +224,7 @@
               <div v-for="(x, index) in followUsList" :key="index" class="qrcode-popover-item">
                 <h3 v-if="x.title" class="qrcode-popover-title">{{ x.title }}</h3>
                 <div class="qrcode-popover-box">
-                  <img :src="x.url" :alt="x.desc" class="qrcode-image"/>
+                  <img :src="x.url" :alt="x.desc" class="qrcode-image" />
                 </div>
                 <p class="qrcode-popover-label">{{ x.desc }}</p>
               </div>
@@ -233,7 +232,7 @@
           </el-popover>
 
           <a v-else href="#" class="nav-item" :class="{ active: item.path && item.path === route.path }"
-             @click.prevent="handleMenuClick(item)">
+            @click.prevent="handleMenuClick(item)">
             {{ t(`header.${item.key}`) }}
           </a>
         </template>
@@ -242,22 +241,22 @@
       <div class="nav-right nav-right--ai">
         <template v-if="isAuthed">
           <span class="ai-link" role="button" tabindex="0" @click="enterModule(() => router.push('/my-creations'))"
-                @keydown.enter="enterModule(() => router.push('/my-creations'))">
+            @keydown.enter="enterModule(() => router.push('/my-creations'))">
             我的创作
           </span>
           <div class="ai-coin-pill" @mouseenter="openWavePointsPanel" @mouseleave="scheduleCloseWavePointsPanel">
-            <img src="@/assets/images/coin.png" alt="Coin" class="coin-icon"/>
+            <img src="@/assets/images/coin.png" alt="Coin" class="coin-icon" />
             <span class="ai-coin-number" role="button" tabindex="0" @click.stop="handleOpenInspirationDetail"
-                  @keydown.enter.stop="handleOpenInspirationDetail">
+              @keydown.enter.stop="handleOpenInspirationDetail">
               {{ userStore.userInfo?.wavePoints || 0 }}
             </span>
             <el-button class="ai-coin-recharge" type="primary"
-                       @click="enterModule(() => router.push('/membership?tab=1'))">充值
+              @click="enterModule(() => router.push('/membership?tab=1'))">充值
             </el-button>
 
             <div v-show="isWavePointsPanelOpen && !isUserCardOpen"
-                 class="wave-points-hover-panel ai-coin-wave-points-panel" @mouseenter="openWavePointsPanel"
-                 @mouseleave="scheduleCloseWavePointsPanel">
+              class="wave-points-hover-panel ai-coin-wave-points-panel" @mouseenter="openWavePointsPanel"
+              @mouseleave="scheduleCloseWavePointsPanel">
               <div class="wave-points-panel-top flex-between">
                 <div class="wave-points-panel-title">我的灵衍值</div>
                 <div class="wave-points-panel-detail" @click="handleOpenInspirationDetail">
@@ -266,84 +265,127 @@
               </div>
 
               <div class="wave-points-panel-balance">
-                <img :src="images.money" alt=""/>
+                <img :src="images.money" alt="" />
                 <span>{{ userStore.userInfo?.wavePoints || 0 }}</span>
               </div>
 
               <div class="wave-points-panel-actions">
                 <el-button class="wave-action" type="primary" @click.stop="handleOpenMembershipPurchase">
-                  <img :src="images.crown" alt=""/>
+                  <img :src="images.crown" alt="" />
                   会员订阅
                 </el-button>
                 <el-button class="wave-action wave-action--secondary" @click.stop="handleOpenCoinPurchase">
-                  <img :src="images.shop" alt="" class="shop-icon shop-icon--off"/>
-                  <img :src="images.shopActive" alt="" class="shop-icon shop-icon--on"/>
+                  <img :src="images.shop" alt="" class="shop-icon shop-icon--off" />
+                  <img :src="images.shopActive" alt="" class="shop-icon shop-icon--on" />
                   灵衍值购买
                 </el-button>
               </div>
             </div>
           </div>
-          <div class="msg-wrapper">
-            <img src="@/assets/images/msg.png" alt="消息" class="msg-icon"/>
-            <img :src="images.dot" class="dot-icon" v-if="userStore.userInfo?.msgCount > 0"/>
-          </div>
+          <el-popover placement="bottom" trigger="hover" :width="384" popper-class="header-msg-popover"
+            @show="handleOfficialMsgPopoverShow">
+            <template #reference>
+              <div class="msg-wrapper">
+                <img src="@/assets/images/msg.png" alt="消息" class="msg-icon" />
+                <img :src="images.dot" class="dot-icon" v-if="officialUnreadCount > 0" />
+              </div>
+            </template>
+
+            <!-- <div class="header-msg-panel">
+              <div class="header-msg-header">
+                <div class="header-msg-title">官方消息</div>
+                <button type="button" class="mark-all" @click="markOfficialAllRead">一键全部已读</button>
+              </div>
+
+              <div class="header-msg-tabs">
+                <span class="tab" :class="{ active: officialMsgTab === 'all' }"
+                  @click="officialMsgTab = 'all'">全部</span>
+                <span class="tab" :class="{ active: officialMsgTab === 'unread' }" @click="officialMsgTab = 'unread'">
+                  未读 ({{ officialUnreadCount }})
+                </span>
+              </div>
+
+              <el-scrollbar class="header-msg-scroll">
+                <div class="header-msg-list">
+                  <template v-if="displayedOfficialMessages.length">
+                    <div v-for="msg in displayedOfficialMessages" :key="msg.id" class="header-msg-card">
+                      <div class="header-msg-card-content">
+                        <div class="header-msg-card-icon-wrap" aria-hidden="true">
+                          <img :src="msg.iconUrl || images.message" alt="" class="header-msg-card-icon" />
+                          <span v-if="Number(msg.readStatus) === 0" class="header-msg-unread-dot" />
+                        </div>
+                        <div class="header-msg-card-text">
+                          <div class="header-msg-card-title">{{ msg.title }}</div>
+                          <div class="header-msg-card-desc">{{ msg.content }}</div>
+                        </div>
+                        <button type="button" class="header-msg-detail-btn" @click="handleOfficialMsgDetail(msg)">
+                          查看详情<img :src="images.rightWhite" alt="" class="right-white-icon">
+                        </button>
+                      </div>
+                    </div>
+                  </template>
+                  <div v-else class="header-msg-empty">暂无消息</div>
+                </div>
+              </el-scrollbar>
+            </div> -->
+          </el-popover>
           <div class="user-menu" @mouseleave="scheduleCloseUserCard">
             <div class="user-avatar" @mouseenter="openPersonalCenterOnHover">
-              <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon"/>
+              <img :src="getAvatarSrc()" alt="User Avatar" class="avatar-icon" />
             </div>
             <img src="@/assets/images/more.png" alt="More" class="more-icon" @mouseenter.stop="openMoreMenuOnHover"
-                 @click.stop="toggleUserCard" role="button" tabindex="0"/>
+              @click.stop="toggleUserCard" role="button" tabindex="0" />
 
             <div v-show="isUserCardOpen && isUserMenuOpen" class="more-card more-card--menu"
-                 @mouseenter="openMoreMenuOnHover">
+              @mouseenter="openMoreMenuOnHover">
               <div class="user-card-menu">
                 <div class="user-card-menu-item" @click="handlePersonalSettingsClick">
                   <div class="user-card-menu-left">
-                    <img :src="images.set" alt="" class="user-card-menu-icon"/>
+                    <img :src="images.set" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">个人设置</span>
                   </div>
-                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow"/>
+                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
 
                 <div class="user-card-menu-item" @click="handlePlatformAgreementClick">
                   <div class="user-card-menu-left">
-                    <img :src="images.agreement" alt="" class="user-card-menu-icon"/>
+                    <img :src="images.agreement" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">平台协议</span>
                   </div>
-                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow"/>
+                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
 
                 <div class="user-card-menu-item" @click="handleProductTutorialClick">
                   <div class="user-card-menu-left">
-                    <img :src="images.book" alt="" class="user-card-menu-icon"/>
+                    <img :src="images.book" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">产品教程</span>
                   </div>
-                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow"/>
+                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
 
                 <div class="user-card-menu-item" @click="handleAiWatermarkSettingsClick">
                   <div class="user-card-menu-left">
-                    <img :src="images.aiWatermark" alt="" class="user-card-menu-icon"/>
+                    <img :src="images.aiWatermark" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">AI生成水印设置</span>
                   </div>
-                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow"/>
+                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
                 <!--         判断 团队管理页面 是否显示         -->
                 <div class="user-card-menu-item" @click="handleClick"
-                     v-if="userStore.userInfo?.mainAccount || userStore.userInfo?.mainAdmin">
+                  v-if="userStore.userInfo?.mainAccount || userStore.userInfo?.mainAdmin">
 
                   <div class="user-card-menu-left">
-                    <img :src="images.team" alt="" class="user-card-menu-icon"/>
+                    <img :src="images.team" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">团队管理</span>
                   </div>
-                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow"/>
+                  <img :src="images.arrowRight" alt="" class="user-card-menu-arrow" />
                 </div>
 
-                <div class="user-card-menu-divider"/>
+                <div class="user-card-menu-divider" />
 
                 <div class="user-card-menu-item user-card-menu-item--logout" @click="handleLogout">
                   <div class="user-card-menu-left">
-                    <img :src="images.logout" alt="" class="user-card-menu-icon"/>
+                    <img :src="images.logout" alt="" class="user-card-menu-icon" />
                     <span class="user-card-menu-label">退出登录</span>
                   </div>
                 </div>
@@ -352,17 +394,17 @@
 
             <!-- AI 页：个人中心卡片（与首页一致），三点菜单由 isUserMenuOpen 控制 -->
             <div v-show="isUserCardOpen && !isUserMenuOpen" class="user-card user-card--ai"
-                 @mouseenter="openPersonalCenterOnHover">
+              @mouseenter="openPersonalCenterOnHover">
               <el-button class="invitation-btn" type="primary"
-                         @click="enterModule(() => router.push('/invitation-gift'))">
+                @click="enterModule(() => router.push('/invitation-gift'))">
                 邀请有礼
               </el-button>
-              <div class="user-card-header">
+              <div class="user-card-header" @click="openUserInfo()">
                 <div class="user-card-avatar">
                   <img class="user-card-avatar-img" :src="userStore.userInfo?.headImgUrl || images.avatarHeader"
-                       alt="User Avatar"/>
+                    alt="User Avatar" />
                   <div class="user-edit">
-                    <img :src="images.editMini" alt="User Avatar"/>
+                    <img :src="images.editMini" alt="User Avatar" />
                   </div>
                 </div>
                 <div class="user-card-main">
@@ -391,49 +433,48 @@
                 <div class="user-card-row">
                   <span>灵衍值</span>
                   <div class="user-money flex items-center">
-                    <img :src="images.money" alt=""/>
+                    <img :src="images.money" alt="" />
                     <span>{{ userStore.userInfo?.wavePoints || 0 }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="user-item flex-between user-item--language" @mouseenter="openLanguagePopover"
-                   @mouseleave="scheduleCloseLanguagePopover">
+                @mouseleave="scheduleCloseLanguagePopover">
                 <div class="flex items-center">
-                  <img :src="images.languageBlack" alt="" class="user-icon"/>
+                  <img :src="images.languageBlack" alt="" class="user-icon" />
                   <span class="row-label">语言</span>
                 </div>
                 <div class="flex items-center">
                   <span class="user-language">{{ getCurrentLanguageLabel() }}</span>
-                  <img :src="images.arrowRight" alt="" class="user-icon"/>
+                  <img :src="images.arrowRight" alt="" class="user-icon" />
                 </div>
 
                 <div v-show="isLanguagePopoverOpen" class="language-popover" @mouseenter.stop="openLanguagePopover"
-                     @mouseleave.stop="scheduleCloseLanguagePopover">
-                  <el-button class="language-option"
-                             :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
-                             :link="getCurrentLanguageLabel() != '简体中文'"
-                             @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文
+                  @mouseleave.stop="scheduleCloseLanguagePopover">
+                  <el-button class="language-option" :type="getCurrentLanguageLabel() == '简体中文' ? 'primary' : 'default'"
+                    :link="getCurrentLanguageLabel() != '简体中文'"
+                    @click.stop="handleLanguageChange('zh-chs'); closeLanguagePopover()">简体中文
                   </el-button>
                   <el-button class="language-option"
-                             :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
-                             :link="getCurrentLanguageLabel() != 'English'"
-                             @click.stop="handleLanguageChange('en'); closeLanguagePopover()">English
+                    :type="getCurrentLanguageLabel() == 'English' ? 'primary' : 'default'"
+                    :link="getCurrentLanguageLabel() != 'English'"
+                    @click.stop="handleLanguageChange('en'); closeLanguagePopover()">English
                   </el-button>
                 </div>
               </div>
 
               <div class="user-item flex items-center" @click="modalStore.openContactUsModal()">
-                <img :src="images.customer" alt="Customer" class="user-icon"/>
+                <img :src="images.customer" alt="Customer" class="user-icon" />
                 <span class="row-label">客服</span>
               </div>
               <div class="user-item flex items-center" @click="handleProductTutorialClick">
-                <img :src="images.product" alt="Product" class="user-icon"/>
+                <img :src="images.product" alt="Product" class="user-icon" />
                 <span class="row-label">产品教程</span>
               </div>
 
               <div class="user-item user-card-footer" @click="handleLogout">
-                <img :src="images.logout" alt="Logout" class="user-icon"/>
+                <img :src="images.logout" alt="Logout" class="user-icon" />
                 <span class="row-label">退出登录</span>
               </div>
             </div>
@@ -444,35 +485,36 @@
         </template>
       </div>
       <div v-if="showMonthlyLoginPointsTip" class="monthly-login-points-tip"
-           :class="{ 'is-hiding': isMonthlyTipHiding }">
+        :class="{ 'is-hiding': isMonthlyTipHiding }">
         每月{{ monthlyLoginPoints }}免费灵衍值已到账
       </div>
     </div>
   </header>
   <!-- @success="handleBindSuccess" -->
-  <OpneTeamMember @updateStatus="handleStatusUpdate" ref="teamChildRef"/>
-  <InspirationValueModal v-model="showInspirationValueModal"/>
+  <OpneTeamMember @updateStatus="handleStatusUpdate" ref="teamChildRef" />
+  <InspirationValueModal v-model="showInspirationValueModal" />
 </template>
 
 <script setup lang="ts">
-import {useRoute, useRouter} from 'vue-router'
-import {useI18n} from 'vue-i18n'
-import {ElMessage} from 'element-plus'
-import {useModalStore} from '@/stores/modal'
-import {useUserStore} from '@/stores/user'
-import {userLanguageToI18nLocale} from '@/i18n'
-import {appApi} from '@/api/app'
-import {images} from '@/assets'
-import {useAuthGate} from '@/composables/useAuthGate'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { useModalStore } from '@/stores/modal'
+import { useUserStore } from '@/stores/user'
+import { userLanguageToI18nLocale } from '@/i18n'
+import { appApi } from '@/api/app'
+import { images } from '@/assets'
+import { userApi } from '@/api/user'
+import { useAuthGate } from '@/composables/useAuthGate'
 import OpneTeamMember from "@/components/TeamManagement/OpneTeamMember.vue";
 
-const {t, locale} = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
 const languageOptions = [
-  {label: '简体中文', value: 'zh-chs'},
-  {label: 'English', value: 'en'},
+  { label: '简体中文', value: 'zh-chs' },
+  { label: 'English', value: 'en' },
 ]
 
 const language = ref(useUserStore().userInfo?.language || 'zh-chs')  // 个人语言设置
@@ -489,7 +531,7 @@ const handleLanguageChange = async (value: 'zh-chs' | 'en') => {
   // 2) 同步后端语言偏好（仅登录态需要）
   try {
     if (userStore.isLoggedIn) {
-      await userStore.updateUserInfo({language: language.value}, '语言切换成功')
+      await userStore.updateUserInfo({ language: language.value }, '语言切换成功')
     }
   } catch (e) {
     // 后端同步失败不影响当前前端翻译
@@ -497,10 +539,107 @@ const handleLanguageChange = async (value: 'zh-chs' | 'en') => {
   }
 }
 
-const {isAuthed, enterModule} = useAuthGate()
+const { isAuthed, enterModule } = useAuthGate()
 
 // 灵衍值明细弹窗
 const showInspirationValueModal = ref(false)
+
+/** 官方消息（接入接口后用接口数据替换 officialMessages） */
+type OfficialMsgItem = {
+  id: string
+  title: string
+  content: string
+  iconUrl?: string
+  readStatus: number // 0未读 1已读
+  businessType?: string | null
+  businessId?: string | null
+  createTime?: string
+}
+
+const officialMessages = ref<OfficialMsgItem[]>([])
+
+// const officialMsgTab = ref<'all' | 'unread'>('all')
+
+const officialMsgLoading = ref(false)
+const officialMsgLastFetchAt = ref(0)
+
+const fetchOfficialMessages = async (force = false) => {
+  if (!userStore.isLoggedIn) return
+  if (officialMsgLoading.value) return
+
+  // 避免 hover 时频繁拉取
+  const now = Date.now()
+  if (!force && now - officialMsgLastFetchAt.value < 30_000) return
+
+  officialMsgLoading.value = true
+  try {
+    const res = await userApi.getUserMsgPage({
+      currentPage: 1,
+      offset: 30,
+      // readStatus 不传/传 '-'：后端默认“全部”
+      readStatus: '-',
+    })
+
+    if (String((res as any)?.code) !== '0000') return
+
+    const d: any = (res as any)?.data ?? (res as any)
+    const rawList = Array.isArray(d?.list)
+      ? d.list
+      : Array.isArray(d?.datas)
+        ? d.datas
+        : Array.isArray(d)
+          ? d
+          : []
+
+    const normalized: OfficialMsgItem[] = rawList
+      .map((x: any) => {
+        const id = String(x?.id ?? '')
+        if (!id) return null
+        return {
+          id,
+          title: String(x?.title ?? '').trim(),
+          content: String(x?.content ?? '').trim(),
+          iconUrl: x?.iconUrl != null ? String(x?.iconUrl) : undefined,
+          readStatus: Number(x?.readStatus ?? 0),
+          businessType: x?.businessType ?? null,
+          businessId: x?.businessId != null ? String(x?.businessId) : null,
+          createTime: x?.createTime != null ? String(x?.createTime) : undefined,
+        }
+      })
+      .filter(Boolean) as OfficialMsgItem[]
+
+    officialMessages.value = normalized
+    officialMsgLastFetchAt.value = now
+  } catch (e) {
+    console.error('[Header] getUserMsgPage failed:', e)
+  } finally {
+    officialMsgLoading.value = false
+  }
+}
+
+const officialUnreadCount = computed(() => officialMessages.value.filter((m) => Number(m.readStatus) === 0).length)
+
+// const displayedOfficialMessages = computed(() => {
+//   if (officialMsgTab.value === 'unread') {
+//     return officialMessages.value.filter((m) => Number(m.readStatus) === 0)
+//   }
+//   return officialMessages.value
+// })
+
+// const markOfficialAllRead = () => {
+//   officialMessages.value = officialMessages.value.map((m) => ({ ...m, readStatus: 1 }))
+// }
+
+// const handleOfficialMsgDetail = (msg: OfficialMsgItem) => {
+//   const idx = officialMessages.value.findIndex((m) => m.id === msg.id)
+//   if (idx !== -1 && Number(officialMessages.value[idx].readStatus) === 0) {
+//     officialMessages.value[idx] = { ...officialMessages.value[idx], readStatus: 1 }
+//   }
+// }
+
+const handleOfficialMsgPopoverShow = () => {
+  void fetchOfficialMessages()
+}
 
 const handleOpenInspirationDetail = () => {
   isWavePointsPanelOpen.value = false
@@ -684,11 +823,11 @@ const playMonthlyTip = () => {
 }
 
 watch(
-    () => [isAuthed.value, monthlyLoginPoints.value],
-    () => {
-      playMonthlyTip()
-    },
-    {immediate: true}
+  () => [isAuthed.value, monthlyLoginPoints.value],
+  () => {
+    playMonthlyTip()
+  },
+  { immediate: true }
 )
 
 onBeforeUnmount(() => {
@@ -696,43 +835,43 @@ onBeforeUnmount(() => {
 })
 
 const currentUserLanguage = computed<'zh-chs' | 'en'>(() =>
-    userStore.userInfo?.language === 'en' ? 'en' : 'zh-chs'
+  userStore.userInfo?.language === 'en' ? 'en' : 'zh-chs'
 )
 const getCurrentLanguageLabel = () => (currentUserLanguage.value === 'zh-chs' ? '简体中文' : 'English')
 
 const menuItems = [
-  {key: 'aiDesign', path: '/ai-design'},
+  { key: 'aiDesign', path: '/ai-design' },
   // 面料创拍：进入 AI 工作台，并带上 mode=fabricCreative
-  {key: 'fabricCreative', path: '/ai-fashion', query: {mode: 'fabricCreative'}},
-  {key: 'about', path: '/about'},
-  {key: 'contactUs', path: ''},
-  {key: 'followUs', path: '/follow-us'},
+  { key: 'fabricCreative', path: '/ai-fashion', query: { mode: 'fabricCreative' } },
+  { key: 'about', path: '/about' },
+  { key: 'contactUs', path: '' },
+  { key: 'followUs', path: '/follow-us' },
 ]
 
 const menuData = [
-  {key: 'contactUs', label: '联系我们', path: ''},
-  {key: 'followUs', label: '关注我们', path: ''},
+  { key: 'contactUs', label: '联系我们', path: '' },
+  { key: 'followUs', label: '关注我们', path: '' },
 ]
 
 const customerCodeCards = [
-  {src: images.customerCode1, name: '商务咨询-小潮'},
-  {src: images.customerCode2, name: '商务咨询-雾楠'},
-  {src: images.customerCode3, name: '商务咨询-云纱'},
+  { src: images.customerCode1, name: '商务咨询-小潮' },
+  { src: images.customerCode2, name: '商务咨询-雾楠' },
+  { src: images.customerCode3, name: '商务咨询-云纱' },
 ]
 
 const pcCustomerService = computed(() =>
-    customerCodeCards.map((c) => ({
-      title: '扫码添加商务',
-      desc: c.name,
-      url: c.src,
-    })),
+  customerCodeCards.map((c) => ({
+    title: '扫码添加商务',
+    desc: c.name,
+    url: c.src,
+  })),
 )
 
 const followUsList = computed(() => [
-  {title: '扫码关注公众号', desc: '微信公众号', url: images.follow1},
-  {title: '扫码关注视频号', desc: '微信视频号', url: images.follow2},
-  {title: '扫码关注小红书', desc: '小红书官方号', url: images.follow3},
-  {title: '打开抖音扫码关注', desc: '抖音官方号', url: images.follow4},
+  { title: '扫码关注公众号', desc: '微信公众号', url: images.follow1 },
+  { title: '扫码关注视频号', desc: '微信视频号', url: images.follow2 },
+  { title: '扫码关注小红书', desc: '小红书官方号', url: images.follow3 },
+  { title: '打开抖音扫码关注', desc: '抖音官方号', url: images.follow4 },
 ])
 
 // 规则：仅 AI 工作台相关页面使用“AI 专用导航”
@@ -741,11 +880,11 @@ const isAiDesignPage = computed(() => {
   const name = String(route.name ?? '')
   // 详情页也沿用 AI 专用导航样式，避免切换到详情后回退到首页导航
   return (
-      name === 'AiDesign' ||
-      name === 'AiFashionStudio' ||
-      name === 'MyCreations' ||
-      name === 'TeamManagement' ||
-      name === 'CreativeDetail'
+    name === 'AiDesign' ||
+    name === 'AiFashionStudio' ||
+    name === 'MyCreations' ||
+    name === 'TeamManagement' ||
+    name === 'CreativeDetail'
   )
 })
 
@@ -754,10 +893,10 @@ const handleMenuClick = (item: { key: string; path?: string; query?: Record<stri
     // 首页模块入口：未登录统一弹登录弹窗；登录后正常跳转
     if (item.path === '/ai-design' || item.path === '/ai-fashion' || item.path === '/my-creations') {
       // 未登录统一先进 AI 设计工作台；登录后再按入口进入对应模块
-      enterModule(() => router.push({path: item.path!, query: item.query}))
+      enterModule(() => router.push({ path: item.path!, query: item.query }))
       return
     } else {
-      router.push({path: item.path, query: item.query})
+      router.push({ path: item.path, query: item.query })
     }
   }
 }
@@ -785,7 +924,7 @@ const handleClick = () => {
   }
   // B 当前是 子账号
   if (!isMainAccount) {
-    if(isAdmin) {
+    if (isAdmin) {
       router.push('/team-management')
     }
     return
@@ -808,7 +947,7 @@ const handlePersonalSettingsClick = () => {
 
 const handlePlatformAgreementClick = () => {
   closeUserMenu()
-  router.push({path: '/agreement', query: {type: 'USER_AGREEMENT'}})
+  router.push({ path: '/agreement', query: { type: 'USER_AGREEMENT' } })
 }
 
 const handleProductTutorialClick = () => {
@@ -816,7 +955,7 @@ const handleProductTutorialClick = () => {
   void (async () => {
     try {
       // 文档分类（后端字段必填：categoriesCode）
-      const res = (await appApi.getTutorialList({categoriesCode: 'ALL'})) as any
+      const res = (await appApi.getTutorialList({ categoriesCode: 'ALL' })) as any
       if (String(res?.code) !== '0000' && res?.success !== true) {
         ElMessage.error(res?.msg || (locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials'))
         return
@@ -1026,6 +1165,197 @@ const handleLogout = async () => {
       width: 13px;
       height: 13px;
       border-radius: 50%;
+    }
+  }
+
+  /* ================= 消息弹窗（官方消息 · 设计稿图二） ================= */
+  :global(.header-msg-popover.el-popper) {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .header-msg-panel {
+    box-sizing: border-box;
+    width: 100%;
+    background: #fff;
+    color: $color-text-dark;
+    border: 1px solid #9dd7f0;
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(15, 40, 80, 0.1);
+    padding: 20px 16px 16px;
+    overflow: hidden;
+  }
+
+  .header-msg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .header-msg-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: 0.02em;
+  }
+
+  .header-msg-tabs {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    font-size: 15px;
+    margin-bottom: 14px;
+    color: rgba(0, 0, 0, 0.42);
+
+    .tab {
+      position: relative;
+      padding-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 500;
+    }
+
+    .tab.active {
+      color: $color-primary-dark;
+      font-weight: 700;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      border-radius: 2px;
+      background: $color-primary-dark;
+    }
+  }
+
+  .header-msg-scroll {
+    max-height: 420px;
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+
+  .header-msg-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 4px;
+  }
+
+  .header-msg-empty {
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0, 0, 0, 0.38);
+    font-size: 14px;
+  }
+
+  .mark-all {
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 1.2;
+    color: rgba(0, 0, 0, 0.42);
+    border: 1px solid #d8d8d8;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+    font-family: inherit;
+
+    &:hover {
+      border-color: #c8c8c8;
+      color: rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  .header-msg-card {
+    display: flex;
+    align-items: stretch;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f4f6f9;
+  }
+
+  .header-msg-card-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px 12px 12px 10px;
+  }
+
+  .header-msg-card-icon-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .header-msg-unread-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4f;
+      border: 2px solid #f4f6f9;
+      box-sizing: content-box;
+    }
+  }
+
+  .header-msg-card-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-msg-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #000;
+    line-height: 1.35;
+  }
+
+  .header-msg-card-desc {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  .header-msg-detail-btn {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    background: $color-primary-dark;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+
+    .right-white-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      filter: brightness(1.06);
     }
   }
 
