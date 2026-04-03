@@ -32,10 +32,12 @@
               @show-history="openHistoryModal"
               @update:inspiration-words="(words) => formDataByMenu.aiFashion.inspirationWords = words" />
             <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="formDataByMenu.fabricCreative.image"
+              v-model:prompt="formDataByMenu.fabricCreative.prompt"
               :task-result-id="formDataByMenu.fabricCreative.taskResultId"
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
               :inspiration-words="formDataByMenu.fabricCreative.inspirationWords" :coin="imageCoin"
-              :menu-id="currentMenuId" @open-type-modal="() => openTypeModal('fabricCreative')"
+              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+              @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
@@ -267,9 +269,33 @@ const fetchSysPlatformMenu = async () => {
 }
 // ==================== 面料创拍：提交生成 ====================
 const handleFabricGenerate = async (payload: any) => {
-  // 保存左侧“生成图片类型”结果，便于 submitByMenuCode 构造 fabric_image_type 的 imageTypeParams
-  formDataByMenu.fabricCreative.fabricImageOutputType = (payload?.outputType || 'flat') as any
-  await submitByMenuCode(menuCodeByKey.fabricCreative)
+  loading.value = true
+  try {
+    const currentForm: any = formDataByMenu.fabricCreative
+    const original = String(currentForm?.image ?? '').trim()
+
+    currentForm.originalImage = original ? [original] : []
+    currentForm.zoomRatio = Number(payload?.scale ?? payload?.zoomRatio ?? 0)
+    currentForm.fabricImageOutputType = (payload?.outputType || 'flat') as any
+
+    if (!(payload?.file instanceof File)) {
+      ElMessage.error('面料处理图生成失败，请重试')
+      return
+    }
+    const uploadResult = await uploadApi.uploadImage(payload.file as File, {
+      showLoading: false,
+      showMessage: false,
+    })
+    if (!uploadResult.success || !uploadResult.url) {
+      ElMessage.error(String(uploadResult.message || '').trim() || '上传缩放后的面料图失败，请重试')
+      return
+    }
+    currentForm.fabricProcessedImageUrl = String(uploadResult.url).trim()
+
+    await submitByMenuCode(menuCodeByKey.fabricCreative, { skipLoading: true })
+  } finally {
+    loading.value = false
+  }
 }
 
 const buildInspirationWordsParams = (words: any[] = []) => {
@@ -525,7 +551,11 @@ const buildCommonPayloadBase = (
 }
 
 // ==================== 统一提交入口：按 menuCode 构造差异字段 ====================
-const submitByMenuCode = async (menuCode: string) => {
+const submitByMenuCode = async (
+  menuCode: string,
+  options?: { skipLoading?: boolean },
+) => {
+  const manageLoading = !options?.skipLoading
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     return
@@ -557,7 +587,12 @@ const submitByMenuCode = async (menuCode: string) => {
       .filter(Boolean)
       .slice(0, 6)
   } else if (menuKey === 'fabricCreative') {
-    images = String(form.image || '').trim() ? [String(form.image).trim()] : []
+    const processed = String(form.fabricProcessedImageUrl || '').trim()
+    images = processed
+      ? [processed]
+      : String(form.image || '').trim()
+        ? [String(form.image).trim()]
+        : []
     if (!images.length) {
       ElMessage.error('请先上传面料参考图')
       return
@@ -620,10 +655,6 @@ const submitByMenuCode = async (menuCode: string) => {
     }
   } else if (menuKey === 'fabricCreative') {
     const creationStyleParams = buildCreationStyleParams(creationTypeSelectionByMenu.fabricCreative)
-    if (!creationStyleParams.length) {
-      ElMessage.error('请先选择创作款型')
-      return
-    }
 
     const outputType = String(form.fabricImageOutputType || 'flat')
     const imageTypeParams = buildFabricImageTypeParamsByOutputType(outputType, fabricImageTypeOptionTree.value || [])
@@ -631,6 +662,8 @@ const submitByMenuCode = async (menuCode: string) => {
     diffPayload = {
       creationStyleParams,
       imageTypeParams,
+      originalImage: (form.originalImage && form.originalImage.length ? form.originalImage : images) || [],
+      zoomRatio: Number(form.zoomRatio ?? 0),
     }
   } else if (menuKey === 'sketchToReal') {
     const { sketchTypeParams, sketchStyleParams, imageTypeParams } = buildSketchToRealSegmentParams(
@@ -661,7 +694,7 @@ const submitByMenuCode = async (menuCode: string) => {
   const payload: any = { ...submitPayloadBase, ...diffPayload }
 
   try {
-    loading.value = true
+    if (manageLoading) loading.value = true
     const res = await algoApi.submit(payload)
     if (res.code === '0000') {
       ElMessage.success('已提交生成任务')
@@ -679,7 +712,7 @@ const submitByMenuCode = async (menuCode: string) => {
     console.error('[AiFashionStudio] doCalculationPoint failed:', e)
     ElMessage.error('网络开小差了，请稍后重试~')
   } finally {
-    loading.value = false
+    if (manageLoading) loading.value = false
   }
 }
 
@@ -1005,6 +1038,12 @@ type AiFashionFormState = CommonFormState & {
 // 线稿转实物/实物转线稿/面料创拍：参考图单张
 type SingleImageFormState = CommonFormState & {
   image: string
+  /** 面料创拍：原图（后端需要的原始输入数组） */
+  originalImage?: string[]
+  /** 面料创拍：缩放比例（zoomRatio） */
+  zoomRatio?: number
+  /** 面料创拍：canvas 缩放纹理图上传后的 URL（仅提交用；左侧展示仍用 image 原图） */
+  fabricProcessedImageUrl?: string
   taskResultId?: string | number
   sketchParamSelections: Record<string, string>
   /** 面料创拍：左侧“生成图片类型”按钮值（flat/model/3d），用于映射后端 fabric_image_type */
@@ -1044,6 +1083,9 @@ const createAiFashionFormState = (): AiFashionFormState => ({
 
 const createSingleImageFormState = (): SingleImageFormState => ({
   image: '',
+  originalImage: [],
+  zoomRatio: undefined,
+  fabricProcessedImageUrl: undefined,
   taskResultId: undefined,
   prompt: '',
   inspirationWords: [],
@@ -1647,6 +1689,16 @@ const mapRecordToCreationResult = (r: any): CreationResult | null => {
   }
 }
 
+const dedupeCreationResultsByIdPreserveOrder = (arr: CreationResult[]): CreationResult[] => {
+  const map = new Map<string, CreationResult>()
+  for (const item of arr) {
+    const id = item?.id
+    if (!id) continue
+    if (!map.has(id)) map.set(id, item)
+  }
+  return Array.from(map.values())
+}
+
 type FetchCreationsOpts = { clearList?: boolean }
 
 // 拉取“我的创作列表”（支持 reset=重置分页、并把新结果合并去重）
@@ -1696,17 +1748,38 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
       (Array.isArray(data?.list) && data.list) ||
       (Array.isArray(data) ? data : [])
 
-    const mapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    const recordsMapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    // 进行中：后端会单独返回 orderResulGenerated，需要插入到列表最前面
+    const inProgressRaw: any[] = Array.isArray(data?.orderResulGenerated) ? data.orderResulGenerated : []
+    const inProgressMapped = inProgressRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
 
     if (reset) {
-      assets.value = mapped
+      // 首次/重置：inProgress + 当前页 records
+      assets.value = dedupeCreationResultsByIdPreserveOrder([...inProgressMapped, ...recordsMapped])
     } else {
-      // 合并去重
-      const map = new Map<string, CreationResult>()
-      for (const item of assets.value) map.set(item.id, item)
-      for (const item of mapped) map.set(item.id, item)
-      assets.value = Array.from(map.values())
+      // 加载更多：保持当前选中项不跳动，同时把 inProgress 提到最前
+      const selectedId = assets.value[currentIndex.value]?.id
+      assets.value = dedupeCreationResultsByIdPreserveOrder([...inProgressMapped, ...assets.value, ...recordsMapped])
+      if (selectedId) {
+        const nextIdx = assets.value.findIndex((a) => a?.id === selectedId)
+        currentIndex.value = nextIdx >= 0 ? nextIdx : 0
+      }
     }
+
+    // 如果列表里已经包含“进行中”记录（orderResulGenerated），需要补上轮询，
+    // 以便后端返回 status=3 后自动刷新 UI。
+    const inProgressAssets = assets.value.filter((a) => {
+      const st = Number(a?.status ?? 0)
+      return st === 1 || st === 2
+    })
+    for (const a of inProgressAssets) {
+      const key = String(a?.algoOrderNo ?? a?.algoOrderId ?? a?.id ?? '')
+      if (!key) continue
+      if (queryTimerMap.has(key)) continue
+      void startQueryByOrderNo(key)
+    }
+
+    // TODO: 如果后续发现分页 total 口径不包含 orderResulGenerated，需要再按后端约定调整 hasMoreData 计算逻辑
 
     // 有更多数据判断
     const total = Number(data?.total ?? data?.totalCount ?? 0)
@@ -1715,7 +1788,7 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
     } else if (total > 0) {
       hasMoreData.value = assets.value.length < total
     } else {
-      hasMoreData.value = mapped.length >= listPageSize.value
+      hasMoreData.value = recordsMapped.length >= listPageSize.value
     }
 
     // 开发环境兜底：用于直观看“生成中(status=2)/失败(status=4)”占位 UI
@@ -1947,6 +2020,13 @@ const parseAiFashionSlotIndex = (position: any): number | null => {
   return idx
 }
 
+/** 面料创拍：换图/选历史时清理“纹理图上传缓存”，避免与左侧原图预览混用 */
+const clearFabricCreativeTransientFields = (form: any) => {
+  form.fabricProcessedImageUrl = undefined
+  form.originalImage = []
+  form.zoomRatio = undefined
+}
+
 const handleDropFile = async (payload: any) => {
   const currentForm = formDataByMenu[leftMenu.value]
   // payload 可能来自：
@@ -1994,6 +2074,7 @@ const handleDropFile = async (payload: any) => {
       return
     }
 
+    if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
     currentForm.image = fileUrl
     currentForm.taskResultId = undefined
     currentForm.historyImageType = undefined
@@ -2036,6 +2117,7 @@ const handleDropFile = async (payload: any) => {
       return
     }
 
+    if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
     currentForm.image = url
     const tidSingle =
       payload.taskResultId == null || payload.taskResultId === ''
@@ -2069,6 +2151,7 @@ const handleRefDelete = (payload?: any) => {
     currentForm.image = nextImages
     currentForm.taskResultId = nextIds.length ? nextIds : undefined
   } else {
+    if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
     currentForm.image = ''
     currentForm.taskResultId = undefined
     currentForm.historyImageType = undefined
@@ -2111,6 +2194,7 @@ const selectHistoryCreation = (item: any) => {
   }
 
   const currentForm = formDataByMenu[leftMenu.value]
+  if (leftMenu.value === 'fabricCreative') clearFabricCreativeTransientFields(currentForm)
   currentForm.image = imageUrl
   currentForm.taskResultId = item?.id == null ? undefined : String(item.id)
   currentForm.historyImageType = item?.id == null ? undefined : 'image'

@@ -65,7 +65,7 @@
             negative: Number(transaction.points ?? 0) < 0,
           }">{{
             Number(transaction.points ?? 0) > 0 ? '+' : ''
-            }}{{ Number(transaction.points ?? 0).toFixed(2) }}
+          }}{{ Number(transaction.points ?? 0).toFixed(2) }}
           </div>
         </div>
       </div>
@@ -208,7 +208,15 @@ const loadCoinRecords = async (isRefresh = true) => {
     const response = await membershipApi.getCoinRecordList(params)
     if (response.code === '0000' && response.data) {
       // 直接使用接口返回的数据
-      const { list, hasNext }: any = response.data
+      const { list, hasNext, buyPoints, giftPoints, vipPoints, wavePoints }: any = response.data
+
+      userInfo.value.buyPoints = buyPoints
+      userInfo.value.giftPoints = giftPoints
+      userInfo.value.vipPoints = vipPoints
+      userInfo.value.wavePoints = wavePoints
+
+      userStore.setUserInfo(userInfo.value)
+
       const pageList = Array.isArray(list) ? list : []
       hasMore.value = Boolean(hasNext)
 

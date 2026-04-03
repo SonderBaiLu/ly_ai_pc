@@ -51,6 +51,10 @@ export type DoCalculationPointPayload = {
   menuCode: string
   /** 需要操作的图片路径集合 */
   image: string[]
+  /** 面料创拍：原图（未拼接/缩放前的输入图片） */
+  originalImage?: string[]
+  /** 面料创拍：缩放比例（用于复现前端缩放/平铺逻辑） */
+  zoomRatio?: number
   /** 模版入参（后端：templateParams） */
   templateParams: DoCalculationPointTemplateParam[]
 

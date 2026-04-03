@@ -167,11 +167,9 @@ const modelParamSummary = computed(() => {
 
 const submitting = computed(() => Boolean(props.submitting))
 
+/** 进行中用 :loading，勿再写入 disabled */
 const generateButtonDisabled = computed(
-  () =>
-    !hasSketchImage.value ||
-    !segmentParamsReady.value ||
-    submitting.value,
+  () => !hasSketchImage.value || !segmentParamsReady.value,
 )
 </script>
 

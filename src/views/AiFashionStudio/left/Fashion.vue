@@ -131,8 +131,8 @@ const typeText = computed(() => {
 /** 创作款型（必选）已选满三级 */
 const isCreationTypeReady = computed(() => Boolean(typeText.value))
 
-/** 默认不可点；选完款型后可点；提交中不可点 */
-const generateButtonDisabled = computed(() => !isCreationTypeReady.value || Boolean(props.submitting))
+/** 选完款型后可点；提交中仅用 :loading，勿叠 disabled 以免转圈不显示 */
+const generateButtonDisabled = computed(() => !isCreationTypeReady.value)
 
 const showFeatureModal = ref(false)
 const designFeatureSelection = ref<DesignFeatureSelection>({})

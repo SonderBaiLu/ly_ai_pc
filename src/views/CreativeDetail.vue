@@ -139,12 +139,14 @@
             </template>
 
             <!-- 款型 / 类型 -->
-            <div class="section-title">款型</div>
-            <div class="param-input">
-              {{ requestParams?.category ? `${requestParams?.category || ''}-${requestParams?.clothType ||
-                ''}-${requestParams?.subKind || ''}`
-                : '—' }}
-            </div>
+            <template v-if="requestParams?.category">
+              <div class="section-title">款型</div>
+              <div class="param-input">
+                {{ requestParams?.category ? `${requestParams?.category || ''}-${requestParams?.clothType ||
+                  ''}-${requestParams?.subKind || ''}`
+                  : '—' }}
+              </div>
+            </template>
 
             <!-- AI服装设计：设计特征 -->
             <template v-if="detailModule === 'aiFashion' && Array.isArray(requestParams?.features)">

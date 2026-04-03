@@ -195,6 +195,12 @@ const handleAuthExpired = (msg?: string) => {
     } catch {
       // ignore redirect failures
     }
+     // 跳转到首页后自动打开登录弹窗
+    try {
+      localStorage.setItem('openLoginModalAfterRedirect', '1')
+    } catch {
+      // ignore
+    }
     isHandlingAuthExpired = false
     authExpiredTimer = null
   }, 2000)
