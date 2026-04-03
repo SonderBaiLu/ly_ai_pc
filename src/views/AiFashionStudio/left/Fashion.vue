@@ -37,16 +37,17 @@
         @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)"
         v-if="imageUrl.length == 0" />
 
-      <el-scrollbar style="height: auto;" v-if="imageUrl.length > 0">
+      <el-scrollbar :style="{ height: 'auto', marginBottom: imageUrl.length > 0 ? '15px' : '0' }"
+        v-if="imageUrl.length > 0">
         <div class="scrollbar-flex-content">
-          <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
-            :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
-            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
-            @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)" />
           <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
             :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
             @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)"
             v-if="imageUrl.length < 6" />
+          <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
+            :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+            :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
+            @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)" />
         </div>
       </el-scrollbar>
 
@@ -293,7 +294,7 @@ const removeFeature = (categoryKey: string, label: string) => {
     display: flex;
     flex-wrap: nowrap;
     gap: 11px;
-    padding-bottom: 10px;
+    padding-bottom: 20px;
   }
 }
 </style>

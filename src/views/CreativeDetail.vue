@@ -18,9 +18,13 @@
             :class="{ active: selectedThumbnail === index }">
             <div class="media-player flex-col-center" @click="handleImagePreview(index, item)">
               <!-- 生成中/失败：不展示媒体内容，显示占位提示 -->
-              <div v-if="Number((item as any).status) === 2" class="media-status-placeholder generating">
+              <div v-if="Number((item as any).status) === 2 || Number((item as any).status) === 1"
+                class="media-status-placeholder generating">
                 <LoadingSpinner :size="72" :thickness="8" />
                 <div class="status-text">正在生成中...</div>
+                <div class="generating-progress">
+                  <GradientProgress :percentage="getGeneratingProgress(item)" />
+                </div>
               </div>
               <div v-else-if="Number((item as any).status) === 4" class="media-status-placeholder failed">
                 <img :src="images.fail" class="placeholder-icon" alt="生成失败" />
@@ -54,9 +58,10 @@
               生成失败，失败记录不会展示，请稍后查看灵衍值是否回退。
             </template>
             <template v-else>
-              当前作品正在生成中，请稍后刷新页面查看。
+              当前作品正在生成中，生成完成后会自动展示完整详情。
               <br />
-              生成完成后会展示完整详情。
+              <br />
+              如果长时间没有返回结果，可稍后刷新页面或到“我的创作”查看进度。
             </template>
           </p>
         </div>
@@ -80,7 +85,7 @@
                 <img :src="images.downloadIcon" class="download-menu-icon" alt="下载" />
                 <span>下载</span>
               </div>
-              <div class="download-menu-item switch-row">
+              <div class="download-menu-item switch-row" @click.stop="handleRemoveWatermarkMenuClick">
                 <el-switch v-model="removeWatermarkEnabled" :disabled="!isUserVip" active-color="#17A0E1"
                   inactive-color="#201B26"
                   @change="(v) => handleWatermarkToggleChange(v as string | number | boolean)" />
@@ -142,9 +147,11 @@
             <template v-if="requestParams?.category">
               <div class="section-title">款型</div>
               <div class="param-input">
-                {{ requestParams?.category ? `${requestParams?.category || ''}-${requestParams?.clothType ||
-                  ''}-${requestParams?.subKind || ''}`
-                  : '—' }}
+                {{
+                  [requestParams?.category || '', requestParams?.clothType || '', requestParams?.subKind || '']
+                    .filter(Boolean)
+                    .join('-') || '—'
+                }}
               </div>
             </template>
 
@@ -348,6 +355,18 @@ const isSubmittingAgain = ref(false) // 再次生成提交状态
 const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
 const isUnmountedRef = ref(false)
 
+// 非会员尝试开通“去除水印”时：直接跳转会员页
+const goMembershipPage = () => {
+  // tab=0：会员订阅（与 Header 入口保持一致）
+  showCoinInsufficient.value = false
+  pendingAfterVipAction.value = null
+  router.push('/membership?tab=0').catch(() => { })
+}
+
+const handleRemoveWatermarkMenuClick = () => {
+  if (!isUserVip.value) goMembershipPage()
+}
+
 const removeWatermarkEnabled = computed(() => {
   // 仅会员才展示“去除水印”开启状态；避免会员到期仍回显旧的 watermarkStatus=1
   return isUserVip.value && userStore.userInfo?.watermarkStatus === 1 ? true : false
@@ -447,6 +466,12 @@ const isDataReady = ref(false)
 const getAlgoResultId = (item: any): string | number | null => {
   if (!item) return null
   return item.id ?? null
+}
+
+const getGeneratingProgress = (item: any): number => {
+  const raw = Number(item?.progress ?? 0)
+  if (!Number.isFinite(raw)) return 0
+  return Math.min(100, Math.max(0, Math.floor(raw)))
 }
 
 // 统一参数：只使用详情接口 webRequest 字段
@@ -658,8 +683,10 @@ const handleAgainGenerate = async () => {
         return
       }
       ElMessage.success('已提交再次生成任务，正在生成中')
+      // 先启动轮询并占用 key，避免下面的 watch(relatedTemplates/selectedThumbnail) 再次触发第二套轮询
+      const pollPromise = startPollingGenerateResult(orderNo)
       prependGeneratingPlaceholder(orderNo, payload)
-      await pollAgainGenerateResult(orderNo)
+      if (pollPromise) await pollPromise
       return
     }
     ElMessage.error((resp as any)?.msg || '再次生成提交失败')
@@ -682,6 +709,7 @@ const prependGeneratingPlaceholder = (orderNo: string, payload: any) => {
     fileType: Number((templateDetail.value as any)?.fileType ?? 1),
     status: 2,
     prompt: String(payload?.creativeDescription ?? creativeDescription.value ?? '生成中...'),
+    progress: 0,
     createTime: now,
     url: '',
     thumbUrl: '',
@@ -758,6 +786,8 @@ const prependGeneratedResults = (records: any[], orderNo?: string) => {
 
 // 防止同一个 orderNo 在详情页被重复轮询（例如滚动/重复触发 loadTemplateDetail）
 const pollingOrderNoSet = new Set<string>()
+// 复用同一个 orderNo 的轮询 Promise，避免并发时既轮询又触发详情接口重复请求
+const pollingPromiseMap = new Map<string, Promise<void>>()
 
 const pollAgainGenerateResult = async (
   orderNo: string,
@@ -787,8 +817,18 @@ const pollAgainGenerateResult = async (
       const data: any = (queryResp as any).data
       const status = Number(data?.status)
       const orderResultVOS = Array.isArray(data?.orderResultVOS) ? data.orderResultVOS : []
+      const firstVO = orderResultVOS[0] || {}
+      const mergedProgress = Number(data?.progress ?? firstVO?.progress ?? 0)
 
       // 1未开始 2进行中 3完成 4失败
+      if (status === 1 || status === 2) {
+        // 实时回填占位卡进度条（如果后端返回 progress）
+        patchAgainGeneratePlaceholder(orderNo, {
+          status,
+          progress: mergedProgress,
+        })
+      }
+
       if (status === 3) {
         const first = prependGeneratedResults(orderResultVOS, orderNo)
         if (!first) {
@@ -799,18 +839,7 @@ const pollAgainGenerateResult = async (
         if (firstId) {
           await loadDetailOnce(firstId)
         }
-        // 生成成功后刷新一次服务端列表，确保新增结果和列表数据一致
-        const snapshotList = [...relatedTemplates.value] as any[]
-        const snapshotSelected = selectedThumbnail.value
-        const snapshotDetail = templateDetail.value ? { ...(templateDetail.value as any) } : null
-        await loadRelatedTemplates(true)
-        // 防御：若刷新异常导致列表被清空，回滚到刷新前，避免页面“全没了”
-        if (!relatedTemplates.value.length) {
-          relatedTemplates.value = snapshotList as any[]
-          selectedThumbnail.value = Math.max(0, Math.min(snapshotSelected, relatedTemplates.value.length - 1))
-          templateDetail.value = snapshotDetail as any
-          nextTick(() => syncMediaContainerToSelected(true))
-        }
+        // 生成成功：只做详情回显，不再请求“相关列表”接口，避免列表数据覆盖导致详情显示不完整
         ElMessage.success(successText)
         return
       }
@@ -852,11 +881,19 @@ const startPollingGenerateResult = (
 ) => {
   const key = String(orderNo ?? '')
   if (!key) return
-  if (pollingOrderNoSet.has(key)) return
+  // 如果同一个 orderNo 已经在轮询中，直接复用 Promise
+  const existedPromise = pollingPromiseMap.get(key)
+  if (existedPromise) return existedPromise
+
+  // 占用 key：用于阻止 watch 再次触发 startPollingGenerateResult
   pollingOrderNoSet.add(key)
-  void pollAgainGenerateResult(key, opts).finally(() => {
+  const promise = pollAgainGenerateResult(key, opts).finally(() => {
     pollingOrderNoSet.delete(key)
+    pollingPromiseMap.delete(key)
   })
+
+  pollingPromiseMap.set(key, promise)
+  return promise
 }
 
 // 获取创意描述文本：灵感词(inspirationWordsParams[].content) + creativeDescription
@@ -1309,10 +1346,8 @@ const handleWatermarkToggleChange = async (val: string | number | boolean) => {
   if (enabled) await refreshUserInfoIfPossible()
   // 只有“开启去水印”才需要会员；关闭去水印允许所有用户操作
   if (!isUserVip.value && enabled) {
-    pendingAfterVipAction.value = { type: 'toggle' }
-    showCoinInsufficient.value = true
-    coinErrorType.value = 'up_vip'
     setLocalWatermarkStatus(false)
+    goMembershipPage()
     return
   }
 
@@ -1415,10 +1450,8 @@ const handleDownload = async () => {
       await refreshUserInfoIfPossible()
       if (!isUserVip.value) {
         // 非会员/已过期：拦截无水印下载，提示开通会员
-        pendingAfterVipAction.value = { type: 'download' }
-        showCoinInsufficient.value = true
-        coinErrorType.value = 'up_vip'
-        ElMessage.warning('仅会员可去除水印，请开通会员')
+        goMembershipPage()
+        ElMessage.warning('仅会员可去除水印，请先开通会员')
         return
       }
     }
@@ -2005,23 +2038,33 @@ onMounted(async () => {
       }
     }
   } else {
-    // 没有缓存数据，先加载详情数据（优先显示详情内容）
-    await loadTemplateDetail((props.id || route.params.id) as string | number | undefined)
-    // 没有缓存数据，先显示当前详情
-    if (templateDetail.value) {
-      relatedTemplates.value = [templateDetail.value as any]
-      selectedThumbnail.value = 0
-      isDataReady.value = true
-    }
+    // 没有缓存数据：先拉列表，再回显对应 id 的详情（避免出现“列表显示第一个，但详情回显的是另一个”的错位）
+    const targetAlgoResulId = (props.id || route.params.id) as string | number | undefined
+    const targetAlgoResulIdStr = targetAlgoResulId != null ? String(targetAlgoResulId) : ''
 
-    // 延迟加载相关列表数据（不阻塞详情显示，使用 nextTick 确保详情先渲染）
-    nextTick(() => {
-      // 异步加载相关列表，不阻塞当前渲染
-      loadRelatedTemplates(true).then(() => {
-        // loadRelatedTemplates 内部已经处理了选中逻辑，这里只需要确保滚动位置正确
-        // 不需要再次查找和设置，避免覆盖 loadRelatedTemplates 中的正确逻辑
-      })
-    })
+    await loadRelatedTemplates(true)
+
+    // 如果列表未成功拉取（例如 menuCode 缺失导致接口跳过），回退到“先加载详情”
+    if (!relatedTemplates.value.length) {
+      await loadTemplateDetail(targetAlgoResulId)
+      if (templateDetail.value) {
+        relatedTemplates.value = [templateDetail.value as any]
+        selectedThumbnail.value = 0
+        isDataReady.value = true
+      }
+    } else {
+      // 以路由 id 为准，定位要展示的缩略图索引；找不到则默认第一个
+      const foundIndex = relatedTemplates.value.findIndex((x: any) => String(x?.id) === targetAlgoResulIdStr)
+      selectedThumbnail.value = foundIndex >= 0 ? foundIndex : 0
+
+      // 先用列表数据兜底渲染，再补全详情字段
+      const current = relatedTemplates.value[selectedThumbnail.value] as any
+      templateDetail.value = current
+      isDataReady.value = true
+
+      const detailId = getAlgoResultId(current)
+      if (detailId) await loadDetailOnce(detailId)
+    }
   }
 
   // 初始进入详情页时，直接设置滚动位置（在渲染前设置，避免看到滚动过程）
@@ -2050,6 +2093,16 @@ onMounted(async () => {
     nextTick(() => {
       isInitialLoad.value = false
     })
+  }
+
+  // 兜底校验：如果滚动到第一个内容（selectedThumbnail=0），但右侧详情回显的 id 不是第一个，
+  // 需要再拉一次列表第一个项的详情，避免刷新后的错位。
+  if (relatedTemplates.value.length > 0 && selectedThumbnail.value === 0 && templateDetail.value) {
+    const firstId = getAlgoResultId(relatedTemplates.value[0] as any)
+    const detailId = getAlgoResultId(templateDetail.value as any)
+    if (firstId && detailId && String(firstId) !== String(detailId)) {
+      await loadDetailOnce(firstId)
+    }
   }
 
   // 如果第一个项是视频，自动播放
@@ -2218,6 +2271,12 @@ onUnmounted(() => {
           .status-text {
             font-size: $font-size-xl;
             text-align: center;
+          }
+
+          .generating-progress {
+            width: 70%;
+            transform: scale(0.85);
+            transform-origin: center;
           }
         }
 

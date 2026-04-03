@@ -2048,6 +2048,17 @@ const handleDropFile = async (payload: any) => {
       const parsedIdx = parseAiFashionSlotIndex(payload.position)
       const nextImages = Array.isArray(currentForm.image) ? [...currentForm.image] : []
 
+      const normalizeAiFashionPairs = (imgs: string[], ids: any[], max = 6) => {
+        // 始终保持 imgs/ids 一一对应；过滤掉空字符串，避免出现“空位挤在中间”
+        const pairs = imgs.map((img, i) => ({ img, id: ids[i] }))
+          .filter((p) => String(p.img ?? '').trim().length > 0)
+          .slice(0, max)
+        return {
+          imgs: pairs.map((p) => String(p.img)),
+          ids: pairs.map((p) => String(p.id ?? '')),
+        }
+      }
+
       // 如果 position 解析不到（例如本地上传某些入口没带 slot 信息），则自动填充“下一个空位”
       const idx =
         parsedIdx ??
@@ -2071,6 +2082,21 @@ const handleDropFile = async (payload: any) => {
       nextIds[idx] = ''
       nextIds.length = Math.min(6, Math.max(nextIds.length, idx + 1))
       currentForm.taskResultId = nextIds
+
+      // 将“最新上传的这张图”移动到最前面（index=0），保证 UI 从前到后是最新优先
+      const movedImg = currentForm.image[idx]
+      const movedId = (currentForm.taskResultId || [])[idx] ?? ''
+      const imgs2 = [...currentForm.image]
+      const ids2 = [...(currentForm.taskResultId || [])]
+      if (idx >= 0 && idx < imgs2.length) {
+        imgs2.splice(idx, 1)
+        ids2.splice(idx, 1)
+        imgs2.unshift(movedImg)
+        ids2.unshift(movedId)
+        const normalized = normalizeAiFashionPairs(imgs2, ids2)
+        currentForm.image = normalized.imgs
+        currentForm.taskResultId = normalized.ids
+      }
       return
     }
 
@@ -2087,6 +2113,16 @@ const handleDropFile = async (payload: any) => {
     if (leftMenu.value === 'aiFashion') {
       const parsedIdx = parseAiFashionSlotIndex(payload.position)
       const nextImages = Array.isArray(currentForm.image) ? [...currentForm.image] : []
+
+      const normalizeAiFashionPairs = (imgs: string[], ids: any[], max = 6) => {
+        const pairs = imgs.map((img, i) => ({ img, id: ids[i] }))
+          .filter((p) => String(p.img ?? '').trim().length > 0)
+          .slice(0, max)
+        return {
+          imgs: pairs.map((p) => String(p.img)),
+          ids: pairs.map((p) => String(p.id ?? '')),
+        }
+      }
 
       // 拖拽/历史带 position 的场景优先使用解析值；如果解析不到，仍然按“下一个空位”补位
       const idx =
@@ -2114,6 +2150,21 @@ const handleDropFile = async (payload: any) => {
       nextIds[idx] = tid
       nextIds.length = Math.min(6, Math.max(nextIds.length, idx + 1))
       currentForm.taskResultId = nextIds
+
+      // 将“最新拖拽/选中的这张图”移动到最前面（index=0）
+      const movedImg = currentForm.image[idx]
+      const movedId = (currentForm.taskResultId || [])[idx] ?? ''
+      const imgs2 = [...currentForm.image]
+      const ids2 = [...(currentForm.taskResultId || [])]
+      if (idx >= 0 && idx < imgs2.length) {
+        imgs2.splice(idx, 1)
+        ids2.splice(idx, 1)
+        imgs2.unshift(movedImg)
+        ids2.unshift(movedId)
+        const normalized = normalizeAiFashionPairs(imgs2, ids2)
+        currentForm.image = normalized.imgs
+        currentForm.taskResultId = normalized.ids
+      }
       return
     }
 
