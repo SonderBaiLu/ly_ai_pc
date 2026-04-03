@@ -830,6 +830,8 @@ const pollAgainGenerateResult = async (
       }
 
       if (status === 3) {
+        // 再次生成成功后刷新一次用户信息，确保灵衍值/会员态与后端扣费回写一致
+        await refreshUserInfoIfPossible()
         const first = prependGeneratedResults(orderResultVOS, orderNo)
         if (!first) {
           ElMessage.warning(noResultText)
@@ -1312,8 +1314,6 @@ const handlePreviewClose = () => {
 
 // 刷新用户信息（用于下载前检查会员状态）
 const refreshUserInfoIfPossible = async () => {
-  const phone = userStore.userInfo?.phone
-  if (!phone) return
   try {
     await userStore.getUserInfo()
   } catch (e) {
