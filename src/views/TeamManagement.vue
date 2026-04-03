@@ -44,7 +44,7 @@
             </td>
           </tr>
 
-          <tr v-for="row in teamList" :key="row.id">
+          <tr v-for="row in teamList" :key="row.id" :class="[{ 'disabled-row': row.joinStatus === 0 }]">
             <td>
               <div class="member-info-col">
                 <span class="member-userNameTwo">{{ row.userNameTwo }}</span>
@@ -52,41 +52,48 @@
                 <span v-if="row.mainStatus === 0" class="main-account-badge">主账号</span>
               </div>
             </td>
+
             <td class="create-time">{{ formatDate(row.createTime) }}</td>
+
             <td>
-                <span :class="['role-tag', row.role === 1 ? 'admin' : 'member']">
-                  {{ row.role === 1 ? '管理员' : '成员' }}
-                </span>
+      <span :class="['role-tag', row.role === 1 ? 'admin' : 'member']">
+        {{ row.role === 1 ? '管理员' : '成员' }}
+      </span>
             </td>
+
             <td>
-                <span :class="['status', row.status === 1 ? 'normal' : 'ban']">
-                  <img v-if="row.status === 1" src="@/assets/images/team/normal.png" class="role-dot" alt="正常"/>
-                  <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁"/>
-                  {{ row.status === 1 ? '正常' : '封禁' }}
-                </span>
+      <span v-if="row.joinStatus === 0" class="status disabled-status">
+        <span class="status-dot gray-dot"></span> 停用
+      </span>
+              <span v-else :class="['status', row.status === 1 ? 'normal' : 'ban']">
+        <img v-if="row.status === 1" src="@/assets/images/team/normal.png" class="role-dot" alt="正常"/>
+        <img v-else src="../assets/images/team/banRedDot.png" class="role-dot" alt="封禁"/>
+        {{ row.status === 1 ? '正常' : '封禁' }}
+      </span>
             </td>
+
             <td style="text-align: right;">
               <div class="action-buttons justify-end">
 
-                <button class="action-btn" v-if="canOperate(row)" @click="openConfirm('disable', row)" title="停用">
+                <button class="action-btn" v-if="canOperate(row)" @click="openConfirm('disable', row)" title="停用" :disabled="row.joinStatus === 0">
                   <img :class="['status', row.status === 1 ? 'Disable' : 'NoDisable']"
                        :src="row.status === 1 ? images.ban : images.banRedColor" class="action-icon" alt="停用" />
                   <span class="action-text">
-                      {{ row.status === 1 ? '停用' : '取消停用' }}
-                    </span>
+            {{ row.status === 1 ? '停用' : '取消停用' }}
+          </span>
                 </button>
 
-                <button class="action-btn" v-if="canOperate(row)" @click="openEdit(row)" title="编辑">
+                <button class="action-btn" v-if="canOperate(row)" @click="openEdit(row)" title="编辑" :disabled="row.joinStatus === 0">
                   <img :src="images.editors" class="action-icon" alt="编辑" />
                   <span class="action-text">编辑</span>
                 </button>
 
-                <button class="action-btn" v-if="canResetPwd(row)" @click="openConfirm('resetPwd', row)" title="重置密码">
+                <button class="action-btn" v-if="canResetPwd(row)" @click="openConfirm('resetPwd', row)" title="重置密码" :disabled="row.joinStatus === 0">
                   <img :src="images.reset" class="action-icon" alt="重置密码" />
                   <span class="action-text">重置密码</span>
                 </button>
 
-                <button class="action-btn" v-if="canOperate(row)" @click="openConfirm('delete', row)" title="删除">
+                <button class="action-btn" v-if="canOperate(row)" @click="openConfirm('delete', row)" title="删除" :disabled="row.joinStatus === 0">
                   <img :src="images.deleteT" class="action-icon" alt="删除" />
                   <span class="action-text">删除</span>
                 </button>
@@ -201,6 +208,7 @@ const canResetPwd = (row: any) => {
 
 const loading = ref(false)
 const teamList = ref<any[]>([])
+const joinStatus = ref(1)
 const total = ref(0)
 // 搜索 分页参数
 const queryParams = reactive({
@@ -237,6 +245,8 @@ const searchUsers = async () => {
     })
     if (String((res as any).code) === '0000') {
       teamList.value = res.data.list || []
+      joinStatus.value = res.data.joinStatus || [1]
+      console.log("joinStatus",joinStatus)
       total.value = res.data.total || res.data.list.length // 后端没返回总条数，总数显示会受限
     } else {
       teamList.value = []
@@ -563,7 +573,16 @@ onMounted(() => {
       tbody tr:hover td {
         border-bottom-color: rgba(56, 189, 248, 0.5);
       }
-
+      .disabled-row {
+        opacity: 0.5;
+        background-color: rgba(30, 41, 59, 0.1);
+        &:hover{
+          background-color: rgba(30, 41, 59, 0.4) !important;
+          td {
+            border-bottom-color: rgba(30, 41, 59, 0.2) !important;
+          }
+        }
+      }
       td {
         padding: 16px;
         height: 72px;
@@ -572,6 +591,20 @@ onMounted(() => {
         border-bottom: 1px solid rgba(30, 41, 59, 0.2);
         vertical-align: middle;
         text-align: center;
+        .status.disabled-status{
+          color: rgba(148, 163, 184, 1);
+          display: inline-flex;
+          align-items: center;
+
+          .gray-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: rgba(148, 163, 184, 1);
+            margin-right: 4px;
+          }
+        }
       }
 
       .create-time {
@@ -705,7 +738,16 @@ onMounted(() => {
         flex-direction: column;
         align-items: center;
         gap: 6px;
-
+        &:disabled{
+          cursor: not-allowed;
+          opacity: 0.4;
+          img{
+            filter: grayscale(100%);
+          }
+          .action-text {
+            color: #64748B; /* 按钮文字变暗 */
+          }
+        }
         &.text-blue {
           color: #38BDF8;
         }
