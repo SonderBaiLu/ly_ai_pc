@@ -6,9 +6,6 @@ import router from "@/router";
 
 export interface UserInfo {
   userId?: string | number
-  phone?: string
-  isVip?: number
-  token?: string
   [key: string]: any
 }
 

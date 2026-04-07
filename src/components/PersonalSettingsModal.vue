@@ -30,7 +30,8 @@
 
     <!-- 账号名 -->
     <div class="form-item flex-between">
-      <div class="form-label">账号名<span class="account-name">{{ editingData.userName }}</span></div>
+      <div class="form-label">{{ t('personalSettings.accountName') }}<span class="account-name">{{ editingData.userName
+          }}</span></div>
       <!--密码修改-->
       <el-button type="primary" size="small" @click="updatePwd()" class="password-edit-btn">
         {{ hasPassword ?
@@ -42,10 +43,10 @@
     </div>
     <!-- 昵称 -->
     <div class="form-item">
-      <div class="form-label">{{ t('personalSettings.nickname') }}</div>
+      <div class="form-label">{{ t('personalSettings.nickName') }}</div>
       <div class="form-value">
-        <el-input v-model="editingData.nickname" :maxlength="20"
-          :placeholder="t('personalSettings.nicknamePlaceholder')" class="nickname-input" show-word-limit />
+        <el-input v-model="editingData.nickName" :maxlength="20"
+          :placeholder="t('personalSettings.nickNamePlaceholder')" class="nick-name-input" show-word-limit />
       </div>
     </div>
 
@@ -74,7 +75,8 @@
   </el-dialog>
   <Teleport to="body">
     <Transition name="modal">
-      <ResetPassword :is-set-password="!hasPassword"  v-if="isVisible" :mode="currentMode" :is-from-settings="true" @close="isVisible = false" />
+      <ResetPassword :is-set-password="!hasPassword" v-if="isVisible" :mode="currentMode" :is-from-settings="true"
+        @close="isVisible = false" />
     </Transition>
   </Teleport>
 
@@ -129,7 +131,7 @@ const avatarInputRef = ref<HTMLInputElement>()
 // 数据从 Pinia 的 userInfo 同步
 const editingData = ref({
   headImgUrl: '',
-  nickname: '',
+  nickName: '',
   introduction: '',
   userName: '',
 })
@@ -176,7 +178,7 @@ const handleAvatarChange = async (event: Event) => {
 const handleSave = async () => {
   try {
     const updateData = {
-      nickName: editingData.value.nickname.trim(),
+      nickName: editingData.value.nickName.trim(),
       desc: editingData.value.introduction.trim(),
       headImgUrl: editingData.value.headImgUrl,
     }
@@ -208,8 +210,8 @@ watch(
       if (userInfo) {
         editingData.value = {
           headImgUrl: userInfo.headImgUrl || '',
-          nickname: userInfo.nickname || userInfo.nickName || '',
-          introduction: userInfo.desc || userInfo.introduction || '',
+          nickName: userInfo.nickName || '',
+          introduction: userInfo.desc || '',
           userName: userInfo.mobile || '',
         }
       }
@@ -424,7 +426,7 @@ const handleClose = () => {
       }
     }
 
-    .nickname-input {
+    .nick-name-input {
       height: 50px;
     }
   }

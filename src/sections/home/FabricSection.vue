@@ -117,7 +117,7 @@ const thumbnails = [
 ]
 
 const showComingSoon = () => {
-  // 面料创拍入口：未登录先进 AI 设计工作台；登录后进入对应模块
+  // 面料创款入口：未登录先进 AI 设计工作台；登录后进入对应模块
   enterModule(() => router.push({ path: '/ai-fashion', query: { mode: 'fabricCreative' } }))
 }
 

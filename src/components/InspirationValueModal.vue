@@ -431,6 +431,10 @@ watch(
     .transaction-left {
       display: flex;
       align-items: center;
+      flex: 0 0 220px;
+      max-width: 220px;
+      min-width: 220px;
+      overflow: hidden;
 
       .transaction-avatar {
         width: 54px;
@@ -441,6 +445,8 @@ watch(
       }
 
       .transaction-name {
+        display: block;
+        max-width: 150px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -449,7 +455,7 @@ watch(
 
     .transaction-info {
       flex: 1;
-      padding-left: 120px;
+      padding-left: 20px;
 
       .transaction-type {
         color: $color-text-white;
@@ -476,6 +482,7 @@ watch(
       font-weight: bold;
       text-align: right;
       font-family: NotoSans-bold;
+      flex-shrink: 0;
 
       &.positive {
         color: $color-primary-dark;

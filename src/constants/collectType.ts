@@ -3,7 +3,7 @@ export const COLLECT_TYPE = {
   MODEL_POSE: 1,
   /** 预留：服装设计收藏 */
   FASHION: 2,
-  /** 预留：面料创拍收藏 */
+  /** 预留：面料创款收藏 */
   FABRIC: 3,
 } as const
 

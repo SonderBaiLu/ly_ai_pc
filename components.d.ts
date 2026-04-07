@@ -16,6 +16,7 @@ declare module 'vue' {
     ContactModal: typeof import('./src/components/ContactModal.vue')['default']
     CreationTypeSelectModal: typeof import('./src/components/CreationTypeSelectModal.vue')['default']
     CreativeDescription: typeof import('./src/components/CreativeDescription.vue')['default']
+    CreativeGeneratingPlaceholder: typeof import('./src/components/CreativeGeneratingPlaceholder.vue')['default']
     CtaSection: typeof import('./src/components/CtaSection.vue')['default']
     DesignFeatureModal: typeof import('./src/components/DesignFeatureModal.vue')['default']
     DesignMatrixSection: typeof import('./src/sections/home/DesignMatrixSection.vue')['default']

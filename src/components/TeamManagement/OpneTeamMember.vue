@@ -117,7 +117,7 @@ defineExpose({
 // 复制密码逻辑
 const handleCopyPassword = async () => {
   const copyText = (
-      `团队：${from.value.Account}\n网站：${from.value.website}\n账号名：${from.value.Account}\n昵称：${from.value.nickname}\n默认登录密码：${from.value.pwd}`
+    `团队：${from.value.Account}\n网站：${from.value.website}\n账号名：${from.value.Account}\n昵称：${from.value.nickname}\n默认登录密码：${from.value.pwd}`
   )
 
   try {
@@ -139,8 +139,6 @@ const handleCopyPassword = async () => {
 
 
 <style scoped lang="scss">
-
-
 /* 弹窗遮罩层 */
 .modal-overlay {
   position: fixed;
@@ -167,7 +165,8 @@ const handleCopyPassword = async () => {
   .modal-title {
     text-align: center;
     font-size: 28px;
-    margin-top: 40px; /* 增加顶部间距 */
+    margin-top: 40px;
+    /* 增加顶部间距 */
     //margin-bottom: 40px;
     font-weight: bold;
     color: #ffffff;
@@ -202,6 +201,7 @@ const handleCopyPassword = async () => {
       text-align: left;
       list-style-type: none; // 关键：禁用默认的项目符号
       padding-left: 0; // 清除默认左侧内边距
+
       li {
         position: relative;
         padding-left: 20px;

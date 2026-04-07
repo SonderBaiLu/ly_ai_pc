@@ -200,6 +200,8 @@ onBeforeUnmount(() => {
   position: relative;
   display: inline-block;
   overflow: hidden;
+  background: rgba(120, 120, 120, 0.18);
+  border: 1px solid rgba(150, 150, 150, 0.14);
 }
 
 .lazy-image-loading {
@@ -209,7 +211,10 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: $color-bg-dark-secondary;
+  background: linear-gradient(135deg,
+      rgba(140, 140, 140, 0.22) 0%,
+      rgba(120, 120, 120, 0.16) 40%,
+      rgba(135, 135, 135, 0.20) 100%);
   z-index: 10;
 
   &::after {
@@ -219,13 +224,14 @@ onBeforeUnmount(() => {
     left: 0;
     width: 100%;
     height: 100%;
+    /* 高光更明显，但依然克制 */
     background: linear-gradient(90deg,
         transparent 0%,
-        $color-bg-dark-secondary 20%,
-        $color-bg-dark-secondary 50%,
-        $color-bg-dark-secondary 80%,
+        rgba(235, 235, 235, 0.10) 18%,
+        rgba(245, 245, 245, 0.22) 50%,
+        rgba(235, 235, 235, 0.10) 82%,
         transparent 100%);
-    animation: shimmer 1.5s infinite;
+    animation: shimmer 1.25s infinite;
     transform: translateX(-100%);
   }
 }
@@ -236,7 +242,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $color-bg-dark-secondary;
+  background: rgba(120, 120, 120, 0.18);
   border-radius: $border-radius-md;
 }
 
@@ -244,7 +250,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.35s ease;
 
   // 加载完成后显示
   &.is-loaded {

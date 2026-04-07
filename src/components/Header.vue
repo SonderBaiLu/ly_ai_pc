@@ -72,7 +72,7 @@
           </div>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{
             t('header.register')
-          }}</span>
+            }}</span>
           <div v-show="isUserCardOpen" class="user-card" @mouseenter="openPersonalCenterOnHover"
             @mouseleave="scheduleCloseUserCard">
             <el-button class="invitation-btn" type="primary"
@@ -89,7 +89,7 @@
               </div>
               <div class="user-card-main">
                 <div class="user-card-name">
-                  {{ userStore.userInfo?.nickname || userStore.userInfo?.userName || '未命名用户' }}
+                  {{ userStore.userInfo?.nickName || userStore.userInfo?.userName || '未命名用户' }}
                 </div>
                 <div class="user-card-desc">
                   {{ userStore.userInfo?.desc || '暂无简介' }}
@@ -165,7 +165,7 @@
           <span class="login-btn" @click="showLoginModal">{{ t('header.login') }}</span>
           <span class="register-btn" @click="enterModule(() => router.push('/ai-design'))">{{
             t('header.register')
-          }}</span>
+            }}</span>
         </div>
       </div>
       <div v-if="showMonthlyLoginPointsTip" class="monthly-login-points-tip"
@@ -409,7 +409,7 @@
                 </div>
                 <div class="user-card-main">
                   <div class="user-card-name">
-                    {{ userStore.userInfo?.nickname || userStore.userInfo?.userName || '未命名用户' }}
+                    {{ userStore.userInfo?.nickName || userStore.userInfo?.userName || '未命名用户' }}
                   </div>
                   <div class="user-card-desc">
                     {{ userStore.userInfo?.desc || '暂无简介' }}
@@ -841,7 +841,7 @@ const getCurrentLanguageLabel = () => (currentUserLanguage.value === 'zh-chs' ? 
 
 const menuItems = [
   { key: 'aiDesign', path: '/ai-design' },
-  // 面料创拍：进入 AI 工作台，并带上 mode=fabricCreative
+  // 面料创款：进入 AI 工作台，并带上 mode=fabricCreative
   { key: 'fabricCreative', path: '/ai-fashion', query: { mode: 'fabricCreative' } },
   { key: 'about', path: '/about' },
   { key: 'contactUs', path: '' },

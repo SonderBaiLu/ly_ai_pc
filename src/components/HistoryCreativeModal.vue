@@ -10,9 +10,10 @@
     </template>
     <div class="history-content">
       <!-- el-scrollbar 触底加载（替代 v-infinite-scroll，避免 Element Plus 弃用警告） -->
-      <el-scrollbar ref="historyScrollbarRef" class="history-scroll-container" @scroll="handleHistoryScroll">
+      <el-scrollbar ref="historyScrollbarRef" class="history-scroll-container" :height="historyScrollHeight"
+        @scroll="handleHistoryScroll">
         <div v-loading="loading" class="image-grid">
-          <ImageItem v-for="item in displayList" :key="item.id" :image-data="item" :show-select="multiSelect"
+          <ImageItem v-for="item in displayList" :key="item.id" :image-data="item as any" :show-select="multiSelect"
             :is-selected="isSelected(item)" :selected-count="selectedList.length" :max-select="maxCount"
             :show-collect="false" :show-zoom="true" @select="handleImageSelect" @click="handleImageClick"
             @zoom="handlePreviewClick" />
@@ -24,17 +25,12 @@
     </div>
 
     <!-- 自定义预览弹窗 -->
-    <ImagePreviewModal v-model="showPreviewModal" :image-src="previewImage?.imageUrl || previewImage?.resultUrl || ''"
+    <ImagePreviewModal v-model="showPreviewModal" :image-src="previewImage ? getCompareUrl(previewImage as any) : ''"
       :show-selected-badge="props.multiSelect" :is-selected="previewImage ? isSelected(previewImage) : false"
-      :extra-info="previewImage
-        ? {
-          createTime: previewImage.createTime,
-          prompt: previewImage.prompt,
-        }
-        : undefined
-        " cancel-text="关闭" :show-confirm-button="true" :confirm-text="props.multiSelect && previewImage && isSelected(previewImage) ? '取消选择' : '选择此图片'
-          " :confirm-button-type="props.multiSelect && previewImage && isSelected(previewImage) ? 'danger' : 'primary'
-            " @confirm="handlePreviewConfirm" />
+      cancel-text="关闭" :show-confirm-button="true"
+      :confirm-text="props.multiSelect && previewImage && isSelected(previewImage) ? '取消选择' : '选择此图片'"
+      :confirm-button-type="props.multiSelect && previewImage && isSelected(previewImage) ? 'danger' : 'primary'"
+      @confirm="handlePreviewConfirm" />
 
     <!-- 多选确认按钮 -->
     <template v-if="multiSelect" #footer>
@@ -53,24 +49,10 @@ import { images } from '@/assets'
 import { algoApi } from '@/api/algo'
 import { ElMessage } from 'element-plus'
 import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
-
-// 定义接口
-interface HistoryItem {
-  id: string | number
-  imageUrl?: string | null
-  thumbUrl?: string | null
-  url?: string | null
-  resultUrl?: string | null
-  prompt?: string
-  [key: string]: any // 允许其他字段
-}
+import type { CreationResult } from '@/composables/useTaskPolling'
 
 interface Props {
   modelValue: boolean
-  /** 类型：1指令生图 2姿势裂变 3表情控制 4文生图 5穿搭调整 6商品展示 */
-  type?: string | number
-  /** 文件类型：1图片 2视频 */
-  fileType?: string | number
   /** 一级模块 menuCode（queryAlgoResultPage 筛选）；未传则为 '' */
   menuCode?: string
   /** 数据来源：creative-创作记录 upload-文件上传历史 */
@@ -80,20 +62,18 @@ interface Props {
   /** 最多选择数量 */
   maxCount?: number
   /** 已选项（用于回显） */
-  selectedItems?: HistoryItem[]
+  selectedItems?: CreationResult[]
 }
 
 interface Emits {
   (e: 'update:modelValue', value: boolean): void
-  (e: 'select', item: HistoryItem): void
-  (e: 'confirm', items: HistoryItem[]): void
+  (e: 'select', item: CreationResult): void
+  (e: 'confirm', items: CreationResult[]): void
 }
 
 // Props 和 Emits
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
-  type: undefined,
-  fileType: 1,
   menuCode: '',
   source: 'creative',
   multiSelect: false,
@@ -112,18 +92,26 @@ const pageSize = ref(24)
 const hasMore = ref(true)
 
 // 历史创作数据
-const historyList = ref<HistoryItem[]>([])
+const historyList = ref<CreationResult[]>([])
 
 // 多选状态
-const selectedList = ref<HistoryItem[]>([])
+const selectedList = ref<CreationResult[]>([])
 
 const scrollDisabled = computed(() => loading.value || loadingMore.value || !hasMore.value)
 
 const historyScrollbarRef = ref<{ wrapRef?: HTMLElement } | null>(null)
+const historyScrollHeight = computed(() => {
+  // 给滚动区一个明确高度，避免在不同层级样式下被内容撑开导致“不可滚动”
+  return props.multiSelect ? '52vh' : '60vh'
+})
 
 // 预览相关状态
 const showPreviewModal = ref(false)
-const previewImage = ref<HistoryItem | null>(null)
+const previewImage = ref<CreationResult | null>(null)
+
+const getCompareUrl = (item: any) => {
+  return String(item?.fileUrl || item?.url || item?.originalUrl || item?.thumbUrl || item?.videoUrl || '').trim()
+}
 
 // 计算属性 - 显示列表
 const displayList = computed(() => {
@@ -145,8 +133,8 @@ async function loadHistoryData(isLoadMore = false, options: { skipCache?: boolea
     const moduleCode = String(props.menuCode ?? '').trim()
     const params = {
       menuCode: moduleCode,
-      collectStatus: '0',
-      fileType: String(props.fileType ?? 1),
+      fileType: '', // 接口字段要求必传：空字符串表示不筛选
+      collectStatus: '', // 接口字段要求必传：空字符串表示不筛选
       currentPage: currentPage.value,
       pageSize: pageSize.value,
     }
@@ -156,27 +144,9 @@ async function loadHistoryData(isLoadMore = false, options: { skipCache?: boolea
       hasMore.value = false
       return
     }
-
-    const data: any = res.data || {}
-    const records = (Array.isArray(data?.records) && data.records) || (Array.isArray(data?.list) && data.list) || []
-    const mapped: HistoryItem[] = records.map((item: any) => {
-      const imageUrl = String(item?.url || item?.thumbUrl || item?.originalUrl || '').trim()
-      return {
-        ...item,
-        id: item?.id ?? imageUrl,
-        imageUrl,
-        thumbUrl: item?.thumbUrl || imageUrl,
-        resultUrl: item?.url || imageUrl,
-      }
-    })
-
-    historyList.value = isLoadMore ? [...historyList.value, ...mapped] : mapped
-    if (typeof data?.hasNext === 'boolean') {
-      hasMore.value = data.hasNext
-    } else {
-      const total = Number(data?.total ?? data?.totalCount ?? 0)
-      hasMore.value = total > 0 ? historyList.value.length < total : mapped.length >= pageSize.value
-    }
+    const { list, hasNext } = res.data || {}
+    historyList.value = isLoadMore ? [...historyList.value, ...list] : list
+    hasMore.value = hasNext
   } catch (error) {
     console.error('加载历史数据出错:', error)
     if (!isLoadMore) {
@@ -239,26 +209,26 @@ watch(visible, (newVal) => {
 })
 
 // 处理图片选择（来自ImageItem的select事件）
-const handleImageSelect = (data: { imageData: HistoryItem; isSelected: boolean }) => {
-  toggleSelection(data.imageData)
+const handleImageSelect = (data: { imageData: any; isSelected: boolean }) => {
+  toggleSelection(data.imageData as CreationResult)
 }
 
 // 点击图片处理
-const handleImageClick = (data: { imageData: HistoryItem }) => {
+const handleImageClick = (data: { imageData: any }) => {
   if (props.multiSelect) {
-    toggleSelection(data.imageData)
+    toggleSelection(data.imageData as CreationResult)
   } else {
-    emit('select', data.imageData)
+    emit('select', data.imageData as CreationResult)
     visible.value = false
   }
 }
 
 // 切换选择状态（多选）
-const toggleSelection = (item: HistoryItem) => {
+const toggleSelection = (item: CreationResult) => {
   const index = selectedList.value.findIndex((i) => {
     if (i.id === item.id) return true
-    const itemUrl = item.imageUrl || item.videoUrl || item.resultUrl
-    const selectedUrl = i.imageUrl || i.videoUrl || i.resultUrl
+    const itemUrl = getCompareUrl(item as any)
+    const selectedUrl = getCompareUrl(i as any)
     return itemUrl && selectedUrl && itemUrl === selectedUrl
   })
 
@@ -274,13 +244,13 @@ const toggleSelection = (item: HistoryItem) => {
 }
 
 // 判断是否已选中（支持通过imageUrl匹配）
-const isSelected = (item: HistoryItem) => {
+const isSelected = (item: CreationResult) => {
   return selectedList.value.some((i) => {
     // 优先通过ID匹配
     if (i.id === item.id) return true
     // 如果ID不匹配，尝试通过imageUrl匹配
-    const itemUrl = item.imageUrl || item.videoUrl || item.resultUrl
-    const selectedUrl = i.imageUrl || i.videoUrl || i.resultUrl
+    const itemUrl = getCompareUrl(item as any)
+    const selectedUrl = getCompareUrl(i as any)
     return itemUrl && selectedUrl && itemUrl === selectedUrl
   })
 }
@@ -296,8 +266,8 @@ const handleConfirmMultiSelect = () => {
 }
 
 // 预览图片处理
-const handlePreviewClick = (data: { imageData: HistoryItem }) => {
-  previewImage.value = data.imageData
+const handlePreviewClick = (data: { imageData: any }) => {
+  previewImage.value = data.imageData as CreationResult
   showPreviewModal.value = true
 }
 
@@ -357,8 +327,25 @@ defineExpose({
 }
 
 .history-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
   .history-scroll-container {
-    max-height: min(600px, 60vh);
+    flex: 1;
+    min-height: 0;
+    height: min(600px, 60vh);
+  }
+
+  :deep(.history-scroll-container.el-scrollbar) {
+    height: 100%;
+  }
+
+  :deep(.history-scroll-container .el-scrollbar__wrap) {
+    overflow-y: auto !important;
+    overflow-x: hidden;
   }
 
   .image-grid {
@@ -394,7 +381,7 @@ defineExpose({
       flex-direction: column;
 
       .history-scroll-container {
-        max-height: min(500px, 55vh);
+        height: min(500px, 55vh);
       }
     }
   }
@@ -407,8 +394,8 @@ defineExpose({
     }
 
     .history-content {
-      .scroll-container {
-        max-height: min(400px, 50vh);
+      .history-scroll-container {
+        height: min(400px, 50vh);
       }
     }
   }
@@ -423,27 +410,40 @@ defineExpose({
 
     .history-content {
       .history-scroll-container {
-        max-height: min(300px, 45vh);
+        height: min(300px, 45vh);
       }
     }
   }
 }
 </style>
 <style lang="scss">
-.history-creative-dialog.el-dialog {
+.history-creative-dialog.el-dialog,
+.history-creative-dialog .el-dialog {
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.04);
+  /* 限制弹窗总高度 + flex 列布局，否则 body 无法收缩，内部 scrollbar 不会生效 */
+  max-height: 90vh;
+  margin: 5vh auto !important;
+  display: flex;
+  flex-direction: column;
 
   .el-dialog__header {
     padding: 32px 17px;
+    flex-shrink: 0;
   }
 
   .el-dialog__body {
     flex: 1;
+    min-height: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    padding-top: 0;
+  }
+
+  .el-dialog__footer {
+    flex-shrink: 0;
   }
 }
 </style>

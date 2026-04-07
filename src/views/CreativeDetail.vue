@@ -18,18 +18,9 @@
             :class="{ active: selectedThumbnail === index }">
             <div class="media-player flex-col-center" @click="handleImagePreview(index, item)">
               <!-- 生成中/失败：不展示媒体内容，显示占位提示 -->
-              <div v-if="Number((item as any).status) === 2 || Number((item as any).status) === 1"
-                class="media-status-placeholder generating">
-                <LoadingSpinner :size="72" :thickness="8" />
-                <div class="status-text">正在生成中...</div>
-                <div class="generating-progress">
-                  <GradientProgress :percentage="getGeneratingProgress(item)" />
-                </div>
-              </div>
-              <div v-else-if="Number((item as any).status) === 4" class="media-status-placeholder failed">
-                <img :src="images.fail" class="placeholder-icon" alt="生成失败" />
-                <div class="status-text">生成失败</div>
-              </div>
+              <CreativeGeneratingPlaceholder
+                v-if="Number((item as any).status) === 1 || Number((item as any).status) === 2 || Number((item as any).status) === 4"
+                :status="Number((item as any).status)" :progress="(item as any)?.progress" />
               <!-- 媒体播放器 - 自动判断显示视频或图片 -->
               <MediaPlayer v-else :ref="(el: any) => setMediaPlayerRef(el, index)" :src="(item as any).url"
                 :poster="(item as any).url || (item as any).thumbUrl"
@@ -122,29 +113,29 @@
           <!-- AI工作台（4类型）详情：完全使用四个左侧页面的展示结构（仅保留必要模块） -->
           <template v-if="isAiFashionStudioAssetsDetail">
 
-            <template v-if="detailModule === 'sketchToReal'">
+            <template v-if="detailModule === 'sketchToReal' && requestImageUrls.length">
               <div class="section-title">线稿图</div>
-              <div v-if="requestParams" class="video-thumb-row">
-                <img v-for="(item, idx) in requestParams.imageUrls" :key="`sketch-${idx}`" :src="item" />
+              <div class="video-thumb-row">
+                <img v-for="(item, idx) in requestImageUrls" :key="`sketch-${idx}`" :src="item" />
               </div>
             </template>
 
-            <template v-if="detailModule === 'realToSketch'">
+            <template v-if="detailModule === 'realToSketch' && requestImageUrls.length">
               <div class="section-title">实物图</div>
-              <div v-if="requestParams" class="video-thumb-row">
-                <img v-for="(item, idx) in requestParams.imageUrls" :key="`real-${idx}`" :src="item" />
+              <div class="video-thumb-row">
+                <img v-for="(item, idx) in requestImageUrls" :key="`real-${idx}`" :src="item" />
               </div>
             </template>
 
-            <template v-if="detailModule === 'fabricCreative'">
+            <template v-if="detailModule === 'fabricCreative' && requestImageUrls.length">
               <div class="section-title">面料图</div>
-              <div v-if="requestParams" class="video-thumb-row">
-                <img v-for="(item, idx) in requestParams.imageUrls" :key="`fabric-${idx}`" :src="item" />
+              <div class="video-thumb-row">
+                <img v-for="(item, idx) in requestImageUrls" :key="`fabric-${idx}`" :src="item" />
               </div>
             </template>
 
             <!-- 款型 / 类型 -->
-            <template v-if="requestParams?.category">
+            <template v-if="hasCategoryInfo">
               <div class="section-title">款型</div>
               <div class="param-input">
                 {{
@@ -156,64 +147,56 @@
             </template>
 
             <!-- AI服装设计：设计特征 -->
-            <template v-if="detailModule === 'aiFashion' && Array.isArray(requestParams?.features)">
+            <template v-if="detailModule === 'aiFashion' && aiFashionFeatures.length">
               <div class="section-title">设计特征</div>
               <div class="tag-row">
-                <span v-for="(f, idx) in requestParams.features" :key="`${f}-${idx}`" class="tag">
+                <span v-for="(f, idx) in aiFashionFeatures" :key="`${f}-${idx}`" class="tag">
                   {{ f }}
                 </span>
               </div>
             </template>
 
             <!-- 线稿转实物：线稿类型/风格/生成图片类型 -->
-            <template v-if="detailModule === 'sketchToReal'">
+            <template v-if="detailModule === 'sketchToReal' && hasSketchType">
               <div class="section-title">线稿类型</div>
               <div class="tag-row">
-                <span v-if="requestParams?.sketchType" class="tag">{{ requestParams.sketchType }}</span>
-                <span v-else class="tag">—</span>
+                <span class="tag">{{ requestParams?.sketchType }}</span>
               </div>
+            </template>
 
+            <template v-if="detailModule === 'sketchToReal' && hasSketchStyle">
               <div class="section-title">线稿风格</div>
               <div class="tag-row">
-                <span v-if="requestParams?.sketchStyle" class="tag">{{ requestParams.sketchStyle }}</span>
-                <span v-else class="tag">—</span>
+                <span class="tag">{{ requestParams?.sketchStyle }}</span>
               </div>
+            </template>
 
+            <template v-if="(detailModule === 'sketchToReal' || detailModule === 'fabricCreative') && hasOutputType">
               <div class="section-title">生成图片类型</div>
               <div class="tag-row">
-                <span v-if="requestParams?.outputType" class="tag">{{ requestParams.outputType }}</span>
-                <span v-else class="tag">—</span>
+                <span class="tag">{{ requestParams?.outputType }}</span>
               </div>
             </template>
 
             <!-- 实物转线稿：线稿生成类型/风格 -->
-            <template v-if="detailModule === 'realToSketch'">
+            <template v-if="detailModule === 'realToSketch' && hasLineType">
               <div class="section-title">线稿生成类型</div>
               <div class="tag-row">
-                <span v-if="requestParams?.lineType" class="tag">{{ requestParams.lineType }}</span>
-                <span v-else class="tag">—</span>
+                <span class="tag">{{ requestParams?.lineType }}</span>
               </div>
+            </template>
 
+            <template v-if="detailModule === 'realToSketch' && hasLineStyle">
               <div class="section-title">线稿生成风格</div>
               <div class="tag-row">
-                <span v-if="requestParams?.lineStyle" class="tag">{{ requestParams.lineStyle }}</span>
-                <span v-else class="tag">—</span>
+                <span class="tag">{{ requestParams?.lineStyle }}</span>
               </div>
             </template>
 
-            <!-- 面料创拍：生成图片类型 -->
-            <template v-if="detailModule === 'fabricCreative'">
-              <div class="section-title">生成图片类型</div>
-              <div class="tag-row">
-                <span v-if="requestParams?.outputType" class="tag">{{ requestParams.outputType }}</span>
-                <span v-else class="tag">—</span>
-              </div>
-            </template>
-
-            <template v-if="requestParams?.imageUrls?.length && detailModule == 'aiFashion'">
+            <template v-if="requestImageUrls.length && detailModule == 'aiFashion'">
               <div class="section-title">参考图</div>
-              <div v-if="requestParams && isAiFashionStudioAssetsDetail" class="video-thumb-row">
-                <img v-for="(item, idx) in requestParams.imageUrls" :key="`ref-${idx}`" :src="item" />
+              <div v-if="isAiFashionStudioAssetsDetail" class="video-thumb-row">
+                <img v-for="(item, idx) in requestImageUrls" :key="`ref-${idx}`" :src="item" />
               </div>
             </template>
           </template>
@@ -290,7 +273,7 @@ import { ArrowLeft, Loading } from '@element-plus/icons-vue'
 import ThumbnailGallery from '@/components/ThumbnailGallery.vue'
 import type { CreationResult } from '@/composables/useTaskPolling'
 import { algoApi } from '@/api/algo'
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import CreativeGeneratingPlaceholder from '@/components/CreativeGeneratingPlaceholder.vue'
 import { useUserStore } from '@/stores/user'
 import { useTemplateStore } from '@/stores/template'
 import { useModalStore } from '@/stores/modal'
@@ -298,6 +281,7 @@ import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import type { CreativeTemplate } from '@/types'
 import { copyToClipboard } from '@/utils/clipboard'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
+import { useCreativeDetailFlow } from '@/composables/useCreativeDetailFlow'
 
 // Props 定义（支持弹窗模式）
 interface Props {
@@ -372,6 +356,7 @@ const removeWatermarkEnabled = computed(() => {
   return isUserVip.value && userStore.userInfo?.watermarkStatus === 1 ? true : false
 })
 
+// 设置本地去除水印状态
 const setLocalWatermarkStatus = (enabled: boolean) => {
   const prev = userStore.userInfo
   if (!prev) return
@@ -381,7 +366,7 @@ const setLocalWatermarkStatus = (enabled: boolean) => {
     watermarkStatus: enabled ? 1 : 0,
   })
 }
-
+// 持久化去除水印状态
 const persistWatermarkStatus = async (enabled: boolean) => {
   const payload = { watermarkStatus: enabled ? 1 : 0 }
   await userStore.updateUserInfo(payload).catch(() => { })
@@ -401,30 +386,30 @@ const detailStatus = computed(() => {
   return Number.isFinite(s) ? s : 3
 })
 
-// 右侧详情面板状态优先跟随当前选中缩略图，避免“左侧已切到生成中，但右侧仍显示旧完成态”
-watch(
-  [selectedThumbnail, relatedTemplates],
-  () => {
-    const current = relatedTemplates.value[selectedThumbnail.value] as any
-    if (!current) return
-    const status = Number(current?.status)
-    // 右侧详情面板始终跟随当前选中缩略图更新，避免从“生成中(status=2/1)”切到“完成(status=3)”后仍展示旧状态
-    templateDetail.value = { ...current } as any
+// 获取订单号候选
+const getOrderNoCandidate = (item: any) =>
+  String(item?.algoOrderId ?? item?.algoOrderNo ?? item?.id ?? '').trim()
 
-    // 如果当前选中项仍在生成中，则启动轮询，确保列表成功后详情也能刷新出结果
-    if (status === 1 || status === 2) {
-      const orderNoCandidate = String(current?.algoOrderId ?? current?.algoOrderNo ?? current?.id ?? '').trim()
-      if (orderNoCandidate) {
-        startPollingGenerateResult(orderNoCandidate, {
-          successText: '生成完成',
-          failText: '生成失败',
-          timeoutText: '生成超时，请稍后在“我的创作”中查看',
-        })
-      }
+// 右侧详情面板状态优先跟随当前选中缩略图，避免“左侧已切到生成中，但右侧仍显示旧完成态”
+const selectedTemplate = computed<any>(() => relatedTemplates.value[selectedThumbnail.value] as any)
+watch(selectedTemplate, (current) => {
+  if (!current) return
+  const status = Number(current?.status)
+  // 右侧详情面板始终跟随当前选中缩略图更新，避免从“生成中(status=2/1)”切到“完成(status=3)”后仍展示旧状态
+  templateDetail.value = { ...current } as any
+
+  // 如果当前选中项仍在生成中，则启动轮询，确保列表成功后详情也能刷新出结果
+  if (status === 1 || status === 2) {
+    const orderNoCandidate = getOrderNoCandidate(current)
+    if (orderNoCandidate) {
+      void startPollingGenerateResult(orderNoCandidate, {
+        successText: '生成完成',
+        failText: '生成失败',
+        timeoutText: '生成超时，请稍后在“我的创作”中查看',
+      })
     }
-  },
-  { deep: true }
-)
+  }
+})
 
 // 详情是否属于 AI 工作台四模块（以详情返回的 menuCode 为准）
 const isAiFashionStudioAssetsDetail = computed(() => {
@@ -443,7 +428,7 @@ const studioModuleName = computed(() => {
     aiFashion: 'AI服装设计',
     sketchToReal: '线稿转实物',
     realToSketch: '实物转线稿',
-    fabricCreative: '面料创拍',
+    fabricCreative: '面料创款',
   }
   return map[detailModule.value]
 })
@@ -458,20 +443,15 @@ const relatedPageParams = ref({
   size: 20,
 })
 
-const hasMoreRelated = ref(true)
-const loadingRelated = ref(false)
+const hasMoreRelated = ref(true) // 是否还有更多相关作品
+const loadingRelated = ref(false) // 是否正在加载相关作品
 // 数据是否已初始化完成（用于避免初始渲染时的闪烁）
 const isDataReady = ref(false)
 
+// 获取作品 ID
 const getAlgoResultId = (item: any): string | number | null => {
   if (!item) return null
   return item.id ?? null
-}
-
-const getGeneratingProgress = (item: any): number => {
-  const raw = Number(item?.progress ?? 0)
-  if (!Number.isFinite(raw)) return 0
-  return Math.min(100, Math.max(0, Math.floor(raw)))
 }
 
 // 统一参数：只使用详情接口 webRequest 字段
@@ -541,39 +521,6 @@ const requestParams = computed(() => {
     res.outputType = values?.[0] || ''
   }
 
-  // 兼容：历史数据曾出现三项串位（模特图/平铺图/3D图 应属 outputType；黑白/彩色 属线稿类型；轮廓/手绘 属线稿风格）
-  if (res.sketchType || res.sketchStyle || res.outputType) {
-    const isOutputType = (v: string) => Boolean(v) && v.includes('图') && !v.includes('线稿')
-    const isSketchType = (v: string) => Boolean(v) && (v.includes('黑白') || v.includes('彩色'))
-    const isSketchStyle = (v: string) => Boolean(v) && (v.includes('轮廓') || v.includes('手绘'))
-
-    const a = String(res.sketchType || '')
-    const b = String(res.sketchStyle || '')
-    const c = String(res.outputType || '')
-
-    // 优先按内容识别归位
-    const next: any = { sketchType: res.sketchType, sketchStyle: res.sketchStyle, outputType: res.outputType }
-    const candidates = [a, b, c].filter(Boolean)
-
-    const out = candidates.find(isOutputType) || ''
-    const typ = candidates.find(isSketchType) || ''
-    const sty = candidates.find(isSketchStyle) || ''
-
-    // 只有在识别到至少一项且与现有字段明显不符时才改（避免影响已正确的数据）
-    if (
-      (out && out !== c) ||
-      (typ && typ !== a) ||
-      (sty && sty !== b)
-    ) {
-      next.outputType = out || c
-      next.sketchType = typ || a
-      next.sketchStyle = sty || b
-      res.outputType = next.outputType
-      res.sketchType = next.sketchType
-      res.sketchStyle = next.sketchStyle
-    }
-  }
-
   // realToSketch：实物转线稿-线稿生成类型
   if (Array.isArray(src.sketchGenerationTypeParams)) {
     const values = src.sketchGenerationTypeParams.map((x: any) => String(x?.content ?? '').trim()).filter(Boolean)
@@ -590,6 +537,27 @@ const requestParams = computed(() => {
 
   return res
 })
+
+const requestImageUrls = computed<string[]>(() => {
+  const list = Array.isArray(requestParams.value?.imageUrls) ? requestParams.value.imageUrls : []
+  return list.map((x: any) => String(x || '').trim()).filter(Boolean)
+})
+
+const hasCategoryInfo = computed(() => {
+  const p: any = requestParams.value || {}
+  return Boolean(String(p?.category || '').trim() || String(p?.clothType || '').trim() || String(p?.subKind || '').trim())
+})
+
+const aiFashionFeatures = computed<string[]>(() => {
+  const list = Array.isArray((requestParams.value as any)?.features) ? (requestParams.value as any).features : []
+  return list.map((x: any) => String(x || '').trim()).filter(Boolean)
+})
+
+const hasSketchType = computed(() => Boolean(String((requestParams.value as any)?.sketchType || '').trim()))
+const hasSketchStyle = computed(() => Boolean(String((requestParams.value as any)?.sketchStyle || '').trim()))
+const hasOutputType = computed(() => Boolean(String((requestParams.value as any)?.outputType || '').trim()))
+const hasLineType = computed(() => Boolean(String((requestParams.value as any)?.lineType || '').trim()))
+const hasLineStyle = computed(() => Boolean(String((requestParams.value as any)?.lineStyle || '').trim()))
 
 // 左侧大图/预览：展示“生成结果输出图/视频”
 const getLeftImagePreviewUrl = (_index: number, item: any): string => {
@@ -611,10 +579,10 @@ const isImageType = (item: any): boolean => {
   return !isVideoType(item)
 }
 
-// 详情所属模块：AI服装设计三模块 + 面料创拍一模块（用于“重新生成/再次生成”跳转）
+// 详情所属模块：AI服装设计三模块 + 面料创款一模块（用于“重新生成/再次生成”跳转）
 type DetailModule = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
-// 详情所属模块：AI服装设计三模块 + 面料创拍一模块（用于“重新生成/再次生成”跳转）
+// 详情所属模块：AI服装设计三模块 + 面料创款一模块（用于“重新生成/再次生成”跳转）
 const detailModule = computed<DetailModule>(() => {
   if (!templateDetail.value) return 'aiFashion'
 
@@ -641,262 +609,7 @@ const detailModule = computed<DetailModule>(() => {
 //   })
 // }
 
-// 再次生成：同上（预留 action 让目标页后续可区分不同入口）
-const handleAgainGenerate = async () => {
-  if (isSubmittingAgain.value) return
-  const d: any = templateDetail.value
-  if (!d) {
-    ElMessage.warning('详情数据不存在')
-    return
-  }
-
-  const wrRaw = d?.webRequest
-  let payload: any = null
-  if (wrRaw && typeof wrRaw === 'object') {
-    payload = wrRaw
-  } else if (typeof wrRaw === 'string') {
-    try {
-      payload = JSON.parse(wrRaw)
-    } catch (e) {
-      console.warn('[handleAgainGenerate] 解析 webRequest 失败:', e)
-      payload = null
-    }
-  }
-
-  if (!payload || typeof payload !== 'object') {
-    ElMessage.warning('缺少可提交的 webRequest 参数')
-    return
-  }
-
-  try {
-    isSubmittingAgain.value = true
-    const resp = await algoApi.submit(payload as any)
-    if ((resp as any)?.code === '0000') {
-      const data = (resp as any)?.data
-      const orderNo = String(
-        (typeof data === 'string' || typeof data === 'number'
-          ? data
-          : data?.orderNo ?? data?.algoOrderNo ?? data?.algoOrderId ?? '') || ''
-      )
-      if (!orderNo) {
-        ElMessage.warning('提交成功，但未返回任务编号')
-        return
-      }
-      ElMessage.success('已提交再次生成任务，正在生成中')
-      // 先启动轮询并占用 key，避免下面的 watch(relatedTemplates/selectedThumbnail) 再次触发第二套轮询
-      const pollPromise = startPollingGenerateResult(orderNo)
-      prependGeneratingPlaceholder(orderNo, payload)
-      if (pollPromise) await pollPromise
-      return
-    }
-    ElMessage.error((resp as any)?.msg || '再次生成提交失败')
-  } catch (error) {
-    console.error('[handleAgainGenerate] submit failed:', error)
-    ElMessage.error('再次生成提交失败，请稍后重试')
-  } finally {
-    isSubmittingAgain.value = false
-  }
-}
-
-const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
-
-const prependGeneratingPlaceholder = (orderNo: string, payload: any) => {
-  const now = new Date().toISOString()
-  const placeholder: any = {
-    id: `pending-${orderNo}`,
-    algoOrderId: orderNo,
-    menuCode: String((templateDetail.value as any)?.menuCode || ''),
-    fileType: Number((templateDetail.value as any)?.fileType ?? 1),
-    status: 2,
-    prompt: String(payload?.creativeDescription ?? creativeDescription.value ?? '生成中...'),
-    progress: 0,
-    createTime: now,
-    url: '',
-    thumbUrl: '',
-    originalUrl: '',
-    collectStatus: 0,
-  }
-
-  const existed = relatedTemplates.value.findIndex(
-    (x: any) => String(x?.algoOrderId || '') === String(orderNo) || String(x?.id || '') === String(placeholder.id)
-  )
-  if (existed >= 0) {
-    relatedTemplates.value[existed] = { ...(relatedTemplates.value[existed] as any), ...placeholder }
-  } else {
-    relatedTemplates.value = [placeholder, ...relatedTemplates.value] as any[]
-  }
-
-  selectedThumbnail.value = 0
-  previousThumbnailIndex.value = 0
-  templateDetail.value = { ...placeholder } as any
-  nextTick(() => syncMediaContainerToSelected(true))
-}
-
-const patchAgainGeneratePlaceholder = (orderNo: string, patch: Record<string, any>) => {
-  const idx = relatedTemplates.value.findIndex(
-    (x: any) => String(x?.algoOrderId || '') === String(orderNo) || String(x?.id || '') === `pending-${orderNo}`
-  )
-  if (idx < 0) return
-  relatedTemplates.value[idx] = {
-    ...(relatedTemplates.value[idx] as any),
-    ...patch,
-    algoOrderId: String((relatedTemplates.value[idx] as any)?.algoOrderId || orderNo),
-  } as any
-
-  if (selectedThumbnail.value === idx) {
-    templateDetail.value = { ...(relatedTemplates.value[idx] as any) }
-  }
-}
-
-const prependGeneratedResults = (records: any[], orderNo?: string) => {
-  if (!Array.isArray(records) || records.length === 0) return null
-  const normalized = records
-    .map((item: any) => {
-      const id = getAlgoResultId(item)
-      return {
-        ...item,
-        id: id != null ? String(id) : '',
-      }
-    })
-    .filter((item: any) => !!item?.id)
-
-  if (normalized.length === 0) return null
-
-  const idSet = new Set(normalized.map((x: any) => String(x.id)))
-  const merged = [
-    ...normalized,
-    ...relatedTemplates.value.filter((x: any) => {
-      const sameId = idSet.has(String(x?.id))
-      const sameOrderPlaceholder =
-        !!orderNo &&
-        Number((x as any)?.status) === 2 &&
-        String((x as any)?.algoOrderId || '') === String(orderNo)
-      return !sameId && !sameOrderPlaceholder
-    }),
-  ]
-  relatedTemplates.value = merged as any[]
-
-  const first = normalized[0]
-  selectedThumbnail.value = 0
-  previousThumbnailIndex.value = 0
-  templateDetail.value = { ...first } as any
-  nextTick(() => syncMediaContainerToSelected(true))
-  return first
-}
-
-// 防止同一个 orderNo 在详情页被重复轮询（例如滚动/重复触发 loadTemplateDetail）
-const pollingOrderNoSet = new Set<string>()
-// 复用同一个 orderNo 的轮询 Promise，避免并发时既轮询又触发详情接口重复请求
-const pollingPromiseMap = new Map<string, Promise<void>>()
-
-const pollAgainGenerateResult = async (
-  orderNo: string,
-  opts?: {
-    successText?: string
-    failText?: string
-    timeoutText?: string
-    noResultText?: string
-  },
-) => {
-  const successText = opts?.successText ?? '再次生成完成'
-  const failText = opts?.failText ?? '再次生成失败'
-  const timeoutText = opts?.timeoutText ?? '再次生成超时，请稍后在列表查看'
-  const noResultText = opts?.noResultText ?? '生成完成，但未返回结果'
-
-  const maxPolls = 120
-  const intervalMs = 3000
-
-  for (let i = 0; i < maxPolls; i++) {
-    if (isUnmountedRef.value) return
-    try {
-      const queryResp = await algoApi.query({ orderNo })
-      if ((queryResp as any)?.code !== '0000' || !(queryResp as any)?.data) {
-        await sleep(intervalMs)
-        continue
-      }
-      const data: any = (queryResp as any).data
-      const status = Number(data?.status)
-      const orderResultVOS = Array.isArray(data?.orderResultVOS) ? data.orderResultVOS : []
-      const firstVO = orderResultVOS[0] || {}
-      const mergedProgress = Number(data?.progress ?? firstVO?.progress ?? 0)
-
-      // 1未开始 2进行中 3完成 4失败
-      if (status === 1 || status === 2) {
-        // 实时回填占位卡进度条（如果后端返回 progress）
-        patchAgainGeneratePlaceholder(orderNo, {
-          status,
-          progress: mergedProgress,
-        })
-      }
-
-      if (status === 3) {
-        // 再次生成成功后刷新一次用户信息，确保灵衍值/会员态与后端扣费回写一致
-        await refreshUserInfoIfPossible()
-        const first = prependGeneratedResults(orderResultVOS, orderNo)
-        if (!first) {
-          ElMessage.warning(noResultText)
-          return
-        }
-        const firstId = getAlgoResultId(first)
-        if (firstId) {
-          await loadDetailOnce(firstId)
-        }
-        // 生成成功：只做详情回显，不再请求“相关列表”接口，避免列表数据覆盖导致详情显示不完整
-        ElMessage.success(successText)
-        return
-      }
-
-      if (status === 4) {
-        // 失败时把顶部占位卡切换为失败态，便于查看失败样式
-        patchAgainGeneratePlaceholder(orderNo, {
-          status: 4,
-          prompt: '生成失败',
-          thumbUrl: '',
-          url: '',
-          originalUrl: '',
-        })
-        selectedThumbnail.value = 0
-        previousThumbnailIndex.value = 0
-        const top = relatedTemplates.value[0] as any
-        if (top) templateDetail.value = { ...top }
-        nextTick(() => syncMediaContainerToSelected(true))
-        ElMessage.error(failText)
-        return
-      }
-    } catch (error) {
-      console.error('[pollAgainGenerateResult] query failed:', error)
-    }
-    await sleep(intervalMs)
-  }
-
-  ElMessage.warning(timeoutText)
-}
-
-const startPollingGenerateResult = (
-  orderNo: string,
-  opts?: {
-    successText?: string
-    failText?: string
-    timeoutText?: string
-    noResultText?: string
-  },
-) => {
-  const key = String(orderNo ?? '')
-  if (!key) return
-  // 如果同一个 orderNo 已经在轮询中，直接复用 Promise
-  const existedPromise = pollingPromiseMap.get(key)
-  if (existedPromise) return existedPromise
-
-  // 占用 key：用于阻止 watch 再次触发 startPollingGenerateResult
-  pollingOrderNoSet.add(key)
-  const promise = pollAgainGenerateResult(key, opts).finally(() => {
-    pollingOrderNoSet.delete(key)
-    pollingPromiseMap.delete(key)
-  })
-
-  pollingPromiseMap.set(key, promise)
-  return promise
-}
+// 再次生成/轮询/详情并发控制 已迁移到 useCreativeDetailFlow
 
 // 获取创意描述文本：灵感词(inspirationWordsParams[].content) + creativeDescription
 const creativeDescription = computed(() => {
@@ -960,102 +673,7 @@ const modelParamTags = computed<string[]>(() => {
   return Array.from(new Set(tags))
 })
 
-// 详情请求并发控制：
-// - detailRequestToken: 每次发起详情请求递增，用于丢弃过期响应（用户快速切换缩略图时）
-// - currentDetailTargetId: 当前“应该展示”的详情 id
-const detailRequestToken = ref(0)
-const currentDetailTargetId = ref<string | number | null>(null)
-
-// 获取详情数据（固定调用 getAlgoResultDetails）
-const loadTemplateDetail = async (
-  id?: string | number,
-  options?: { token: number; expectedId?: string | number },
-) => {
-  if (!id) return
-
-  const myToken = options?.token
-  const expectedId = options?.expectedId ?? id
-  // 丢弃过期请求：防止接口返回乱序覆盖当前选中项
-  if (myToken != null && myToken !== detailRequestToken.value) return
-  if (
-    expectedId != null &&
-    currentDetailTargetId.value != null &&
-    String(expectedId) !== String(currentDetailTargetId.value)
-  )
-    return
-
-  // 1) 先用缓存/列表项兜底渲染
-  // 2) 再请求 /api/v1/algo/getAlgoResultDetails 补全右侧展示字段
-  const fallback = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
-  if (fallback) {
-    templateDetail.value = {
-      ...(templateDetail.value || ({} as any)),
-      ...fallback,
-    }
-  } else {
-    templateDetail.value = null
-  }
-
-  // 进行中/失败：不调用详情接口（右侧直接使用列表项展示）
-  if (!shouldFetchDetailForId(id)) {
-    // 只有最新请求才更新“已加载标记”
-    if (myToken != null && myToken === detailRequestToken.value) {
-      lastLoadedDetailId.value = expectedId
-    }
-
-    // 当前展示项如果是“生成中”，需要轮询 orderNo，
-    // 否则列表生成成功后详情页不会自动刷新 requestParams 展示。
-    const target = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
-    const status = Number(target?.status)
-    if (myToken != null && myToken === detailRequestToken.value && (status === 1 || status === 2)) {
-      const orderNo = String(target?.algoOrderId ?? target?.id ?? expectedId ?? '')
-      startPollingGenerateResult(orderNo, {
-        successText: '生成完成',
-        failText: '生成失败',
-        timeoutText: '生成超时，请稍后在“我的创作”中查看',
-      })
-    }
-    return
-  }
-
-  try {
-    const algoResulId = String(id)
-    const response = await algoApi.getAlgoResultDetails({ algoResulId })
-    const detailData = (response as any)?.data ?? response
-
-    // 二次校验：请求过程中可能已经切换到别的 item
-    if (myToken != null && myToken !== detailRequestToken.value) return
-    if (
-      expectedId != null &&
-      currentDetailTargetId.value != null &&
-      String(expectedId) !== String(currentDetailTargetId.value)
-    )
-      return
-
-    // 回填到当前详情
-    templateDetail.value = {
-      ...(templateDetail.value || ({} as any)),
-      ...(detailData as any),
-    }
-
-    // 同步回写到缩略图列表对应项（避免左右不一致）
-    const idx = relatedTemplates.value.findIndex((x: any) => String(x?.id) === algoResulId)
-    if (idx >= 0) {
-      relatedTemplates.value[idx] = {
-        ...(relatedTemplates.value[idx] as any),
-        ...(detailData as any),
-      }
-    }
-
-    lastLoadedDetailId.value = expectedId
-  } catch (e) {
-    // 详情拉取失败：保留兜底缓存渲染，避免页面空白
-    console.warn('[CreativeDetail] getAlgoResultDetails failed:', e)
-    if (myToken != null && myToken === detailRequestToken.value) {
-      lastLoadedDetailId.value = expectedId
-    }
-  }
-}
+// loadTemplateDetail 已迁移到 useCreativeDetailFlow
 
 // 获取相关创作结果列表（调用 /v1/algo/queryAlgoResultPage）
 const loadRelatedTemplates = async (isRefresh = false) => {
@@ -1090,7 +708,6 @@ const loadRelatedTemplates = async (isRefresh = false) => {
 
     const data: any = resp.data || {}
     const rawList = Array.isArray(data?.list) ? data.list : []
-    const total = Number(data?.total ?? data?.totalCount ?? rawList.length ?? 0)
 
     let processed = (rawList as any[])
       .map((item) => {
@@ -1118,13 +735,12 @@ const loadRelatedTemplates = async (isRefresh = false) => {
 
       relatedTemplates.value = processed as any[]
       relatedPageParams.value.current = 1
-      hasMoreRelated.value = true
     } else {
       relatedTemplates.value = [...relatedTemplates.value, ...processed] as any[]
     }
 
-    const currentTotal = relatedTemplates.value.length
-    hasMoreRelated.value = currentTotal < Number(total || 0)
+    // 后端 hasNext 控制是否还有下一页
+    hasMoreRelated.value = Boolean(data?.hasNext)
     if (hasMoreRelated.value) {
       relatedPageParams.value.current += 1
     }
@@ -1522,11 +1138,6 @@ const clearScrollDetailTimer = () => {
   }
 }
 
-// 已加载的详情 ID，避免同一项重复请求
-const lastLoadedDetailId = ref<string | number | null>(null)
-// 当前正在请求中的详情 ID（同一 ID 的并发请求直接跳过）
-const inFlightDetailId = ref<string | number | null>(null)
-
 // 调试开关：URL 带 ?debugDetailFlow=1 或 localStorage.debugDetailFlow='1' 时开启
 const isDetailFlowDebugEnabled = () => {
   try {
@@ -1543,63 +1154,9 @@ const logDetailFlow = (stage: string, payload?: Record<string, unknown>) => {
   console.log(`[CreativeDetail][detail-flow] ${stage}`, payload || {})
 }
 
-const shouldFetchDetailForId = (id?: string | number) => {
-  if (id === undefined || id === null) {
-    logDetailFlow('shouldFetchDetailForId:skip-empty-id', { id })
-    return false
-  }
-  const target = relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
-  const status = Number(target?.status)
-  // status: 0初始化 1待请求 2处理中 3完成 4失败
-  // 进行中/失败：不调用详情接口（右侧直接展示列表项即可）
-  if (status === 0 || status === 1 || status === 2 || status === 4) {
-    logDetailFlow('shouldFetchDetailForId:skip-by-status', { id, status })
-    return false
-  }
-  // 完成：才需要补全详情字段
-  const shouldFetch = status === 3 || !Number.isFinite(status)
-  logDetailFlow('shouldFetchDetailForId:result', { id, status, shouldFetch })
-  return shouldFetch
-}
+// loadDetailOnce 已迁移到 useCreativeDetailFlow
 
-const loadDetailOnce = async (id?: string | number) => {
-  if (!id) {
-    logDetailFlow('loadDetailOnce:skip-empty-id', { id })
-    return
-  }
-  if (!shouldFetchDetailForId(id)) {
-    logDetailFlow('loadDetailOnce:skip-shouldFetch=false', { id })
-    return
-  }
-  // 同一 id 正在请求中，直接跳过（避免滚动 + 点击触发重复请求）
-  if (inFlightDetailId.value != null && String(inFlightDetailId.value) === String(id)) {
-    logDetailFlow('loadDetailOnce:skip-in-flight', { id, inFlightDetailId: inFlightDetailId.value })
-    return
-  }
-
-  // 设置当前目标 id，用于丢弃过期响应
-  currentDetailTargetId.value = id
-  const token = ++detailRequestToken.value
-  inFlightDetailId.value = id
-  logDetailFlow('loadDetailOnce:request-start', { id, token })
-  try {
-    await loadTemplateDetail(id, { token, expectedId: id })
-    logDetailFlow('loadDetailOnce:request-success', { id, token, lastLoadedDetailId: lastLoadedDetailId.value })
-  } catch (error) {
-    logDetailFlow('loadDetailOnce:request-error', {
-      id,
-      token,
-      error: error instanceof Error ? error.message : String(error),
-    })
-    throw error
-  } finally {
-    // 只清理由本次请求设置的 inFlight（防止快速切换时误清空）
-    if (inFlightDetailId.value != null && String(inFlightDetailId.value) === String(id)) {
-      inFlightDetailId.value = null
-    }
-  }
-}
-
+// 延迟加载详情
 const scheduleDetailLoadByIndex = (index: number, delay = 200) => {
   if (index < 0 || index >= relatedTemplates.value.length) {
     logDetailFlow('scheduleDetailLoadByIndex:skip-invalid-index', {
@@ -1825,7 +1382,7 @@ const handleAssetsCollect = async () => {
         return
       }
 
-      const response = await algoApi.collect({ algoOrderResultId })
+      const response = await algoApi.collect({ algoOrderResultId: [algoOrderResultId] })
       if (response.code === '0000') {
         ; (templateDetail.value as any).collectStatus = isCollecting ? 1 : 0
         // 如果后端有返回新的 collectId，则回填；没有则保留原值
@@ -1904,7 +1461,7 @@ const handleDelete = async () => {
       return
     }
 
-    const response = await algoApi.del({ algoOrderResultId: deletedAssetId })
+    const response = await algoApi.del({ algoOrderResultId: [deletedAssetId] })
     if (response.code === '0000') {
       ElMessage.success('删除成功')
       emit('delete', deletedAssetId)
@@ -1926,146 +1483,37 @@ const handleDelete = async () => {
   }
 }
 
+const detailFlow = useCreativeDetailFlow({
+  props,
+  route,
+  templateStore,
+  userStore,
+  mediaContainerRef,
+  isUnmountedRef,
+  isSubmittingAgain,
+  templateDetail,
+  relatedTemplates,
+  selectedThumbnail,
+  previousThumbnailIndex,
+  isDataReady,
+  creativeDescription,
+  getAlgoResultId,
+  loadRelatedTemplates,
+  syncMediaContainerToSelected,
+})
+
+const {
+  handleAgainGenerate,
+  startPollingGenerateResult,
+  loadDetailOnce,
+} = detailFlow
+
 // 组件挂载
 onMounted(async () => {
   cateTitleRef.value = props.cateTitle || (route.query.cateTitle as string) || ''
 
   // 尝试从store获取列表数据（如果是从列表页跳转过来的）
-  const cachedListData = templateStore.getTemplateListData()
-  const cateIdFromRoute = props.cateId || (route.query.cateId as string)
-  const shouldUseCachedData =
-    cachedListData &&
-    (cachedListData.cateId === undefined || cachedListData.cateId === cateIdFromRoute)
-
-  if (shouldUseCachedData && cachedListData.list && cachedListData.list.length > 0) {
-    const templateId = props.id || route.params.id
-    console.log('[详情页] 使用缓存数据:', {
-      listLength: cachedListData.list.length,
-      currentIndex: cachedListData.currentIndex,
-      templateId: templateId,
-    })
-
-    // 先找到当前项目在列表中的位置（在设置列表之前）
-    let foundIndex: number
-
-    if (cachedListData.currentIndex !== undefined && cachedListData.currentIndex >= 0) {
-      // 优先使用缓存的索引（最准确）
-      foundIndex = cachedListData.currentIndex
-      console.log('[详情页] 使用缓存索引:', foundIndex)
-    } else {
-      // 如果没有缓存索引，通过ID查找（支持多种ID格式）
-      foundIndex = cachedListData.list.findIndex((item: any) => {
-        const itemTemplateId = item.creativeTemplateId || item.creativeTemplate?.id || item.id
-        return (
-          String(item.id) === String(templateId) ||
-          String(item.creativeTemplateId) === String(templateId) ||
-          String(item.creativeTemplate?.id) === String(templateId) ||
-          String(itemTemplateId) === String(templateId)
-        )
-      })
-      console.log('[详情页] 通过ID查找索引:', foundIndex, 'templateId:', templateId)
-    }
-
-    // 验证索引是否在有效范围内
-    if (foundIndex >= 0 && foundIndex < cachedListData.list.length) {
-      // 直接使用缓存数据中对应索引的项作为详情数据
-      const selectedItem = cachedListData.list[foundIndex]
-
-      // 处理嵌套的 creativeTemplate 结构（做同款数据是嵌套的）
-      const processedList = cachedListData.list.map((item: any) => {
-        // 如果数据嵌套在 creativeTemplate 中，提取出来
-        if (item.creativeTemplate) {
-          return {
-            ...item.creativeTemplate,
-            // 如果外层的 likeId 或 useLikes 存在，优先使用外层值（覆盖内层值）
-            likeId: item.likeId || item.creativeTemplate?.likeId,
-            useLikes: item.useLikes !== undefined ? item.useLikes : item.creativeTemplate?.useLikes,
-            // creativeTemplateId 也在外层
-            creativeTemplateId: item.creativeTemplateId || item.creativeTemplate?.id,
-          }
-        }
-        return item
-      })
-
-      // 先设置选中索引（必须在设置列表之前）
-      selectedThumbnail.value = foundIndex
-      // 使用处理后的列表数据初始化详情（列表数据已经包含足够的信息）
-      templateDetail.value = processedList[foundIndex] as CreativeTemplate
-      // 然后设置处理后的列表数据（此时 selectedThumbnail 已经是正确的值）
-      relatedTemplates.value = processedList as any[]
-
-      // 收藏状态：统一使用 collectStatus(0/1)
-
-      console.log('[详情页] 设置选中索引:', foundIndex, 'itemId:', selectedItem.id)
-
-      // 等待 DOM 更新完成，并设置滚动位置
-      await nextTick()
-
-      // 设置滚动位置，确保显示正确的项目
-      if (mediaContainerRef.value && relatedTemplates.value.length > 0) {
-        await new Promise((resolve) => requestAnimationFrame(resolve))
-        const container = mediaContainerRef.value
-        // 可能在等待期间组件已卸载或弹窗已关闭，此时直接返回
-        if (!container) return
-        const itemHeight = container.clientHeight
-        const targetScrollTop = selectedThumbnail.value * itemHeight
-        container.scrollTop = targetScrollTop
-      }
-
-      // 标记数据已准备好，可以显示内容
-      isDataReady.value = true
-
-      // 最后调用详情接口获取完整数据（如果有模板ID的话）
-      // 注意：这会覆盖 templateDetail.value，但由于用户已经看到正确的数据，不会感到闪烁
-      // 对于"做同款"数据，需要使用 creativeTemplateId，而不是任务ID
-      const templateId =
-        selectedItem.creativeTemplateId || selectedItem.creativeTemplate?.id || selectedItem.id
-      if (templateId) {
-        await loadTemplateDetail(templateId)
-      }
-    } else {
-      console.warn('[详情页] 索引无效，使用路由ID加载详情:', {
-        foundIndex,
-        listLength: cachedListData.list.length,
-        routeId: route.params.id,
-      })
-      // 如果索引无效，使用路由参数ID加载详情
-      await loadTemplateDetail(route.params.id as string | number | undefined)
-      if (templateDetail.value) {
-        relatedTemplates.value = [templateDetail.value as any]
-        selectedThumbnail.value = 0
-        isDataReady.value = true
-      }
-    }
-  } else {
-    // 没有缓存数据：先拉列表，再回显对应 id 的详情（避免出现“列表显示第一个，但详情回显的是另一个”的错位）
-    const targetAlgoResulId = (props.id || route.params.id) as string | number | undefined
-    const targetAlgoResulIdStr = targetAlgoResulId != null ? String(targetAlgoResulId) : ''
-
-    await loadRelatedTemplates(true)
-
-    // 如果列表未成功拉取（例如 menuCode 缺失导致接口跳过），回退到“先加载详情”
-    if (!relatedTemplates.value.length) {
-      await loadTemplateDetail(targetAlgoResulId)
-      if (templateDetail.value) {
-        relatedTemplates.value = [templateDetail.value as any]
-        selectedThumbnail.value = 0
-        isDataReady.value = true
-      }
-    } else {
-      // 以路由 id 为准，定位要展示的缩略图索引；找不到则默认第一个
-      const foundIndex = relatedTemplates.value.findIndex((x: any) => String(x?.id) === targetAlgoResulIdStr)
-      selectedThumbnail.value = foundIndex >= 0 ? foundIndex : 0
-
-      // 先用列表数据兜底渲染，再补全详情字段
-      const current = relatedTemplates.value[selectedThumbnail.value] as any
-      templateDetail.value = current
-      isDataReady.value = true
-
-      const detailId = getAlgoResultId(current)
-      if (detailId) await loadDetailOnce(detailId)
-    }
-  }
+  await detailFlow.onMountedFlow()
 
   // 初始进入详情页时，直接设置滚动位置（在渲染前设置，避免看到滚动过程）
   if (relatedTemplates.value.length > 0 && mediaContainerRef.value) {

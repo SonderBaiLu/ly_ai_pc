@@ -28,11 +28,7 @@
         </div>
         <div class="warning-text">登录后请及时变更密码</div>
 
-        <button
-            class="copy-btn"
-            :class="{ 'is-copied': isCopied }"
-            @click="handleCopy"
-        >
+        <button class="copy-btn" :class="{ 'is-copied': isCopied }" @click="handleCopy">
           {{ copyBtnText }}
         </button>
       </div>
@@ -123,12 +119,12 @@ const handleClose = () => {
   .reset-password-modal {
     width: 407px;
     height: 360px;
-    background-color: rgba(255,255,255,1);
+    background-color: rgba(255, 255, 255, 1);
     border-radius: 24px;
     position: relative;
     box-sizing: border-box;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(187,187,187,1);
+    border: 1px solid rgba(187, 187, 187, 1);
 
     /* 关闭按钮 */
     .close-btn {
@@ -155,7 +151,7 @@ const handleClose = () => {
       margin: 0;
       padding-top: 44px;
       line-height: 1;
-      color: rgba(17,24,39,1);
+      color: rgba(17, 24, 39, 1);
       letter-spacing: 1px;
       font-family: Inter-black, sans-serif;
       font-weight: 900;
@@ -171,7 +167,7 @@ const handleClose = () => {
         margin-bottom: 14px;
         display: flex;
         align-items: flex-start;
-        color: rgba(16,16,16,1);
+        color: rgba(16, 16, 16, 1);
         font-size: 11px;
         font-family: Inter-bold;
         font-weight: 600;
@@ -179,13 +175,14 @@ const handleClose = () => {
         .label {
           font-weight: bold;
         }
-        .label-pwd{
-          color: rgba(107,114,128,1);
+
+        .label-pwd {
+          color: rgba(107, 114, 128, 1);
           font-size: 11px
         }
 
         .value {
-          color: rgba(16,16,16,1);
+          color: rgba(16, 16, 16, 1);
           font-size: 11px;
           font-family: Inter-bold;
           font-weight: 600;
@@ -206,7 +203,7 @@ const handleClose = () => {
       .warning-text {
         margin-top: 8px;
         line-height: 1.5;
-        color: rgba(107,114,128,1);
+        color: rgba(107, 114, 128, 1);
         font-size: 12px;
       }
 
@@ -215,8 +212,8 @@ const handleClose = () => {
         display: block;
         margin-top: 15px;
         margin-left: 191px;
-        background-color: rgba(23,160,225,1);
-        color: rgba(255,255,255,1);
+        background-color: rgba(23, 160, 225, 1);
+        color: rgba(255, 255, 255, 1);
         border: none;
         border-radius: 4px;
         padding: 5px 14px;

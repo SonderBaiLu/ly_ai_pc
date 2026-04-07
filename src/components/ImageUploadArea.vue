@@ -5,7 +5,7 @@
       @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop"
       @click="!imageUrl && !showLoading && handleUpload(imageType, imageName)">
       <!-- 上传占位符 -->
-      <div v-if="!imageUrl" class="upload-placeholder">
+      <div v-if="!imageUrl" class="upload-placeholder" :class="{ 'is-uploading': showLoading }">
         <template v-if="!showLoading">
           <div class="upload-icon-wrapper">
             <img class="upload-icon" :src="imageIcon" />
@@ -17,18 +17,18 @@
             <span>选择，</span>
             <span v-if="historyMaxCount > 1">最多可选择{{ historyMaxCount }}张，</span>
             <span v-if="historyMinSizeKB && historyMaxSizeMB">文件大小{{ historyMinSizeKB }}KB - {{ historyMaxSizeMB
-              }}MB之间，</span>
+            }}MB之间，</span>
             <span v-if="historyMinResolution">分辨率大于{{ historyMinResolution }}，</span>
           </div>
           <div class="placeholder-text-box" v-if="historyFormats && showHistoryTip">
             <span>格式支持{{ historyFormats.join('/') }}</span>
           </div>
         </template>
-        <!-- 上传中状态 -->
-        <el-icon class="is-loading uploading-icon" v-if="showLoading">
-          <Loading />
-        </el-icon>
-        <span class="uploading-text" v-if="showLoading">{{ loadingText }}</span>
+        <!-- 上传中：与列表「生成中」同系 GIF 底图 + 主色描边 -->
+        <div v-else class="upload-loading-inner">
+          <LoadingSpinner :size="22" :thickness="2" class="uploading-spinner" />
+          <span class="uploading-text">{{ loadingText }}</span>
+        </div>
       </div>
 
       <div v-if="imageUrl" class="uploaded-image">
@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import { images } from '@/assets'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 // 定义组件属性
 const props = defineProps({
@@ -168,6 +168,11 @@ const props = defineProps({
   enableHistoryReplace: {
     type: Boolean,
     default: true,
+  },
+  // 为 true 时：点击上传区域不打开本机选择器，只 emit('upload')，由父组件自定义流程
+  delegateClickUpload: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -294,6 +299,13 @@ const openLocalUploadPicker = (type: string, position: string) => {
 // 处理上传（本地上传）
 const handleUpload = (type: string, position: string) => {
   if (uploadTimer) return
+  if (props.delegateClickUpload) {
+    emit('upload')
+    uploadTimer = setTimeout(() => {
+      uploadTimer = null
+    }, 300)
+    return
+  }
   openLocalUploadPicker(type, position)
   uploadTimer = setTimeout(() => {
     uploadTimer = null
@@ -385,13 +397,28 @@ onBeforeUnmount(() => {
     text-align: center;
     color: $color-primary;
 
-    .uploading-icon {
-      margin-bottom: 7px;
-      font-size: $font-size-2xl;
+    &.is-uploading {
+      background: url('@/assets/images/generating_160.gif') no-repeat center center;
+      background-size: 100% 100%;
+    }
+
+    .upload-loading-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .uploading-spinner {
+      flex-shrink: 0;
     }
 
     .uploading-text {
       font-size: $font-size-md;
+      color: #96ddff;
     }
 
     .upload-icon-wrapper {

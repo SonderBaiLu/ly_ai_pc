@@ -8,7 +8,8 @@
 html,
 body {
   width: 100%;
-  overflow-x: hidden;
+  /* 不要用 overflow-x: hidden：在不少浏览器里会让子元素的 position:sticky 相对错误滚动容器，导致吸顶失效 */
+  overflow-x: clip;
 }
 
 body {
@@ -257,6 +258,13 @@ body {
 }
 
 // 下载样式
+// 个人中心/「更多」在 `Header.vue` 的 `.header`（z-index: 100）内。Element Plus 弹层默认 teleport 到 body 且 z-index≈2000+，
+// 子元素再提高 z-index 也无法压过（受父级层叠上下文限制）。此处把下载菜单压到导航栏之下，保留顶栏浮层优先级。
+.el-popover.download-menu-popper,
+.el-popper.download-menu-popper {
+  z-index: 99 !important;
+}
+
 .el-popover.download-menu-popper {
   width: 130px !important;
   background-color: rgba(37, 39, 40, 1) !important;

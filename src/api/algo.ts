@@ -51,9 +51,9 @@ export type DoCalculationPointPayload = {
   menuCode: string
   /** 需要操作的图片路径集合 */
   image: string[]
-  /** 面料创拍：原图（未拼接/缩放前的输入图片） */
+  /** 面料创款：原图（未拼接/缩放前的输入图片） */
   originalImage?: string[]
-  /** 面料创拍：缩放比例（用于复现前端缩放/平铺逻辑） */
+  /** 面料创款：缩放比例（用于复现前端缩放/平铺逻辑） */
   zoomRatio?: number
   /** 模版入参（后端：templateParams） */
   templateParams: DoCalculationPointTemplateParam[]
@@ -130,24 +130,28 @@ export const algoApi = {
 
   /**
    * 收藏/取消收藏算法生成结果
-   * - GET /api/v1/algo/collect
+   * - POST /api/v1/algo/collect
    *
    * 接口参数：
-   * - algoOrderResultId: 算法生成结果ID
+   * - algoOrderResultId: 算法生成结果ID数组（字段名保持不变）
    */
-  collect(params: { algoOrderResultId: string }) {
-    return request.get('/v1/algo/collect', { params }) as unknown as Promise<ApiResponse<any>>
+  collect(params: { algoOrderResultId: string[] }) {
+    return request.post('/v1/algo/collect', {
+      algoOrderResultId: params.algoOrderResultId || [],
+    }) as unknown as Promise<ApiResponse<any>>
   },
 
   /**
    * 删除算法生成结果
-   * - GET /api/v1/algo/del
+   * - POST /api/v1/algo/del
    *
    * 接口参数：
-   * - algoOrderResultId: 算法生成结果ID
+   * - algoOrderResultId: 算法生成结果ID数组（字段名保持不变）
    */
-  del(params: { algoOrderResultId: string }) {
-    return request.get('/v1/algo/del', { params }) as unknown as Promise<ApiResponse<any>>
+  del(params: { algoOrderResultId: string[] }) {
+    return request.post('/v1/algo/del', {
+      algoOrderResultId: params.algoOrderResultId || [],
+    }) as unknown as Promise<ApiResponse<any>>
   },
 
   /**
@@ -186,9 +190,9 @@ export const algoApi = {
    * - GET /api/v1/algo/queryAlgoResultPage
    *
    * 参数（queryString）：
-   * - menuCode: 功能菜单code
-   * - fileType: 生成类型 1图片 2视频 3音频 4音视频
-   * - collectStatus: 收藏状态 0未收藏 1已收藏
+   * - menuCode: 功能菜单 code；传空字符串表示不限定模块
+   * - fileType: 生成类型 1图片 2视频 3音频 4音视频；空字符串表示不限定类型
+   * - collectStatus: 收藏筛选；空字符串表示不限定；'1' 表示仅已收藏
    * - currentPage: 当前页码
    * - pageSize: 每页数量
    */

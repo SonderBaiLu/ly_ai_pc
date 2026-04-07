@@ -8,7 +8,7 @@
         <div v-for="item in leftRailItems" :key="item.key" class="rail-item" :class="{ active: leftMenu === item.key }"
           @click="leftMenu = item.key">
           <div class="rail-icon">
-            <img :src="getRailIcon(item.key, leftMenu === item.key)" alt="" />
+            <img :src="getRailIcon(item, leftMenu === item.key)" alt="" />
           </div>
           <div class="rail-text">{{ item.label }}</div>
         </div>
@@ -123,6 +123,7 @@ import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { CreationResult } from '@/composables/useTaskPolling'
+import { mapRecordToCreationResult as mapRecordToCreationResultCommon } from '@/utils/creationResult'
 import HistoryCreativeModal from '@/components/HistoryCreativeModal.vue'
 import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import { useTemplateStore } from '@/stores/template'
@@ -132,7 +133,13 @@ import RealToSketch from './left/RealToSketch.vue'
 import Fabric from './left/FabricCreative.vue'
 
 type LeftMenuKey = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
-type RailItem = { key: LeftMenuKey; label: string; menuCode: string }
+type RailItem = {
+  key: LeftMenuKey
+  label: string
+  menuCode: string
+  functionIcon?: string
+  functionIconSelected?: string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -175,7 +182,7 @@ const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
   // 线稿转实物：款型选择与 AI 服装设计一致，typeCode 为 creation_style
   sketchToReal: CREATION_PARAM_CODES.CREATION_STYLE,
   realToSketch: CREATION_PARAM_CODES.GARMENT_STYLE,
-  // 面料创拍：弹窗选择“创作款型”（creation_style）
+  // 面料创款：弹窗选择“创作款型”（creation_style）
   fabricCreative: CREATION_PARAM_CODES.CREATION_STYLE,
 }
 
@@ -183,7 +190,7 @@ const defaultRailLabelByKey: Record<LeftMenuKey, string> = {
   aiFashion: 'AI服装设计',
   sketchToReal: '线稿转实物',
   realToSketch: '实物转线稿',
-  fabricCreative: '面料创拍',
+  fabricCreative: '面料创款',
 }
 
 const allPlatformMenus = ref<any[]>([])
@@ -245,11 +252,18 @@ const leftRailItems = computed<RailItem[]>(() => {
       key,
       menuCode: code,
       label: String(apiItem?.menuName || defaultRailLabelByKey[key]),
+      functionIcon: String(apiItem?.functionIcon || ''),
+      functionIconSelected: String(apiItem?.functionIconSelected || ''),
     }
   })
 })
 
-const getRailIcon = (key: LeftMenuKey, isActive: boolean) => {
+const getRailIcon = (item: RailItem, isActive: boolean) => {
+  // 优先后端下发图标；缺失时回退本地默认图标
+  const apiIcon = isActive ? item.functionIconSelected : item.functionIcon
+  if (apiIcon) return apiIcon
+
+  const key = item.key
   if (key === 'aiFashion') return isActive ? images.designActive : images.designIcon
   if (key === 'sketchToReal') return isActive ? images.sketchActive : images.sketchIcon
   if (key === 'realToSketch') return isActive ? images.realActive : images.realIcon
@@ -267,7 +281,7 @@ const fetchSysPlatformMenu = async () => {
     console.error('获取功能菜单失败', error)
   }
 }
-// ==================== 面料创拍：提交生成 ====================
+// ==================== 面料创款：提交生成 ====================
 const handleFabricGenerate = async (payload: any) => {
   loading.value = true
   try {
@@ -1035,18 +1049,18 @@ type AiFashionFormState = CommonFormState & {
   creationTypeSelection: Partial<CreationTypeSelection>
 }
 
-// 线稿转实物/实物转线稿/面料创拍：参考图单张
+// 线稿转实物/实物转线稿/面料创款：参考图单张
 type SingleImageFormState = CommonFormState & {
   image: string
-  /** 面料创拍：原图（后端需要的原始输入数组） */
+  /** 面料创款：原图（后端需要的原始输入数组） */
   originalImage?: string[]
-  /** 面料创拍：缩放比例（zoomRatio） */
+  /** 面料创款：缩放比例（zoomRatio） */
   zoomRatio?: number
-  /** 面料创拍：canvas 缩放纹理图上传后的 URL（仅提交用；左侧展示仍用 image 原图） */
+  /** 面料创款：canvas 缩放纹理图上传后的 URL（仅提交用；左侧展示仍用 image 原图） */
   fabricProcessedImageUrl?: string
   taskResultId?: string | number
   sketchParamSelections: Record<string, string>
-  /** 面料创拍：左侧“生成图片类型”按钮值（flat/model/3d），用于映射后端 fabric_image_type */
+  /** 面料创款：左侧“生成图片类型”按钮值（flat/model/3d），用于映射后端 fabric_image_type */
   fabricImageOutputType?: 'flat' | 'model' | '3d'
 }
 
@@ -1250,24 +1264,24 @@ const fetchAlgoConfigTempRelation = async (menuCode: string) => {
           const selectionResult = hasDefaultParamObject
             ? defaultParamObject
             : (() => {
-                const selectedAlgorithm = state?.selectedAlgorithm
-                const selectedParams = state?.selectedParams || {}
-                return {
-                  algorithmId: selectedAlgorithm?.algorithmId ?? selectedAlgorithm?.id ?? 0,
-                  algorithmCode: selectedAlgorithm?.code ?? selectedAlgorithm?.algorithmCode ?? '',
-                  algorithmName: selectedAlgorithm?.name ?? selectedAlgorithm?.algorithmName ?? '',
-                  paramList: Object.values(selectedParams).map((p: any) => ({
-                    templateId: p?.templateId || '',
-                    templateCode: p?.templateCode || '',
-                    templateName: p?.templateName || '',
-                    type: p?.type,
-                    vipStatus: p?.vipStatus,
-                    waveCoin: p?.waveCoin,
-                    templateDesc: p?.templateDesc || '',
-                    imageUrl: p?.imageUrl || '',
-                  })),
-                }
-              })()
+              const selectedAlgorithm = state?.selectedAlgorithm
+              const selectedParams = state?.selectedParams || {}
+              return {
+                algorithmId: selectedAlgorithm?.algorithmId ?? selectedAlgorithm?.id ?? 0,
+                algorithmCode: selectedAlgorithm?.code ?? selectedAlgorithm?.algorithmCode ?? '',
+                algorithmName: selectedAlgorithm?.name ?? selectedAlgorithm?.algorithmName ?? '',
+                paramList: Object.values(selectedParams).map((p: any) => ({
+                  templateId: p?.templateId || '',
+                  templateCode: p?.templateCode || '',
+                  templateName: p?.templateName || '',
+                  type: p?.type,
+                  vipStatus: p?.vipStatus,
+                  waveCoin: p?.waveCoin,
+                  templateDesc: p?.templateDesc || '',
+                  imageUrl: p?.imageUrl || '',
+                })),
+              }
+            })()
           triggerCalculationPointNow(selectionResult, { debounceMs: 0 })
           coinCostCalculatedOnceByMenu.add(menuKey)
         }
@@ -1510,7 +1524,7 @@ const normalizeInspirationCategories = (list: any[] = []) => {
 // 灵感词词典数据
 const libraryData = ref<any[]>([])
 
-// 面料创拍：fabric_image_type 词典（用于把“生成图片类型”(flat/model/3d)映射成后端 imageTypeParams）
+// 面料创款：fabric_image_type 词典（用于把“生成图片类型”(flat/model/3d)映射成后端 imageTypeParams）
 const fabricImageTypeOptionTree = ref<any[]>([])
 
 const fetchFabricImageTypeOptionTree = async () => {
@@ -1530,7 +1544,7 @@ const fetchFabricImageTypeOptionTree = async () => {
     fabricImageTypeOptionTree.value = []
   } catch (error) {
     fabricImageTypeOptionTree.value = []
-    console.error('获取面料创拍 fabric_image_type 词典失败', error)
+    console.error('获取面料创款 fabric_image_type 词典失败', error)
   }
 }
 
@@ -1660,33 +1674,11 @@ const deriveListQueryParams = (tabKey: string) => {
   return { collectStatus, fileType }
 }
 
-// 把 queryAlgoResultPage 返回记录映射为前端 CreationResult
+// 把 queryAlgoResultPage 返回记录映射为前端 CreationResult（复用公共映射）
 const mapRecordToCreationResult = (r: any): CreationResult | null => {
-  const id = String(r?.id ?? '')
-  if (!id) return null
-
-  const backendFileType = Number(r?.fileType ?? 1)
-  const backendStatus = Number(r?.status ?? 3)
-  const collect = Number(r?.collectStatus ?? 0)
-
-  return {
-    id,
-    algoOrderId: String(r?.algoOrderId ?? ''),
-    algoOrderNo: r?.algoOrderNo != null ? String(r.algoOrderNo) : undefined,
-    algoUuId: r?.algoUuId === undefined ? undefined : (r?.algoUuId == null ? null : String(r.algoUuId)),
-    menuCode: r?.menuCode != null ? String(r.menuCode) : undefined,
-    thumbUrl: (r?.thumbUrl ?? null) as any,
-    url: (r?.url ?? null) as any,
-    originalUrl: (r?.originalUrl ?? null) as any,
-    fileSize: r?.fileSize !== undefined && r?.fileSize !== null ? Number(r.fileSize) : undefined,
-    duration: r?.duration !== undefined && r?.duration !== null ? Number(r.duration) : undefined,
-    fileType: backendFileType,
-    status: backendStatus,
-    collectStatus: collect,
-    prompt: String(r?.prompt ?? r?.functionPrompt ?? r?.creativeDescription ?? ''),
-    createTime: String(r?.createTime ?? new Date().toISOString()),
-    progress: Number(r?.progress ?? (backendStatus === 3 ? 100 : 0)),
-  }
+  return mapRecordToCreationResultCommon(r, {
+    fallbackCreateTime: new Date().toISOString(),
+  })
 }
 
 const dedupeCreationResultsByIdPreserveOrder = (arr: CreationResult[]): CreationResult[] => {
@@ -1743,10 +1735,7 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
     }
 
     const data: any = (res as any)?.data ?? {}
-    const recordsRaw: any[] =
-      (Array.isArray(data?.records) && data.records) ||
-      (Array.isArray(data?.list) && data.list) ||
-      (Array.isArray(data) ? data : [])
+    const recordsRaw: any[] = Array.isArray(data?.list) ? data.list : []
 
     const recordsMapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
     // 进行中：后端会单独返回 orderResulGenerated，需要插入到列表最前面
@@ -1779,17 +1768,8 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
       void startQueryByOrderNo(key)
     }
 
-    // TODO: 如果后续发现分页 total 口径不包含 orderResulGenerated，需要再按后端约定调整 hasMoreData 计算逻辑
-
-    // 有更多数据判断
-    const total = Number(data?.total ?? data?.totalCount ?? 0)
-    if (typeof data?.hasNext === 'boolean') {
-      hasMoreData.value = data.hasNext
-    } else if (total > 0) {
-      hasMoreData.value = assets.value.length < total
-    } else {
-      hasMoreData.value = recordsMapped.length >= listPageSize.value
-    }
+    // 有更多数据判断：后端 hasNext 直接决定是否还有下一页
+    hasMoreData.value = Boolean(data?.hasNext)
 
     // 开发环境兜底：用于直观看“生成中(status=2)/失败(status=4)”占位 UI
     // - 若列表缺少 status=2 或 status=4，则补入一条假数据（避免每次 reset 都重复插入）
@@ -1903,7 +1883,7 @@ const handleCollect = async (idx: number) => {
   const wasCollected = Number(asset.collectStatus ?? 0) === 1
   try {
     const response = await algoApi.collect({
-      algoOrderResultId: String(asset.id),
+      algoOrderResultId: [String(asset.id)],
     })
 
     if (response.code === '0000') {
@@ -1982,7 +1962,7 @@ const handleAlgoDelete = async (idx: number) => {
     })
 
     const response = await algoApi.del({
-      algoOrderResultId: String(asset.id),
+      algoOrderResultId: [String(asset.id)],
     })
 
     if (response.code === '0000') {
@@ -2020,7 +2000,7 @@ const parseAiFashionSlotIndex = (position: any): number | null => {
   return idx
 }
 
-/** 面料创拍：换图/选历史时清理“纹理图上传缓存”，避免与左侧原图预览混用 */
+/** 面料创款：换图/选历史时清理“纹理图上传缓存”，避免与左侧原图预览混用 */
 const clearFabricCreativeTransientFields = (form: any) => {
   form.fabricProcessedImageUrl = undefined
   form.originalImage = []

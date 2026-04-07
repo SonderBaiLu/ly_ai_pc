@@ -23,9 +23,7 @@
         <template v-else>
           <LazyImage :src="getImagePoster(asset)" :alt="asset.prompt" width="100%" height="100%" object-fit="cover"
             :border-radius="0" />
-          <!-- <div class="thumbnail-overlay">
-            <span class="asset-type">{{ asset.fileType === 2 ? '视频' : '图片' }}</span>
-          </div> -->
+          <div v-if="fileTypeBadgeText(asset)" class="file-type-badge">{{ fileTypeBadgeText(asset) }}</div>
         </template>
       </div>
     </div>
@@ -67,6 +65,14 @@ const thumbnailListRef = ref()
 const isVideo = (asset: CreationResult) => {
   const ft = Number((asset as any).fileType ?? asset.fileType)
   return ft === 2 || ft === 4
+}
+
+/** 与 ImageItem / 我的创作卡片一致：左下角「图片」「视频」 */
+const fileTypeBadgeText = (asset: CreationResult) => {
+  const ft = Number((asset as any).fileType ?? asset.fileType ?? 0)
+  if (!Number.isFinite(ft) || ft <= 0) return ''
+  if (ft === 2 || ft === 4) return '视频'
+  return '图片'
 }
 
 const getImagePoster = (asset: CreationResult) => {
@@ -264,28 +270,24 @@ defineExpose({
   }
 }
 
-// .thumbnail-overlay {
-//   position: absolute;
-//   bottom: 0;
-//   left: 0;
-//   right: 0;
-//   background: rgba(0, 0, 0, 0.7);
-//   padding: $spacing-xs;
-//   color: white;
-//   font-size: $font-size-xs;
-//   text-align: center;
-//   opacity: 0;
-//   transition: opacity 0.3s ease;
-
-//   .thumbnail-item:hover & {
-//     opacity: 1;
-//   }
-// }
-
-// .asset-type {
-//   font-size: 10px;
-//   opacity: 0.9;
-// }
+.file-type-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  height: 18px;
+  padding: 0 6px;
+  background: rgba(7, 7, 7, 0.6);
+  backdrop-filter: blur(4px);
+  color: white;
+  font-size: 10px;
+  font-weight: 400;
+  border-radius: 3px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  pointer-events: none;
+}
 
 // 生成中缩略图
 .thumbnail-generating {

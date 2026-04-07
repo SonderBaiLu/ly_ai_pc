@@ -1,6 +1,12 @@
 <template>
-  <el-dialog v-model="dialogVisible" :title="title" :width="width" :close-on-click-modal="true"
+  <el-dialog v-model="dialogVisible" :width="width" :close-on-click-modal="true" :show-close="false"
     :close-on-press-escape="true" class="image-preview-modal" :append-to-body="appendToBody">
+    <template #header>
+      <div class="preview-header">
+        <h2 class="preview-title">{{ title }}</h2>
+        <img :src="images.closeDialog" alt="" class="header-close" @click="handleClose" />
+      </div>
+    </template>
     <div class="preview-content">
       <div class="preview-header-actions">
         <!-- 下载按钮 -->
@@ -45,12 +51,10 @@
 
     <template #footer>
       <div class="preview-footer">
-        <slot name="footer">
-          <el-button @click="handleClose">{{ cancelText }}</el-button>
-          <el-button v-if="showConfirmButton" :type="confirmButtonType" @click="handleConfirm">
-            {{ confirmText }}
-          </el-button>
-        </slot>
+        <el-button @click="handleClose">{{ cancelText }}</el-button>
+        <el-button v-if="showConfirmButton" :type="confirmButtonType" @click="handleConfirm">
+          {{ confirmText }}
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -121,7 +125,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   title: '图片预览',
-  width: '600px',
+  width: '800px',
   imageSrc: '',
   imageSetList: undefined,
   name: '',
@@ -229,26 +233,45 @@ const handleDelete = async () => {
 .image-preview-modal {
   border-radius: 16px;
 
-  .preview-header-actions {
+  .preview-header {
     display: flex;
-    justify-content: flex-end;
-    gap: var(--spacing-md, 12px);
-    margin-bottom: var(--spacing-md, 12px);
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
 
-    .preview-action-icon {
-      width: 20px;
-      height: 20px;
+    .preview-title {
+      font-size: $font-size-xl;
+      color: $color-text-white;
+      font-weight: $font-weight-semibold;
+    }
+
+    .header-close {
+      width: 24px;
+      height: 24px;
       cursor: pointer;
-      transition: opacity 0.2s ease;
-
-      &:hover {
-        opacity: 0.7;
-      }
     }
   }
 
   .preview-content {
     text-align: center;
+
+    .preview-header-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 0 20px 20px 20px;
+
+      .preview-action-icon {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+
+        &:hover {
+          opacity: 0.7;
+        }
+      }
+    }
 
     .preview-image-wrapper {
       position: relative;
@@ -319,6 +342,7 @@ const handleDelete = async () => {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    padding: 24px 22px;
 
     :deep(.el-button) {
       width: 120px;

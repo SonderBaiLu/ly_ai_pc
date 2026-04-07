@@ -20,6 +20,25 @@ export const userApi = {
     return request.post('/user/userLikes', params) as unknown as Promise<ApiResponse<any>>
   },
   /**
+   * 查询上传记录（我的上传）
+   * POST /v1/user/getStorageLogList
+   *
+   * - currentPage：当前页（从 1 开始）
+   * - pageSize：每页数量（若后端也支持 offset，请传 offset=pageSize）
+   */
+  getStorageLogList(params: { currentPage: number; pageSize: number }) {
+    return request.post('/v1/user/getStorageLogList', params) as unknown as Promise<ApiResponse<any>>
+  },
+  /**
+   * 删除上传记录（我的上传）
+   * POST /v1/user/delStorageLog
+   *
+   * - logId：上传记录 id 数组（字段名仍为 logId）
+   */
+  delStorageLog(params: { logId: Array<string | number> }) {
+    return request.post('/v1/user/delStorageLog', params) as unknown as Promise<ApiResponse<any>>
+  },
+  /**
    * 收藏/取消收藏（假的占位接口）
    * 说明：统一使用新返回结构：{ code, success, msg, data, extend }
    */

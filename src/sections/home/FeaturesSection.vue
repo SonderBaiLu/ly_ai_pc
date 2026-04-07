@@ -86,9 +86,9 @@ const sketchToRealCards = computed(() => [
 ])
 
 const realToSketchCards = computed(() => [
-  { title: t('features.realToSketchCard1Title'), leftImg: home8, rightImg: home7 },
-  { title: t('features.realToSketchCard2Title'), leftImg: home10, rightImg: home9 },
-  { title: t('features.realToSketchCard3Title'), leftImg: home12, rightImg: home11 },
+  { title: t('features.realToSketchCard1Title'), leftImg: home7, rightImg: home8 },
+  { title: t('features.realToSketchCard2Title'), leftImg: home9, rightImg: home10 },
+  { title: t('features.realToSketchCard3Title'), leftImg: home11, rightImg: home12 },
 ])
 
 type FashionMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'

@@ -1,10 +1,10 @@
 <template>
   <div class="image-item" :class="{ selected: isSelected, disabled }" @click="handleItemClick">
     <!-- 图片容器 -->
-    <div class="image-container">
-      <!-- 生成中状态 -->
+    <div class="image-container" :class="{ 'is-item-generating': imageData.status === 1 || imageData.status === 2 }">
+      <!-- 生成中状态（与 ThumbnailGallery 列表：同 GIF 底图 + 主色描边） -->
       <div v-if="imageData.status === 1 || imageData.status === 2" class="status-overlay is-generating">
-        <LoadingSpinner :size="42" :thickness="5" class="status-spinner" />
+        <LoadingSpinner :size="22" :thickness="2" class="status-spinner" />
         <span class="status-text">
           {{
             imageData.status === 1
@@ -21,8 +21,8 @@
       </div>
 
       <!-- 正常状态：显示图片 -->
-      <LazyImage v-else :src="imageData.thumbUrl || imageData.url || ''" object-fit="cover" width="100%" height="100%"
-        :border-radius="0" class="item-image" />
+      <LazyImage v-else :src="getImageSrc(imageData)" object-fit="cover" width="100%" height="100%" :border-radius="0"
+        class="item-image" />
 
       <!-- 左上角选择标记 -->
       <div v-if="showSelect && isNormalStatus" class="select-button" @click.stop="handleSelect">
@@ -158,11 +158,32 @@ const itemTitle = computed(() => {
   return props.imageData.name || props.imageData.title || props.imageData.imgDesc || ''
 })
 
-// 计算文件类型文本
+// 计算文件类型文本（与详情页 isVideoType：2 视频 / 4 音视频）
 const fileTypeText = computed(() => {
-  if (!props.imageData.fileType) return ''
-  return props.imageData.fileType === 2 ? '视频' : '图片'
+  const ft = Number(props.imageData.fileType ?? 0)
+  if (Number.isFinite(ft) && ft > 0) {
+    if (ft === 2 || ft === 4) return '视频'
+    return '图片'
+  }
+
+  // 兼容“我的上传”接口：可能没有 fileType 字段
+  const src = String(
+    props.imageData.fileUrl ||
+    props.imageData.thumbUrl ||
+    props.imageData.url ||
+    '',
+  )
+  const lower = src.toLowerCase()
+  if (/\.(mp4|webm)(\?|#|$)/i.test(lower)) return '视频'
+  return '图片'
 })
+
+const getImageSrc = (data: ImageData) => {
+  // 上传历史：只有 fileUrl，一个字段同时用于列表/预览/下载
+  if (data.fileUrl) return String(data.fileUrl)
+  // 算法结果：列表使用缩略图 thumbUrl，预览使用 url（大图由上层组件传入）
+  return String(data.thumbUrl || data.url || data.originalUrl || '')
+}
 
 // 计算是否为正常状态（非生成中、非失败）
 const isNormalStatus = computed(() => {
@@ -209,7 +230,7 @@ const handleCollect = async () => {
 
   try {
     const wasCollected = Number(props.imageData.collectStatus ?? 0) === 1
-    const res = await algoApi.collect({ algoOrderResultId: String(props.imageData.id) })
+    const res = await algoApi.collect({ algoOrderResultId: [String(props.imageData.id)] })
     if (res.code === '0000') {
       const nextCollectStatus =
         (res.data as any)?.collectStatus !== undefined ? Number((res.data as any).collectStatus) : (wasCollected ? 0 : 1)
@@ -251,7 +272,7 @@ const handleItemClick = () => {
 <style lang="scss" scoped>
 .image-item {
   position: relative;
-  border-radius: var(--radius-sm);
+  border-radius: $border-radius-md;
   transition: all 0.3s ease;
   cursor: pointer;
   width: 100%;
@@ -260,12 +281,13 @@ const handleItemClick = () => {
 .image-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4; // 保持3:4比例（常见人像比例）
+  aspect-ratio: 3 / 4;
   background: $color-bg-dark-secondary;
   border-radius: $border-radius-md;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 
   .item-image {
     position: absolute;
@@ -379,14 +401,14 @@ const handleItemClick = () => {
 // 文件类型标签（左下角）
 .file-type-badge {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
-  height: 24px;
+  bottom: 4px;
+  left: 6px;
+  height: 15px;
   padding: 0 8px;
-  background: rgba(7, 7, 7, 0.6);
   backdrop-filter: blur(4px);
+  background-color: rgba(18, 18, 18, 0.6);
   color: white;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   border-radius: 4px;
   z-index: 3;
@@ -464,7 +486,13 @@ const handleItemClick = () => {
 }
 
 .status-overlay.is-generating {
-  background: rgba(20, 30, 45, 0.9);
+  background: url('@/assets/images/generating_160.gif') no-repeat center center;
+  background-size: 100% 100%;
+  border-radius: inherit;
+
+  .status-text {
+    color: #96ddff;
+  }
 }
 
 .status-fail-img {

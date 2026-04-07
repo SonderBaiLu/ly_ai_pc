@@ -1,7 +1,7 @@
 <template>
   <div class="left-panel studio-left--btn-sm studio-left--select-card-bordered studio-left--sticky-footer">
     <div class="left-panel-scroll">
-      <div class="panel-title">面料创拍</div>
+      <div class="panel-title">面料创款</div>
 
       <div class="block">
         <div class="block-title flex align-center flex-between">
@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import { images } from '@/assets'
 import type { CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
+import { buildDownloadUrl } from '@/utils/download'
 
 const imageUrl = defineModel<string>('imageUrl', { default: '' })
 const prompt = defineModel<string>('prompt', { default: '' })
@@ -212,7 +213,12 @@ const paintFabricPreview = async () => {
   try {
     const img = await loadImage(url)
     drawFabricExport(ctx, img, PREVIEW_CSS, Number(fabricScale.value))
-  } catch {
+  } catch (e) {
+    console.warn('[FabricCreative] 面料预览绘制失败:', {
+      url,
+      scale: fabricScale.value,
+      error: e,
+    })
     ctx.clearRect(0, 0, PREVIEW_CSS, PREVIEW_CSS)
   }
 }
@@ -221,14 +227,43 @@ watch([imageUrl, fabricScale], () => {
   void nextTick(() => paintFabricPreview())
 }, { immediate: true })
 
-const loadImage = (src: string) =>
+const loadImageByUrl = (src: string, withCrossOrigin = true) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (withCrossOrigin) {
+      img.crossOrigin = 'anonymous'
+    }
     img.onload = () => resolve(img)
     img.onerror = (e) => reject(e)
     img.src = src
   })
+
+const loadImage = async (src: string) => {
+  const directUrl = String(src || '').trim()
+  if (!directUrl) throw new Error('empty image url')
+
+  try {
+    // 优先直接加载（命中源站 CORS 时最快）
+    return await loadImageByUrl(directUrl, true)
+  } catch (err) {
+    // 线上常见：源站缺少 CORS，canvas 无法 drawImage；兜底改走同域 file-proxy
+    const proxyUrl = buildDownloadUrl(directUrl)
+    const hasProxy = typeof proxyUrl === 'string' && proxyUrl !== directUrl
+    if (!hasProxy) throw err
+    try {
+      // 代理地址为同域资源，不依赖源站 CORS
+      return await loadImageByUrl(proxyUrl, false)
+    } catch (proxyErr) {
+      console.warn('[FabricCreative] 画布图片加载失败（直连+代理均失败）', {
+        directUrl,
+        proxyUrl,
+        err,
+        proxyErr,
+      })
+      throw proxyErr
+    }
+  }
+}
 
 const exportTiledTextureFile = async (src: string, scale: number) => {
   const img = await loadImage(src)

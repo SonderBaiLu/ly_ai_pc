@@ -56,7 +56,6 @@ import { algoApi } from '@/api/algo'
 
 interface Props {
   modelValue: boolean
-  userId?: string | number
   algoOrderId?: string | number
   algoOrderResultId?: string | number
 }

@@ -14,10 +14,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 确保进度值在 0-100 范围内，向下取整
+// 接口/上层可能传入字符串或非有限值，这里统一成 0–100 的展示用整数
 const displayProgress = computed(() => {
   const raw = Number(props.percentage ?? 0)
-  if (Number.isNaN(raw)) return 0
+  if (!Number.isFinite(raw)) return 0
   return Math.min(100, Math.max(0, Math.floor(raw)))
 })
 </script>

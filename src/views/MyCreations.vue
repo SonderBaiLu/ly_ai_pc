@@ -7,7 +7,7 @@
         <span class="title-cn">{{ t('myCreations.title') }}</span>
       </div>
 
-      <div class="tabs-actions">
+      <div ref="stickyTopRef" class="tabs-actions" :class="{ 'is-stuck': isTopStickyActive }">
         <el-tabs class="creations-tabs" :model-value="activeTab" @tab-change="handleTabChange">
           <el-tab-pane v-for="tab in tabs" :key="tab.key" :name="tab.key" :label="tab.label" />
         </el-tabs>
@@ -15,15 +15,15 @@
         <!-- 操作按钮（桌面端） -->
         <div class="header-actions-desktop">
           <!-- <el-button :loading="loading" :disabled="loading" @click="handleRefresh">
-            <el-icon>
-              <Refresh />
-            </el-icon>
-            <span>刷新</span>
-          </el-button> -->
+              <el-icon>
+                <Refresh />
+              </el-icon>
+              <span>刷新</span>
+            </el-button> -->
 
           <el-button v-if="batchMode && selectedIds.length > 0" type="danger" @click="handleBatchDelete">
             <img :src="images.del" alt="删除" class="action-icon" />
-            {{ t('myCreations.actions.delete') }}
+            <span> {{ t('myCreations.actions.delete') }}</span>
             <!-- ({{ selectedIds.length }}) -->
           </el-button>
 
@@ -32,20 +32,29 @@
             <img
               :src="selectedCollectStatus.allCollected || activeTab === 'collect' ? images.collectActive : images.collectNo"
               alt="收藏" class="action-icon" />
-            {{
-              selectedCollectStatus.allCollected || activeTab === 'collect'
-                ? t('myCreations.actions.cancelCollect')
-                : t('myCreations.actions.collect')
-            }}
+            <span>
+              {{
+                selectedCollectStatus.allCollected || activeTab === 'collect'
+                  ? t('myCreations.actions.cancelCollect')
+                  : t('myCreations.actions.collect')
+              }}
+            </span>
             <!-- ({{ selectedIds.length }}) -->
           </el-button>
 
-          <el-popover v-if="batchMode && selectedIds.length > 0" placement="bottom" :width="146" trigger="click"
+          <!-- 我的上传：无水印选项，下载一键触发 -->
+          <el-button v-if="batchMode && selectedIds.length > 0 && activeTab === 'upload'" type="success"
+            :loading="isDownloading" :disabled="isDownloading" @click="handleBatchDownload">
+            <img v-if="!isDownloading" :src="images.download" alt="下载" class="action-icon" />
+            <span>{{ t('myCreations.actions.download') }}</span>
+          </el-button>
+
+          <el-popover v-else-if="batchMode && selectedIds.length > 0" placement="bottom" :width="146" trigger="click"
             popper-class="download-menu-popper">
             <template #reference>
               <el-button type="success" :loading="isDownloading" :disabled="isDownloading" @click.stop>
                 <img v-if="!isDownloading" :src="images.download" alt="下载" class="action-icon" />
-                {{ t('myCreations.actions.download') }}
+                <span>{{ t('myCreations.actions.download') }}</span>
               </el-button>
             </template>
             <div class="download-menu">
@@ -79,13 +88,13 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <!-- <el-dropdown-item command="refresh" :disabled="loading">
-                  <div class="menu-item-content">
-                    <el-icon>
-                      <Refresh />
-                    </el-icon>
-                    <span>刷新</span>
-                  </div>
-                </el-dropdown-item> -->
+                    <div class="menu-item-content">
+                      <el-icon>
+                        <Refresh />
+                      </el-icon>
+                      <span>刷新</span>
+                    </div>
+                  </el-dropdown-item> -->
                 <el-dropdown-item v-if="batchMode && selectedIds.length > 0" command="delete"
                   :disabled="selectedIds.length === 0">
                   <div class="menu-item-content">
@@ -128,20 +137,13 @@
         <ImageUploadArea v-if="activeTab === 'upload'" class="image-upload-area" :image-url="''"
           :placeholder-text="t('myCreations.upload.placeholder')" area-width="100%" area-height="100%"
           :show-actions="false" :clickable="false" :show-desc="false" :show-history-tip="false"
-          :enable-history-replace="false" :show-loading="uploading" :loading-text="t('myCreations.upload.loading')"
-          @upload="handleUploadClick" @drop-file="handleDropFile" />
+          :enable-history-replace="false" delegate-click-upload :show-loading="uploading"
+          :loading-text="t('myCreations.upload.loading')" @upload="handleUploadClick" @drop-file="handleDropFile" />
 
-        <!-- 仅开发环境：一键预览“上传失败”提示样式 -->
-        <div v-if="activeTab === 'upload'" class="upload-debug">
-          <el-button class="upload-debug-btn" @click="showUploadFailToast(t('myCreations.upload.debugFail'))">
-            {{ t('myCreations.upload.debugButton') }}
-          </el-button>
-        </div>
-
-        <ImageItem v-for="item in list" :key="item.id" :image-data="item" :show-select="batchMode"
+        <ImageItem v-for="item in list" :key="item.id" :image-data="item as any" :show-select="batchMode"
           :is-selected="selectedIds.includes(item.id)" :max-select="Infinity" :selected-count="selectedIds.length"
-          :show-collect="true" :show-zoom="false" collectMode="collected-only" :show-title="false" @zoom="handleZoom"
-          @click="() => handleItemClick(item)"
+          :show-collect="true" :show-zoom="false" show-file-type collectMode="collected-only" :show-title="false"
+          @zoom="handleZoom" @click="() => handleItemClick(item)"
           @select="({ imageData, isSelected }: { imageData: any; isSelected: boolean }) => handleImageSelect(imageData.id, isSelected)" />
       </div>
 
@@ -152,6 +154,15 @@
         :empty-text="t('myCreations.empty.noWorks')" />
     </div>
 
+    <!-- 我的上传：大图预览（右上角带下载/删除） -->
+    <ImagePreviewModal v-if="uploadPreviewItem" v-model="showUploadPreview" :title="t('myCreations.tabs.upload')"
+      :image-src="uploadPreviewItem.fileUrl || ''" :show-name="false" :show-download="true" :show-delete="true"
+      :show-confirm-button="false" :image-data="{
+        id: uploadPreviewItem.id,
+        imgUrl: uploadPreviewItem.fileUrl || '',
+        imageUrl: uploadPreviewItem.fileUrl || '',
+      }" @deleted="handleUploadPreviewDeleted" />
+
   </div>
 </template>
 
@@ -161,39 +172,36 @@ import { MoreFilled } from '@element-plus/icons-vue'
 import { images } from '@/assets'
 import { uploadApi } from '@/api/upload'
 import { algoApi } from '@/api/algo'
+import { userApi } from '@/api/user'
+import { appApi } from '@/api/app'
 import { useUserStore } from '@/stores/user'
 import { useModalStore } from '@/stores/modal'
 import { watermarkDownloader } from '@/utils/WatermarkDownloader'
 import { useI18n } from 'vue-i18n'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
+import { useRouter } from 'vue-router'
+import { useTemplateStore } from '@/stores/template'
+import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
+import type { CreationResult } from '@/composables/useTaskPolling'
+import { mapRecordToCreationResult } from '@/utils/creationResult'
 
-type TabKey = 'all' | 'image' | 'video' | 'fashion' | 'fabric' | 'collect' | 'upload'
+/** 与产品一级导航一致：全部 / 服装设计 / AI面料 / 收藏 / 我的上传（图片与视频在「全部」内混合展示，角标区分） */
+type TabKey = 'all' | 'fashion' | 'fabric' | 'collect' | 'upload'
 
-type CreationItem = {
+// 复用统一的“创作结果”类型；上传记录额外可能带 fileUrl 等字段
+type CreationItem = Omit<CreationResult, 'id' | 'createTime'> & {
   id: string | number
-  algoOrderId: string
-  algoOrderNo?: string
-  userId?: string
-  userSonId?: string | null
-  menuCode?: string
-  thumbUrl?: string | null
-  url?: string | null
-  originalUrl?: string | null
-  fileSize?: number
-  duration?: number
-  fileType: number // 1图片 2视频 3音频 4音视频
-  status: number // 0初始化 1待请求 2处理中 3完成 4失败
-  collectStatus: number // 0未收藏 1已收藏
-  prompt?: string
+  createTime?: string
+  fileUrl?: string | null
   [key: string]: any
 }
 
 const { t } = useI18n()
+const router = useRouter()
+const templateStore = useTemplateStore()
 
 const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
   { key: 'all', label: t('myCreations.tabs.all') },
-  { key: 'image', label: t('myCreations.tabs.image') },
-  { key: 'video', label: t('myCreations.tabs.video') },
   { key: 'fashion', label: t('myCreations.tabs.fashion') },
   { key: 'fabric', label: t('myCreations.tabs.fabric') },
   { key: 'collect', label: t('myCreations.tabs.collect') },
@@ -203,6 +211,8 @@ const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
 const activeTab = ref<TabKey>('all')
 const loading = ref(false)
 const hasMore = ref(true)
+// 仅接收“最后一次请求”的结果，避免切换 tab 时旧请求回写覆盖新数据
+let latestFetchReqId = 0
 const batchMode = ref(false)
 const selectedIds = ref<(string | number)[]>([])
 const isDownloading = ref(false)
@@ -220,18 +230,67 @@ const removeWatermarkEnabled = computed(() => {
 // 只处理“打开开关”这类动作：未确认前先强制保持关闭
 const pendingWatermarkToggleTo = ref<boolean | null>(null)
 
-const pageSize = 12
+const pageSize = 24
 const page = ref(1)
 const list = ref<CreationItem[]>([])
 const totalCount = ref(0)
 
 const allData = ref<CreationItem[]>([])
 
+// 我的上传：大图预览（右上角支持下载 / 删除）
+const showUploadPreview = ref(false)
+const uploadPreviewItem = ref<CreationItem | null>(null)
+
+// ========= “一级 menuCode”解析（用于解决后端要求一级父级 code） =========
+const platformMenus = ref<any[]>([])
+let platformMenusLoadPromise: Promise<void> | null = null
+
+const ensurePlatformMenusLoaded = async () => {
+  if (platformMenusLoadPromise) return platformMenusLoadPromise
+  platformMenusLoadPromise = (async () => {
+    try {
+      const res = await appApi.getSysPlatformMenu()
+      if (String((res as any)?.code) === '0000' && Array.isArray((res as any)?.data)) {
+        platformMenus.value = (res as any).data
+      } else {
+        platformMenus.value = []
+      }
+    } catch (e) {
+      console.warn('[MyCreations] getSysPlatformMenu failed, fallback to APP_MENU_CODES:', e)
+      platformMenus.value = []
+    }
+  })()
+  return platformMenusLoadPromise
+}
+
+const resolveTopMenuCodeByTargets = (targetCodes: string[]): string => {
+  const targets = (Array.isArray(targetCodes) ? targetCodes : []).map((x) => String(x || '').trim()).filter(Boolean)
+  if (!targets.length) return ''
+
+  const isMatch = (node: any, code: string): boolean => {
+    if (!node) return false
+    if (String(node?.menuCode ?? '') === code) return true
+    const children = Array.isArray(node?.children) ? node.children : []
+    return children.some((c: any) => isMatch(c, code))
+  }
+
+  for (const top of platformMenus.value || []) {
+    const topCode = String(top?.menuCode ?? '')
+    if (!topCode) continue
+    // 命中任意 target：返回该“一级父节点”的 menuCode
+    if (targets.some((c) => isMatch(top, c))) return topCode
+  }
+
+  // 兜底：返回第一个目标 code（避免完全为空导致列表查不到）
+  return targets[0] || ''
+}
+
 const filteredAll = computed(() => {
   // 当前 tab 的数据已在接口层面完成过滤（或通过 fallback 合并），这里直接复用
   return allData.value
 })
 
+// 计算选中项的收藏状态
 const selectedCollectStatus = computed(() => {
   if (selectedIds.value.length === 0) return { allCollected: false }
   const set = new Set(selectedIds.value)
@@ -241,8 +300,32 @@ const selectedCollectStatus = computed(() => {
   return { allCollected: collected.length === items.length }
 })
 
+/** 与详情页、AI 工作室一致：GET /api/v1/algo/queryAlgoResultPage，空字符串表示不按该维度筛选 */
+const dedupeCreationsByIdPreserveOrder = (arr: CreationItem[]): CreationItem[] => {
+  const map = new Map<string, CreationItem>()
+  for (const item of arr) {
+    const id = String(item?.id ?? '')
+    if (!id) continue
+    // Map.set(已存在key)只会覆盖 value，不会改变 key 的插入顺序
+    // 用于避免后续分页/多 menuCode 合并时，状态字段无法刷新到最新数据
+    map.set(id, item)
+  }
+  return Array.from(map.values())
+}
+
+// 复用统一映射：把 queryAlgoResultPage 记录映射为 CreationResult
+const mapRecordToCreationItem = (r: any): CreationItem | null => {
+  const mapped = mapRecordToCreationResult(r, {
+    fallbackIdFromAlgoResultId: true,
+    fallbackCreateTime: String(r?.uploadTime ?? ''),
+  })
+  return mapped as unknown as CreationItem | null
+}
+
 const fetchPage = async (reset = false) => {
-  if (loading.value) return
+  // 加载更多时防重入；reset（切换 tab/刷新）允许抢占进行中的旧请求
+  if (loading.value && !reset) return
+  const reqId = ++latestFetchReqId
   loading.value = true
   try {
     if (activeTab.value === 'upload') {
@@ -251,7 +334,35 @@ const fetchPage = async (reset = false) => {
         list.value = []
         totalCount.value = 0
       }
-      hasMore.value = false
+
+      const res = await userApi.getStorageLogList({
+        currentPage: page.value,
+        pageSize,
+      })
+
+      const code = String((res as any)?.code ?? '')
+      if (code !== '0000') {
+        throw new Error(String((res as any)?.msg ?? 'getStorageLogList failed'))
+      }
+
+      const data = (res as any)?.data ?? {}
+      const recordsRaw = Array.isArray(data?.list) ? data.list : []
+
+      const total = Number(data?.total ?? data?.totalCount ?? 0)
+
+      // 免映射：直接使用上传接口返回的记录对象
+      // 组件渲染层会兼容 fileUrl/originalUrl 等字段
+      const mapped = recordsRaw as CreationItem[]
+      const merged = reset ? dedupeCreationsByIdPreserveOrder(mapped) : dedupeCreationsByIdPreserveOrder([...allData.value, ...mapped])
+      if (reqId !== latestFetchReqId) return
+
+      allData.value = merged
+      list.value = allData.value
+      totalCount.value = total
+
+      // 后端用 hasNext 控制分页：有下一页就返回 true
+      hasMore.value = Boolean(data?.hasNext)
+
       return
     }
 
@@ -261,124 +372,72 @@ const fetchPage = async (reset = false) => {
       totalCount.value = 0
     }
 
-    const menuCode =
-      activeTab.value === 'fashion'
-        ? APP_MENU_CODES.AI_FASHION_DESIGN
-        : activeTab.value === 'fabric'
-          ? APP_MENU_CODES.FABRIC_DESIGN_CONCEPT
-          : 'ALL'
+    const tab = activeTab.value
+    const collectStatus = tab === 'collect' ? '1' : ''
+    // 我的创作页面需要区分图片/视频：但列表查询这里不做 fileType 限制，让后端返回混合数据
+    const fileType = ''
 
-    const collectStatus = activeTab.value === 'collect' ? '1' : '0'
-
-    const shouldTryFileTypeAll = !['image', 'video'].includes(activeTab.value)
-
-    const fileTypeTargets = (() => {
-      if (activeTab.value === 'image') return ['1']
-      if (activeTab.value === 'video') return ['2']
-      // 先请求“全部类型”（如果后端不支持 0，会进入 fallback）
-      return shouldTryFileTypeAll ? ['0'] : ['1']
-    })()
-
-    const fetchOne = async (fileType: string) => {
-      const res = await algoApi.queryAlgoResultPage({
-        menuCode,
-        fileType,
-        collectStatus,
-        currentPage: page.value,
-        pageSize: pageSize,
-      })
-
-      const code = String((res as any)?.code ?? '')
-      if (code !== '0000') {
-        throw new Error(String((res as any)?.msg ?? 'queryAlgoResultPage failed'))
-      }
-
-      const data = (res as any)?.data ?? {}
-      const recordsRaw =
-        (Array.isArray(data?.records) && data.records) ||
-        (Array.isArray(data?.list) && data.list) ||
-        (Array.isArray(data) ? data : [])
-
-      const total = Number(data?.total ?? data?.totalCount ?? recordsRaw.length ?? 0)
-      return { records: recordsRaw, total }
+    // 一级导航（menuCode）过滤：
+    // 后端期望的是“平台菜单树里的一级父级 menuCode”，而不是我们前端按钮对应的具体功能 code。
+    // 因此：先拉取 getSysPlatformMenu，再把 fashion/fabric 映射成其一级父节点。
+    let menuCode = ''
+    if (tab === 'fashion') {
+      await ensurePlatformMenusLoaded()
+      // “服装设计”一级导航只对应 ai_fashion_design 这一组
+      menuCode = resolveTopMenuCodeByTargets([APP_MENU_CODES.AI_FASHION_DESIGN])
+      if (!menuCode) menuCode = APP_MENU_CODES.AI_FASHION_DESIGN
+    } else if (tab === 'fabric') {
+      await ensurePlatformMenusLoaded()
+      menuCode = resolveTopMenuCodeByTargets([APP_MENU_CODES.FABRIC_DESIGN_CONCEPT])
+      if (!menuCode) menuCode = APP_MENU_CODES.FABRIC_DESIGN_CONCEPT
     }
 
-    const mapToCreationItem = (r: any): CreationItem | null => {
-      const id = String(r?.id ?? '')
-      if (!id) return null
-      const backendFileType = Number(r?.fileType ?? 1)
-      const backendStatus = Number(r?.status ?? 3)
-      const collect = Number(r?.collectStatus ?? 0)
-      const menu = String(r?.menuCode ?? '')
-      return {
-        id,
-        algoOrderId: String(r?.algoOrderId ?? ''),
-        algoOrderNo: r?.algoOrderNo != null ? String(r.algoOrderNo) : undefined,
-        userId: r?.userId != null ? String(r.userId) : undefined,
-        userSonId: r?.userSonId != null ? String(r.userSonId) : null,
-        menuCode: menu,
-        thumbUrl: (r?.thumbUrl ?? null) as any,
-        url: (r?.url ?? null) as any,
-        originalUrl: (r?.originalUrl ?? null) as any,
-        fileSize: r?.fileSize !== undefined && r?.fileSize !== null ? Number(r.fileSize) : undefined,
-        duration: r?.duration !== undefined && r?.duration !== null ? Number(r.duration) : undefined,
-        fileType: backendFileType,
-        status: backendStatus,
-        collectStatus: collect,
-        prompt: String(r?.prompt ?? r?.functionPrompt ?? r?.creativeDescription ?? ''),
-      }
+    const res = await algoApi.queryAlgoResultPage({
+      menuCode,
+      fileType,
+      collectStatus,
+      currentPage: page.value,
+      pageSize: pageSize,
+    })
+
+    const code = String((res as any)?.code ?? '')
+    if (code !== '0000') {
+      throw new Error(String((res as any)?.msg ?? 'queryAlgoResultPage failed'))
     }
 
-    const mergeRecords = (recordsList: any[][], totals: number[]) => {
-      const map = new Map<string, any>()
-      for (let i = 0; i < recordsList.length; i++) {
-        for (const r of recordsList[i] || []) {
-          const id = String(r?.id ?? r?.algoOrderResultId ?? '')
-          if (!id) continue
-          map.set(id, r)
-        }
-      }
-      return { records: Array.from(map.values()), total: totals.reduce((s, x) => s + Number(x ?? 0), 0) }
-    }
+    const data = (res as any)?.data ?? {}
+    const recordsRaw = Array.isArray(data?.list) ? data.list : []
 
-    // 先按 fileTypeTargets 尝试获取
-    const results: any[][] = []
-    const totals: number[] = []
+    const inProgressRaw: any[] = Array.isArray(data?.orderResulGenerated) ? data.orderResulGenerated : []
 
-    let usedFallback = false
-    try {
-      for (const ft of fileTypeTargets) {
-        const { records, total } = await fetchOne(ft)
-        results.push(records)
-        totals.push(total)
-      }
-    } catch (e) {
-      if (!shouldTryFileTypeAll || usedFallback) throw e
+    const recordsMapped = recordsRaw.map(mapRecordToCreationItem).filter(Boolean) as CreationItem[]
+    const inProgressMapped = inProgressRaw.map(mapRecordToCreationItem).filter(Boolean) as CreationItem[]
 
-      // fallback：后端可能不接受 fileType=0，则分别拉图片/视频再合并
-      usedFallback = true
-      const [imgRes, videoRes] = await Promise.all([fetchOne('1'), fetchOne('2')])
-      results.push(imgRes.records, videoRes.records)
-      totals.push(imgRes.total, videoRes.total)
-    }
+    const merged = reset
+      ? dedupeCreationsByIdPreserveOrder([...inProgressMapped, ...recordsMapped])
+      : dedupeCreationsByIdPreserveOrder([...inProgressMapped, ...allData.value, ...recordsMapped])
+    if (reqId !== latestFetchReqId) return
 
-    const merged = mergeRecords(results, totals)
-    const mapped = merged.records.map(mapToCreationItem).filter(Boolean) as CreationItem[]
-
-    if (mapped.length === 0) {
-      list.value = []
-      allData.value = []
-      totalCount.value = merged.total
-      hasMore.value = false
-      return
-    }
-
-    allData.value = reset ? mapped : [...allData.value, ...mapped]
+    const total = Number(data?.total ?? data?.totalCount ?? 0)
+    totalCount.value = total
+    allData.value = merged
     list.value = allData.value
-    totalCount.value = merged.total
-    hasMore.value = allData.value.length < totalCount.value
+
+    // 后端用 hasNext 控制分页：有下一页就返回 true
+    hasMore.value = Boolean(data?.hasNext)
+  } catch (e: any) {
+    if (reqId !== latestFetchReqId) return
+    console.error('[MyCreations] queryAlgoResultPage failed:', e)
+    if (reset) {
+      allData.value = []
+      list.value = []
+      totalCount.value = 0
+    }
+    hasMore.value = false
   } finally {
-    loading.value = false
+    if (reqId === latestFetchReqId) {
+      loading.value = false
+    }
   }
 }
 
@@ -386,12 +445,26 @@ const resetAndFetch = async () => {
   page.value = 1
   hasMore.value = true
   await fetchPage(true)
+  await nextTick()
+  await tryAutoLoadMoreWhenSentinelVisible()
 }
 
 const loadMore = async () => {
   if (loading.value || !hasMore.value) return
   page.value += 1
   await fetchPage(false)
+}
+
+// 切换 tab 后，若观察点一直可见，IO 可能不触发；主动补拉直到撑满首屏或无更多
+const tryAutoLoadMoreWhenSentinelVisible = async () => {
+  const maxRounds = 6
+  for (let i = 0; i < maxRounds; i++) {
+    if (loading.value || !hasMore.value || !sentinelRef.value) break
+    const rect = sentinelRef.value.getBoundingClientRect()
+    if (rect.top > window.innerHeight + 200) break
+    await loadMore()
+    await nextTick()
+  }
 }
 
 const handleTabClick = async (key: TabKey) => {
@@ -404,7 +477,9 @@ const handleTabChange = async (name: string | number) => {
 }
 
 const handleZoom = () => {
-  ElMessage.info(t('myCreations.message.previewTodo'))
+  // 历史遗留的缩略图放大事件，目前列表点击已分别处理：
+  // - 非“我的上传”：跳转详情页
+  // - “我的上传”：弹出大图预览（右上角带下载/删除）
 }
 
 // 刷新用户信息：用于校验会员状态是否已变更（例如会员到期）
@@ -423,7 +498,40 @@ const handleItemClick = (item: CreationItem) => {
     handleImageSelect(item.id, !selectedIds.value.includes(item.id))
     return
   }
-  ElMessage.info(t('myCreations.message.detailTodo'))
+
+  // “我的上传”：点击卡片仅做大图预览（右上角带下载/删除）
+  if (activeTab.value === 'upload') {
+    uploadPreviewItem.value = item
+    showUploadPreview.value = true
+    return
+  }
+
+  // 其他 tab：进入创作详情页
+  const listForDetail = filteredAll.value
+  const currentIndex = Math.max(
+    0,
+    listForDetail.findIndex((x) => String(x.id) === String(item.id)),
+  )
+
+  // 与 AiFashionStudio 一致：缓存当前列表，详情页支持“上一张/下一张”
+  const modeCode =
+    activeTab.value === 'fashion'
+      ? APP_MENU_CODES.AI_FASHION_DESIGN
+      : activeTab.value === 'fabric'
+        ? APP_MENU_CODES.FABRIC_DESIGN_CONCEPT
+        : ''
+
+  templateStore.setTemplateListData({
+    list: listForDetail,
+    currentIndex,
+    modeCode,
+  })
+
+  router.push({
+    name: 'CreativeDetail',
+    params: { id: String(item.id) },
+    query: { modeCode },
+  })
 }
 
 const handleToggleBatchMode = () => {
@@ -450,6 +558,41 @@ const handleRefresh = async () => {
 
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) return
+  // “我的上传”：删除上传记录（后端接口 + 本地列表移除）
+  if (activeTab.value === 'upload') {
+    try {
+      await ElMessageBox.confirm('确定要删除选中的上传记录吗？删除后将无法恢复。', '删除上传记录确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        customClass: 'creative-delete-confirm',
+        confirmButtonClass: 'creative-delete-confirm-btn',
+        cancelButtonClass: 'creative-delete-cancel-btn',
+        showClose: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+        center: true,
+      })
+
+      const ids = selectedIds.value.map((x) => String(x))
+      const res = await userApi.delStorageLog({ logId: ids })
+      if (String((res as any)?.code) !== '0000') {
+        throw new Error(String((res as any)?.msg || '删除失败'))
+      }
+
+      const idSet = new Set(ids)
+      allData.value = allData.value.filter((x) => !idSet.has(String((x as any)?.id)))
+      list.value = allData.value
+      selectedIds.value = []
+      batchMode.value = false
+      ElMessage.success(t('myCreations.message.deleteSuccess'))
+    } catch (e: any) {
+      // 用户取消：忽略
+      if (e === 'cancel' || e === 'close') return
+      ElMessage.error(e?.message || '删除失败')
+    }
+    return
+  }
   try {
     await ElMessageBox.confirm('确定要删除选中的创作吗？删除后将无法恢复。', '删除创作确认', {
       confirmButtonText: '确定',
@@ -465,10 +608,8 @@ const handleBatchDelete = async () => {
     })
 
     const ids = selectedIds.value.map((x) => String(x))
-    for (const id of ids) {
-      const res = await algoApi.del({ algoOrderResultId: id })
-      if (res.code !== '0000') throw new Error(res.msg || '删除失败')
-    }
+    const res = await algoApi.del({ algoOrderResultId: ids })
+    if (res.code !== '0000') throw new Error(res.msg || '删除失败')
     const set = new Set(selectedIds.value)
     allData.value = allData.value.filter((x) => !set.has(x.id))
     list.value = allData.value
@@ -485,10 +626,9 @@ const handleBatchCollect = async () => {
   try {
     const set = new Set(selectedIds.value)
     const shouldCancel = selectedCollectStatus.value.allCollected || activeTab.value === 'collect'
-    for (const id of selectedIds.value) {
-      const res = await algoApi.collect({ algoOrderResultId: String(id) })
-      if (res.code !== '0000') throw new Error(res.msg || '收藏失败')
-    }
+    const ids = selectedIds.value.map((id) => String(id))
+    const res = await algoApi.collect({ algoOrderResultId: ids })
+    if (res.code !== '0000') throw new Error(res.msg || '收藏失败')
     allData.value = allData.value.map((x) => {
       if (!set.has(x.id)) return x
       return { ...x, collectStatus: shouldCancel ? 0 : 1 }
@@ -505,8 +645,11 @@ const handleBatchCollect = async () => {
 }
 
 const getItemUrl = (item: CreationItem) => {
-  if (removeWatermarkEnabled.value && item.originalUrl) return String(item.originalUrl)
-  return String(item.url || item.thumbUrl || '')
+  // 上传记录字段可能来自 fileUrl / originalUrl / thumbUrl 等
+  if (removeWatermarkEnabled.value) {
+    return String(item.originalUrl || item.fileUrl || item.url || item.thumbUrl || '')
+  }
+  return String(item.fileUrl || item.url || item.originalUrl || item.thumbUrl || '')
 }
 
 const setLocalWatermarkStatus = (enabled: boolean) => {
@@ -568,6 +711,26 @@ const handleBatchDownload = async () => {
   if (isDownloading.value) return
   isDownloading.value = true
   try {
+    // “我的上传”：只用 fileUrl 下载，不走去水印校验
+    if (activeTab.value === 'upload') {
+      const set = new Set(selectedIds.value)
+      const items = filteredAll.value.filter((x) => set.has(x.id))
+      const urls = items
+        .map((item) => String((item as any)?.fileUrl || '').trim())
+        .filter(Boolean)
+      if (urls.length === 0) {
+        ElMessage.warning(t('myCreations.message.downloadNoUrl'))
+        return
+      }
+      const payload = urls.length === 1 ? urls[0] : urls
+      const result = await watermarkDownloader.download(payload)
+      if (result.success) {
+        selectedIds.value = []
+        batchMode.value = false
+      }
+      return
+    }
+
     // 如果用户当前选择了“去除水印”下载，需要再次校验会员状态（例如会员到期）
     const wantRemoveWatermark = removeWatermarkEnabled.value
     if (wantRemoveWatermark) {
@@ -580,14 +743,19 @@ const handleBatchDownload = async () => {
 
     const set = new Set(selectedIds.value)
     const items = filteredAll.value.filter((x) => set.has(x.id))
-    for (const item of items) {
-      const url = getItemUrl(item)
-      if (!url) continue
-      await watermarkDownloader.download(url)
+    const urls = items.map((item) => getItemUrl(item)).filter((u) => String(u || '').trim())
+    if (urls.length === 0) {
+      ElMessage.warning(t('myCreations.message.downloadNoUrl'))
+      return
     }
-    ElMessage.success(t('myCreations.message.downloadStarted'))
-    selectedIds.value = []
-    batchMode.value = false
+
+    // 与 WatermarkDownloader 一致：单个直接下文件，多个打成 ZIP
+    const payload = urls.length === 1 ? urls[0] : urls
+    const result = await watermarkDownloader.download(payload)
+    if (result.success) {
+      selectedIds.value = []
+      batchMode.value = false
+    }
   } catch (e) {
     console.error('[MyCreations] batch download failed:', e)
     ElMessage.error(t('myCreations.message.downloadFailed'))
@@ -616,12 +784,11 @@ const handleMobileAction = (command: string) => {
   }
 }
 
-// ============ 我的上传（本地 mock + 兼容真实接口）============
+// ============ 我的上传：/v1/storage/uploadImage + /v1/user/getStorageLogList ============
 const handleUploadClick = async () => {
   if (uploading.value) return
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = 'image/*'
   input.multiple = false
   input.onchange = async (e: any) => {
     const file = e.target.files?.[0]
@@ -635,7 +802,7 @@ const handleDropFile = async (params: { file?: File; url?: string }) => {
   if (params.file) {
     await uploadFile(params.file)
   } else if (params.url) {
-    ElMessage.info(t('myCreations.upload.urlUploadTodo'))
+    ElMessage.warning(t('myCreations.upload.localFileOnlyHint'))
   }
 }
 
@@ -657,25 +824,20 @@ const showUploadFailToast = (text: string) => {
 }
 
 const uploadFile = async (file: File) => {
-  if (!userStore.userInfo?.userId) {
+  if (uploading.value) return
+  const isAuthed = userStore.isLoggedIn || !!localStorage.getItem('token')
+  if (!isAuthed) {
     ElMessage.warning(t('myCreations.upload.needLogin'))
-    return
-  }
-
-  // 与你截图一致：图片最小需大于 20KB
-  const minSize = 20 * 1024
-  if (file.size < minSize) {
-    showUploadFailToast(t('myCreations.upload.debugFail'))
+    modalStore.openLoginModal()
     return
   }
 
   uploading.value = true
   try {
-    // 对齐 Assets.vue：走封装好的上传方法
     const uploadResult = await uploadApi.uploadImage(file, {
-      showLoading: false, // 使用组件内的 loading 状态
+      showLoading: false,
       loadingText: t('myCreations.upload.uploadingImage'),
-      showMessage: false, // 使用自定义提示样式
+      showMessage: false,
     })
 
     if (!uploadResult.success || !uploadResult.url) {
@@ -685,39 +847,51 @@ const uploadFile = async (file: File) => {
       return
     }
 
-    const imageUrl = uploadResult.url
-
-    // 本地插入一条（后续接真实列表接口时可直接改为 refresh）
-    const id = `upload-${Date.now()}`
-    // “我的上传”暂不接算法创作列表接口：这里先按创作结构插入一条本地记录
-    allData.value = [
-      {
-        id,
-        algoOrderId: id,
-        menuCode: 'upload',
-        thumbUrl: imageUrl,
-        url: imageUrl,
-        originalUrl: imageUrl,
-        fileType: 1,
-        status: 3,
-        collectStatus: 0,
-        prompt: '',
-        source: 'upload',
-      },
-      ...allData.value,
-    ]
-    // upload tab：跳过重拉接口，避免 reset 时清空刚插入的数据
-    list.value = allData.value
-    hasMore.value = false
-    totalCount.value = allData.value.length
+    if (activeTab.value !== 'upload') {
+      return
+    }
+    await resetAndFetch()
+    ElMessage.success(t('myCreations.upload.uploadSuccess'))
   } finally {
     uploading.value = false
+  }
+}
+
+// “我的上传”：预览弹窗中删除当前上传记录（调用后端 + 本地列表移除）
+const handleUploadPreviewDeleted = async () => {
+  const item = uploadPreviewItem.value
+  if (!item) return
+
+  const logId = (item as any).logId ?? item.id
+  if (!logId) return
+
+  try {
+    const res = await userApi.delStorageLog({ logId: [String(logId)] })
+    if (String((res as any)?.code) !== '0000') throw new Error(String((res as any)?.msg || '删除失败'))
+
+    const idSet = new Set<string>([String(logId)])
+    allData.value = allData.value.filter((x) => !idSet.has(String((x as any)?.id)))
+    list.value = allData.value
+    uploadPreviewItem.value = null
+    showUploadPreview.value = false
+    ElMessage.success(t('myCreations.message.deleteSuccess'))
+  } catch (e: any) {
+    ElMessage.error(e?.message || '删除失败，请重试')
   }
 }
 
 // ============ 触底加载更多：IntersectionObserver ============
 const sentinelRef = ref<HTMLElement | null>(null)
 let io: IntersectionObserver | null = null
+const stickyTopRef = ref<HTMLElement | null>(null)
+const isTopStickyActive = ref(false)
+
+const updateStickyTopState = () => {
+  const el = stickyTopRef.value
+  if (!el) return
+  // 与 .tabs-actions 的 sticky top 保持一致
+  isTopStickyActive.value = el.getBoundingClientRect().top <= 67
+}
 
 const initObserver = () => {
   if (!sentinelRef.value) return
@@ -734,8 +908,13 @@ const initObserver = () => {
 }
 
 onMounted(async () => {
+  // 预先拉取一次平台菜单树，后续切换 fashion/fabric 时可更快解析“一级父级 menuCode”
+  void ensurePlatformMenusLoaded()
   await resetAndFetch()
   initObserver()
+  updateStickyTopState()
+  window.addEventListener('scroll', updateStickyTopState, { passive: true })
+  window.addEventListener('resize', updateStickyTopState)
 })
 
 watch(activeTab, async () => {
@@ -745,26 +924,25 @@ watch(activeTab, async () => {
 onBeforeUnmount(() => {
   io?.disconnect()
   io = null
+  window.removeEventListener('scroll', updateStickyTopState)
+  window.removeEventListener('resize', updateStickyTopState)
 })
 </script>
 
 <style lang="scss">
-body {
-  background: radial-gradient(1200px 700px at 70% 30%, rgba(41, 66, 130, 0.55) 0%, rgba(0, 0, 0, 0.9) 60%),
-    #000;
-}
-
 .my-creations-page {
-  color: $color-text-white;
+  min-height: 100vh;
+  background: linear-gradient(135deg, rgba(5, 7, 10, 1) 14.6%, rgba(13, 18, 31, 1) 50%, rgba(22, 29, 49, 1) 85.4%);
 
   .page-body {
-    padding: $spacing-xl;
 
     .page-title {
       display: flex;
       flex-direction: column;
+      padding: $spacing-xl $spacing-xl 14px;
       gap: 4px;
       font-family: AlibabaPuHui-regular;
+      flex-shrink: 0;
 
       .title-cn {
         font-size: $font-size-2xl-lg;
@@ -777,12 +955,20 @@ body {
     }
 
     .tabs-actions {
-      position: relative;
+      position: sticky;
+      top: 67px;
+      z-index: 99;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      margin: $spacing-sm-md 0 $spacing-xl-sm;
       gap: $spacing-md;
+      margin: 0 0 $spacing-sm-md;
+      padding: 0 $spacing-xl;
+      background: transparent;
+
+      &.is-stuck {
+        background: $color-bg-dark-secondary;
+      }
     }
 
     .creations-tabs {
@@ -797,52 +983,41 @@ body {
       }
 
       .el-tabs__item.is-active {
-        color: $color-primary;
+        color: $color-primary-dark;
         font-family: NotoSans-bold;
       }
 
       .el-tabs__nav-wrap:after {
         background-color: $color-border-light;
         height: 1px;
-        border-radius: 0;
-      }
-
-      .el-tabs__active-bar {
-        background-color: $color-primary;
-        height: 1px;
-        border-radius: 0;
       }
     }
 
     .header-actions-desktop {
-      position: absolute;
-      right: 0;
-      bottom: calc($spacing-sm + $spacing-xl-sm);
       display: flex;
+      align-items: center;
       gap: $spacing-sm;
       flex-shrink: 0;
+      align-self: flex-start;
+      // margin-top: 4px;
 
       // 统一右侧操作按钮（删除/收藏/下载/取消/选择）样式
       .el-button {
-        width: 58px;
+        margin: 0;
+        min-width: 58px;
         height: 26px;
-        padding: 0;
+        padding: 0 8px 0 9px;
         border-radius: 4px;
         background-color: rgba(18, 18, 18, 1);
         border: 1px solid rgba(255, 255, 255, 0.15);
         color: $color-text-white;
         font-size: 12px;
-        font-weight: 400;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
       }
 
       .el-button:hover,
       .el-button:focus {
         background-color: rgba(18, 18, 18, 1);
         border-color: rgba(255, 255, 255, 0.25);
-        color: $color-text-white;
       }
 
       .el-button.is-disabled,
@@ -895,37 +1070,43 @@ body {
       }
     }
 
+    .header-actions-desktop,
+    .header-actions-mobile {
+      position: absolute;
+      right: $spacing-xl;
+      top: 6px;
+    }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: $spacing-lg;
+      padding: 0 $spacing-xl;
     }
 
-    .image-upload-area {
+    /* 「我的上传」上传区：与顶部操作按钮同一套灰底描边 */
+    .grid .image-upload-area {
       width: 100%;
       aspect-ratio: 3 / 4;
+      border-radius: 8px;
+      background-color: rgba(18, 18, 18, 1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-style: solid;
+
+      .upload-placeholder {
+        border: none;
+        background-color: transparent;
+        border-radius: 8px;
+      }
+
+      .upload-placeholder.is-uploading {
+        border-radius: 8px;
+      }
     }
 
     .grid :deep(.image-item) {
       width: 160px;
       justify-self: center;
-    }
-
-    .upload-debug {
-      grid-column: 1 / -1;
-      display: flex;
-      justify-content: center;
-      margin-top: 8px;
-    }
-
-    .upload-debug-btn.el-button {
-      height: 26px;
-      padding: 0 12px;
-      border-radius: 4px;
-      background-color: rgba(18, 18, 18, 1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.85);
     }
 
     .sentinel {
@@ -939,6 +1120,10 @@ body {
     }
 
     @media (max-width: 900px) {
+      .tabs-actions {
+        top: 60px;
+      }
+
       .grid {
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       }
