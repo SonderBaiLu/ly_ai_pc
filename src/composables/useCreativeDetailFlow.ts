@@ -229,9 +229,6 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
         }
 
         if (status === 3) {
-          await ctx.userStore.getUserInfo().catch((e: any) => {
-            console.warn('[CreativeDetail] 再次生成成功后刷新用户信息失败:', e)
-          })
           const first = prependGeneratedResults(orderResultVOS, orderNo)
           if (!first) {
             ElMessage.warning(noResultText)
@@ -355,6 +352,11 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
           : data?.orderNo ?? data?.algoOrderNo ?? data?.algoOrderId ?? '') || '',
       )
       if (!orderNo) return ElMessage.warning('提交成功，但未返回任务编号')
+
+      // 只要提交成功就刷新一次个人信息（扣点/会员状态可能已变化）
+      await ctx.userStore.getUserInfo().catch((e: any) => {
+        console.warn('[CreativeDetail] 再次生成提交成功后刷新用户信息失败:', e)
+      })
       ElMessage.success('已提交再次生成任务，正在生成中')
       const pollPromise = startPollingGenerateResult(orderNo)
       prependGeneratingPlaceholder(orderNo, payload)
