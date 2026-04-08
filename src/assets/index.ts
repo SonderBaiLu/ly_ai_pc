@@ -219,6 +219,5 @@ export const images = {
   warn: new URL('./images/warn.png', import.meta.url).href,
   warning: new URL('./images/warning.png', import.meta.url).href,
 } as const
-
 export default images
 
