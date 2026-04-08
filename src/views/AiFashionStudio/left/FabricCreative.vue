@@ -242,6 +242,33 @@ const loadImage = async (src: string) => {
   const directUrl = String(src || '').trim()
   if (!directUrl) throw new Error('empty image url')
 
+  // 生产环境：优先走同域代理，避免源站缺少 CORS 时先触发一次控制台报错
+  // 开发环境：仍优先直连（更快且方便排查源站问题）
+  const preferProxy = !import.meta.env.DEV
+
+  if (preferProxy) {
+    const proxyUrl = buildDownloadUrl(directUrl)
+    const hasProxy = typeof proxyUrl === 'string' && proxyUrl !== directUrl
+    if (hasProxy) {
+      try {
+        return await loadImageByUrl(proxyUrl, false)
+      } catch (proxyErr) {
+        // 代理失败再尝试直连（极少数：代理未配置但源站有 CORS）
+        try {
+          return await loadImageByUrl(directUrl, true)
+        } catch (err) {
+          console.warn('[FabricCreative] 画布图片加载失败（代理+直连均失败）', {
+            directUrl,
+            proxyUrl,
+            proxyErr,
+            err,
+          })
+          throw err
+        }
+      }
+    }
+  }
+
   try {
     // 优先直接加载（命中源站 CORS 时最快）
     return await loadImageByUrl(directUrl, true)

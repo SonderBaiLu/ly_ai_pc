@@ -237,7 +237,7 @@ const handleDelete = async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 32px;
 
     .preview-title {
       font-size: $font-size-xl;
@@ -259,7 +259,7 @@ const handleDelete = async () => {
       display: flex;
       justify-content: flex-end;
       gap: 12px;
-      padding: 0 20px 20px 20px;
+      padding: 0 32px 32px 32px;
 
       .preview-action-icon {
         width: 20px;

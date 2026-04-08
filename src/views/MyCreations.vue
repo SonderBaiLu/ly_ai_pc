@@ -1084,24 +1084,9 @@ onBeforeUnmount(() => {
       padding: 0 $spacing-xl;
     }
 
-    /* 「我的上传」上传区：与顶部操作按钮同一套灰底描边 */
-    .grid .image-upload-area {
+    .image-upload-area {
       width: 100%;
       aspect-ratio: 3 / 4;
-      border-radius: 8px;
-      background-color: rgba(18, 18, 18, 1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-style: solid;
-
-      .upload-placeholder {
-        border: none;
-        background-color: transparent;
-        border-radius: 8px;
-      }
-
-      .upload-placeholder.is-uploading {
-        border-radius: 8px;
-      }
     }
 
     .grid :deep(.image-item) {
