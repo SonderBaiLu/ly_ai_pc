@@ -186,6 +186,18 @@ onBeforeUnmount(() => {
 // 暴露方法给父组件
 defineExpose({
   syncScroll,
+  scrollToTop: () => {
+    if (!thumbnailListRef.value) return
+    thumbnailListRef.value.scrollTop = 0
+  },
+  scrollToIndex: (index: number) => {
+    if (!thumbnailListRef.value) return
+    const items = thumbnailListRef.value.querySelectorAll('.thumbnail-item') as NodeListOf<HTMLElement>
+    const el = items?.[index]
+    if (!el) return
+    // 不用 smooth：提交后希望立刻定位到“生成中”
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  },
 })
 </script>
 

@@ -794,13 +794,36 @@ const upsertGeneratingAssetByOrderNo = (orderNo: string, prompt: string, menuCod
   if (idx === -1) {
     assets.value.unshift(generatingItem)
     currentIndex.value = 0
+    // 提交后强制把右侧缩略图滚动到顶部，确保“生成中”可见（避免仅改 currentIndex 但列表仍停留在旧 scrollTop）
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        thumbnailRef.value?.scrollToTop?.()
+        thumbnailRef.value?.scrollToIndex?.(0)
+        mainImageRef.value?.scrollToAsset?.(0)
+      })
+    })
     return
   }
 
-  assets.value[idx] = {
+  // 已存在同 orderNo 的记录：更新并移动到顶部，保证“生成中”始终出现在列表最前
+  const nextItem = {
     ...assets.value[idx],
     ...generatingItem,
   }
+  if (idx === 0) {
+    assets.value[0] = nextItem
+  } else {
+    assets.value.splice(idx, 1)
+    assets.value.unshift(nextItem)
+  }
+  currentIndex.value = 0
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      thumbnailRef.value?.scrollToTop?.()
+      thumbnailRef.value?.scrollToIndex?.(0)
+      mainImageRef.value?.scrollToAsset?.(0)
+    })
+  })
 }
 
 // 轮询完成后：把 orderResultVOS 映射回 assets（包含多结果扩展）
