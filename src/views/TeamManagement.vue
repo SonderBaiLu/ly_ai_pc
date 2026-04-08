@@ -53,7 +53,7 @@
               </div>
             </td>
 
-            <td class="create-time">{{ formatDate(row.createTime) }}</td>
+            <td class="create-time">{{ row.createTime }}</td>
 
             <td>
       <span :class="['role-tag', row.role === 1 ? 'admin' : 'member']">
@@ -227,11 +227,6 @@ const paginationText = computed(() => {
   return `当前显示 ${start}-${end} 条，共 ${total.value}条记录`;
 });
 
-// 格式化日期
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  return dateStr.split(' ')[0];
-}
 
 
 // 1. 调用接口获取完整数据
@@ -246,7 +241,6 @@ const searchUsers = async () => {
     if (String((res as any).code) === '0000') {
       teamList.value = res.data.list || []
       joinStatus.value = res.data.joinStatus || [1]
-      console.log("joinStatus",joinStatus)
       total.value = res.data.total || res.data.list.length // 后端没返回总条数，总数显示会受限
     } else {
       teamList.value = []
