@@ -21,7 +21,7 @@ export const baseRules = {
     // 条款：布尔值，可选可不选 (如果是必选，可以改为 .refine(val => val === true, '必须同意条款'))
     agreeTerms: z.boolean().optional(),
     teamName: z.string()
-        .min(4, "昵称不能小于4个字符")
+        .min(1, "昵称不能为空")
         .max(20, "昵称不能大于20个字符")
 }
 // 验证码登录 (手机号 + 验证码 )

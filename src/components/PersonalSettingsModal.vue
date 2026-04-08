@@ -199,7 +199,15 @@ const handleSave = async () => {
 // 获取密码状态
 const fetchPasswordStatus = async () => {
   const userInfo = userStore.userInfo
-  hasPassword.value = userInfo.setPwd
+  // 判断当前登录的是否为主账号
+  const isMainAccount = userInfo.mainAccount === true || String(userInfo.mainAccount) === 'true'
+  if (!isMainAccount) {
+    // 如果是子账号，必定有初始密码（由主账号创建时生成），所以强制认定为已设置密码
+    hasPassword.value = true
+  } else {
+    // 主账号正常依赖后端的 setPwd 字段判断
+    hasPassword.value = !!userInfo.setPwd
+  }
 }
 // 监听弹窗打开，同步 Pinia 数据到编辑数据
 watch(
@@ -210,9 +218,11 @@ watch(
       if (userInfo) {
         editingData.value = {
           headImgUrl: userInfo.headImgUrl || '',
-          nickName: userInfo.nickName || '',
-          introduction: userInfo.desc || '',
-          userName: userInfo.mobile || '',
+          // 兼容不同接口字段：优先使用当前项目的 nickName 字段
+          nickName: userInfo.nickName || userInfo.nickname || '',
+          introduction: userInfo.desc || userInfo.introduction || '',
+          // 优先取 userName (子账号登录名)，没有的话再兜底显示 mobile (主账号手机号)
+          userName: userInfo.userName || userInfo.mobile || '',
         }
       }
       // 监视密码是否有修改 是否有设置

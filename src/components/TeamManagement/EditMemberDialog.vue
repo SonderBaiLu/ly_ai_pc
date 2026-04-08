@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="custom-modal-overlay" @click.self="closeDialog">
+  <div v-if="visible" class="custom-modal-overlay">
     <div class="edit-modal-ui">
       <button class="close-btn" @click="closeDialog">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999999" stroke-width="2"
@@ -55,12 +55,6 @@ const props = defineProps<{
   visible: boolean
   memberData: any
 }>()
-
-// 团队：
-// 网站：https://test.lingyanaigc.com/
-//     账号名：cctm
-// 昵称：cctm
-// 重置后密码：cctm44cctm
 
 // 定义向外发送的事件
 const emit = defineEmits(['update:visible', 'success'])
@@ -141,17 +135,6 @@ const submit = async () => {
 
 <style lang="scss" scoped>
 /* 遮罩层 */
-.custom-modal-overlay {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 3119;
-}
 
 /* 编辑弹窗白底专属样式 */
 .edit-modal-ui {
