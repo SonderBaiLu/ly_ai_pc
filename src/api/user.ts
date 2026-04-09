@@ -75,7 +75,12 @@ export const userApi = {
   getUserInvitations() {
     return request.get('/v1/user/getUserInvitations') as unknown as Promise<ApiResponse<UserInvitationsData>>
   },
+  // 团队成员修改密码
+  changeTeamPwd(params: any) {
+    return request.post("/v1/sonLogin/changePwd", params) as unknown as Promise<ApiResponse<any>>
+  },
 }
+
 
 export default userApi
 

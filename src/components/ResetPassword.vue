@@ -99,6 +99,7 @@ import {userLanguageToI18nLocale} from '@/i18n'
 
 const userStore = useUserStore()
 import {baseRules} from '@/utils/validationSchemas.ts'
+import router from "@/router";
 
 const {t, locale} = useI18n({useScope: 'local'})
 
@@ -172,7 +173,7 @@ watch(
     () => props.isFromSettings,
     (isFromSettings) => {
       if (isFromSettings && userStore.userInfo) {
-        formData.phone =  userStore.userInfo.mobile  // 这里是 账号设置重置主页里面重置密码框
+        formData.phone = userStore.userInfo.mobile  // 这里是 账号设置重置主页里面重置密码框
       }
     },
     {immediate: true}
@@ -272,32 +273,35 @@ const handleSubmit = async () => {
 
       case '1': // 个人修改密码 (旧密码验证)
       {
+        let res = null;
         if (!formData.phone) return ElMessage.error("请输入手机号")
         if (!formData.oldPassword) return ElMessage.error("请输入旧密码")
-        const res = await userApi.changePwdByOldPwd({
-          oldPwd: formData.oldPassword,
-          newPwd: formData.newPassword,
-          newPwdAgain: formData.confirmPassword,
-        })
+        if (userStore.userInfo.mainAccount === true || userStore.userInfo.mainAccount === 'true') {
+          // 个人用户修改密码
+          res = await userApi.changePwdByOldPwd({
+            oldPwd: formData.oldPassword,
+            newPwd: formData.newPassword,
+            newPwdAgain: formData.confirmPassword,
+          })
+        } else if (userStore.userInfo.mainAccount === false || userStore.userInfo.mainAccount === 'false') {
+          // 团队用户 自己修改密码
+          res = await userApi.changeTeamPwd({
+            oldPwd: formData.oldPassword,
+            newPwd: formData.newPassword,
+            newPwdAgain: formData.confirmPassword,
+          })
+        }
         if (String((res as any).code) === '0000') {
           ElMessage.success('修改密码成功')
           setTimeout(async () => {
             await logout() // 修改成功后退出登录
+            await router.push('/')
           }, 1500); // 等待1.5秒防止卡顿
         } else {
-          ElMessage.error(res.msg)
+          ElMessage.error(res?.msg || '操作失败')
         }
-
         break
       }
-
-      case '2': // 团队修改密码
-        if (!formData.oldPassword) return ElMessage.error("请输入旧密码")
-        // TODO: 替换为团队修改密码 API
-        console.log('团队修改密码', formData)
-        ElMessage.success('团队密码修改成功')
-        break
-
       case '3': // 绑定手机号
       {
         if (!formData.phone) return ElMessage.error("请输入手机号");
