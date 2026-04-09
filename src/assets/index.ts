@@ -6,10 +6,6 @@
 export const images = {
   // A
   add: new URL('./images/add.png', import.meta.url).href,
-  aiDesign1: new URL('./images/ai_design1.png', import.meta.url).href,
-  aiDesign2: new URL('./images/ai_design2.png', import.meta.url).href,
-  aiDesign3: new URL('./images/ai_design3.png', import.meta.url).href,
-  aiDesign4: new URL('./images/ai_design4.png', import.meta.url).href,
   aiDesignBg: new URL('./images/ai_design_bg.png', import.meta.url).href,
   arrow: new URL('./images/arrow.png', import.meta.url).href,
   arrowIcon: new URL('./images/arrow_icon.png', import.meta.url).href,
@@ -71,8 +67,6 @@ export const images = {
 
   // D
   date: new URL('./images/date.png', import.meta.url).href,
-  designActive: new URL('./images/design_active.png', import.meta.url).href,
-  designIcon: new URL('./images/design_icon.png', import.meta.url).href,
   douyin: new URL('./images/douyin.png', import.meta.url).href,
   down: new URL('./images/down.png', import.meta.url).href,
   del: new URL('./images/del.png', import.meta.url).href,
@@ -85,27 +79,6 @@ export const images = {
   design1: new URL('./images/home/design1.png', import.meta.url).href,
   design2: new URL('./images/home/design2.png', import.meta.url).href,
   design3: new URL('./images/home/design3.png', import.meta.url).href,
-
-  designFeatures: new URL('./images/design_features.png', import.meta.url).href,
-  designFeatures1: new URL('./images/design_features1.png', import.meta.url).href,
-  designFeatures2: new URL('./images/design_features2.png', import.meta.url).href,
-  designFeatures3: new URL('./images/design_features3.png', import.meta.url).href,
-  designFeatures4: new URL('./images/design_features4.png', import.meta.url).href,
-  designFeatures5: new URL('./images/design_features5.png', import.meta.url).href,
-  designFeatures6: new URL('./images/design_features6.png', import.meta.url).href,
-  designFeatures7: new URL('./images/design_features7.png', import.meta.url).href,
-  designFeatures8: new URL('./images/design_features8.png', import.meta.url).href,
-  designFeatures9: new URL('./images/design_features9.png', import.meta.url).href,
-  designActive1: new URL('./images/design_active1.png', import.meta.url).href,
-  designActive2: new URL('./images/design_active2.png', import.meta.url).href,
-  designActive3: new URL('./images/design_active3.png', import.meta.url).href,
-  designActive4: new URL('./images/design_active4.png', import.meta.url).href,
-  designActive5: new URL('./images/design_active5.png', import.meta.url).href,
-  designActive6: new URL('./images/design_active6.png', import.meta.url).href,
-  designActive7: new URL('./images/design_active7.png', import.meta.url).href,
-  designActive8: new URL('./images/design_active8.png', import.meta.url).href,
-  designActive9: new URL('./images/design_active9.png', import.meta.url).href,
-
   deleteT: new URL('./images/team/delete.png', import.meta.url).href,
   dot: new URL('./images/dot.png', import.meta.url).href,
 
@@ -157,6 +130,8 @@ export const images = {
   message: new URL('./images/message.png', import.meta.url).href,
   money: new URL('./images/money.png', import.meta.url).href,
   magic: new URL('./images/magic.png', import.meta.url).href,
+  memberBgTop: new URL('./images/member_bg_top.png', import.meta.url).href,
+  memberBgBottom: new URL('./images/member_bg_bottom.png', import.meta.url).href,
 
   // N
   noneData: new URL('./images/none_data.png', import.meta.url).href,
@@ -169,8 +144,6 @@ export const images = {
   product: new URL('./images/product.png', import.meta.url).href,
 
   // R
-  realActive: new URL('./images/real_active.png', import.meta.url).href,
-  realIcon: new URL('./images/real_icon.png', import.meta.url).href,
   redBook: new URL('./images/red book.png', import.meta.url).href,
   refresh: new URL('./images/refresh.png', import.meta.url).href,
   refreshTry: new URL('./images/refresh2.png', import.meta.url).href,
@@ -181,9 +154,8 @@ export const images = {
   replace: new URL('./images/replace.png', import.meta.url).href,
   reset: new URL('./images/team/reset.png', import.meta.url).href,
   recaptureQR: new URL('./images/login_popup/recaptureQR.png', import.meta.url).href,
+
   // S
-  sketchActive: new URL('./images/sketch_active.png', import.meta.url).href,
-  sketchIcon: new URL('./images/sketch_icon.png', import.meta.url).href,
   star: new URL('./images/star.png', import.meta.url).href,
   star2: new URL('./images/star2.png', import.meta.url).href,
   subscription: new URL('./images/subscription.png', import.meta.url).href,

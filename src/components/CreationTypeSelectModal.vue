@@ -12,7 +12,7 @@
       </div>
     </template>
 
-    <div class="modal-body">
+    <div class="modal-body" v-loading="loading">
       <div v-for="(section, sectionIndex) in sections" :key="`${section.title}-${sectionIndex}`" class="section">
         <div class="section-title">{{ section.title }}</div>
         <div class="btn-row" :class="{ wrap: sectionIndex >= 2 }">
@@ -63,10 +63,12 @@ const props = withDefaults(defineProps<{
   modelValue: boolean
   selection?: Partial<CreationTypeSelection>
   optionTree?: CreationTreeNode[]
+  loading?: boolean
 }>(), {
   modelValue: false,
   selection: () => ({}),
   optionTree: () => [],
+  loading: false,
 })
 
 const emit = defineEmits<{
@@ -78,6 +80,8 @@ const visible = computed({
   get: () => props.modelValue,
   set: (v: boolean) => emit('update:modelValue', v),
 })
+
+const loading = computed(() => Boolean(props.loading))
 
 const selectedPath = ref<string[]>([])
 
@@ -237,9 +241,16 @@ const handleConfirm = () => {
   }
 
   .modal-body {
+    // 固定内容区最小高度：首次加载不“跳高”，体验更稳
+    min-height: 360px;
+    position: relative;
     padding: 9px 45px;
     background: $color-bg-black;
     border-radius: 0 0 16px 16px;
+
+    :deep(.el-loading-mask) {
+      background-color: rgba(0, 0, 0, 0.35);
+    }
 
     .section {
       margin-bottom: $spacing-xl;

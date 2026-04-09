@@ -17,7 +17,11 @@ export const mapRecordToCreationResult = (r: any, options?: MapOptions): Creatio
   return {
     id,
     algoOrderId: String(r?.algoOrderId ?? ''),
-    algoOrderNo: r?.algoOrderNo != null ? String(r.algoOrderNo) : undefined,
+    // 轮询/回填 key 只认 algoOrderNo（与你的接口约定保持一致）
+    algoOrderNo: (() => {
+      const key = r?.algoOrderNo != null ? String(r.algoOrderNo).trim() : ''
+      return key ? key : undefined
+    })(),
     algoUuId: r?.algoUuId === undefined ? undefined : (r?.algoUuId == null ? null : String(r.algoUuId)),
     userId: r?.userId != null ? String(r.userId) : undefined,
     userSonId: r?.userSonId != null ? String(r.userSonId) : null,

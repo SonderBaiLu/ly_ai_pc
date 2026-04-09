@@ -69,6 +69,22 @@ export const userApi = {
 
     return request.post('/v1/user/getUserMsgPage', payload) as unknown as Promise<ApiResponse<any>>
   },
+
+  /**
+   * 用户消息标记已读
+   * - POST /v1/user/doRead
+   *
+   * 参数：
+   * - readAll: 'true' | 'false'
+   * - id: 单条消息 id（readAll='false' 时必传）
+   */
+  doRead(params: { readAll: 'true' | 'false'; id?: string | number }) {
+    const payload: any = { readAll: params.readAll }
+    if (params.readAll === 'false' && params.id != null && String(params.id).trim()) {
+      payload.id = params.id
+    }
+    return request.post('/v1/user/doRead', payload) as unknown as Promise<ApiResponse<any>>
+  },
   // 用户注销
   usercancellation() {
     return request.get('/v1/login/userCancellation')

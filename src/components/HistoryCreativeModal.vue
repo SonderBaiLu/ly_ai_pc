@@ -9,10 +9,14 @@
       </div>
     </template>
     <div class="history-content">
-      <!-- el-scrollbar 触底加载（替代 v-infinite-scroll，避免 Element Plus 弃用警告） -->
-      <el-scrollbar ref="historyScrollbarRef" class="history-scroll-container" :height="historyScrollHeight"
-        @scroll="handleHistoryScroll">
-        <div v-loading="loading" class="image-grid">
+      <!-- 原生滚动容器，统一兼容 Windows / macOS 触控板滚动 -->
+      <div
+        ref="historyScrollbarRef"
+        class="history-scroll-container"
+        :style="{ maxHeight: historyScrollHeight }"
+        @scroll="handleHistoryScroll"
+      >
+        <div class="image-grid">
           <ImageItem v-for="item in displayList" :key="item.id" :image-data="item as any" :show-select="multiSelect"
             :is-selected="isSelected(item)" :selected-count="selectedList.length" :max-select="maxCount"
             :show-collect="false" :show-zoom="true" @select="handleImageSelect" @click="handleImageClick"
@@ -21,7 +25,7 @@
 
         <InfiniteScrollLoader :loading="loading" :loading-more="loadingMore" :has-more="hasMore"
           :data-length="displayList.length" empty-text="暂无历史创作" :show-back-top="false" />
-      </el-scrollbar>
+      </div>
     </div>
 
     <!-- 自定义预览弹窗 -->
@@ -99,7 +103,7 @@ const selectedList = ref<CreationResult[]>([])
 
 const scrollDisabled = computed(() => loading.value || loadingMore.value || !hasMore.value)
 
-const historyScrollbarRef = ref<{ wrapRef?: HTMLElement } | null>(null)
+const historyScrollbarRef = ref<HTMLElement | null>(null)
 const historyScrollHeight = computed(() => {
   // 给滚动区一个明确高度，避免在不同层级样式下被内容撑开导致“不可滚动”
   return props.multiSelect ? '52vh' : '60vh'
@@ -168,9 +172,10 @@ const loadMore = () => {
 }
 
 /** 与 MainImageDisplay 一致：用 scrollbar wrap 判断是否触底 */
-const handleHistoryScroll = ({ scrollTop }: { scrollTop: number }) => {
-  const wrapEl = historyScrollbarRef.value?.wrapRef
+const handleHistoryScroll = () => {
+  const wrapEl = historyScrollbarRef.value
   if (!wrapEl) return
+  const scrollTop = wrapEl.scrollTop
   if (scrollDisabled.value) return
   const distance = 100
   const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
@@ -336,15 +341,8 @@ defineExpose({
   .history-scroll-container {
     flex: 1;
     min-height: 0;
-    height: min(600px, 60vh);
-  }
-
-  :deep(.history-scroll-container.el-scrollbar) {
-    height: 100%;
-  }
-
-  :deep(.history-scroll-container .el-scrollbar__wrap) {
-    overflow-y: auto !important;
+    max-height: min(600px, 60vh);
+    overflow-y: auto;
     overflow-x: hidden;
   }
 
@@ -381,7 +379,7 @@ defineExpose({
       flex-direction: column;
 
       .history-scroll-container {
-        height: min(500px, 55vh);
+        max-height: min(500px, 55vh);
       }
     }
   }

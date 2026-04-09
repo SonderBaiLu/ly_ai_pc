@@ -1,7 +1,11 @@
 <template>
   <el-config-provider :z-index="zIndex" :size="size">
     <div class="app" :class="{ dark: isDark }">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <keep-alive :include="['AiFashionStudio']">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
 
       <!-- 登录 -->
       <UserLogin v-if="modalStore.showLoginModal" @close="modalStore.closeLoginModal()" />

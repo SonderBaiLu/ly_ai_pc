@@ -8,6 +8,13 @@ import App from './App.vue'
 import router from './router'
 import { i18n, persistLocale } from './i18n'
 
+// 非开发环境关闭常规控制台日志，避免测试/线上被业务日志刷屏
+if (!import.meta.env.DEV) {
+  console.log = () => undefined
+  console.info = () => undefined
+  console.debug = () => undefined
+}
+
 const app = createApp(App)
 app.use(createPinia())
 app.use(ElementPlus)

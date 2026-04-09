@@ -32,6 +32,7 @@
       <div class="block-title">上传参考图<span class="required-mark">（非必传）</span></div>
       <ImageUploadArea :image-url="imageUrl?.[0] || ''" image-type="ref" image-name="slot-0"
         :show-actions="String(imageUrl?.[0] ?? '').trim().length > 0" :clickable="true" placeholder-text="上传或拖拽参考图"
+        :show-loading="!!props.uploading"
         :show-history-tip="true" :enable-history-replace="true" @upload="emit('coming-soon')"
         @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)"
         @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)"
@@ -41,11 +42,13 @@
         v-if="imageUrl.length > 0">
         <div class="scrollbar-flex-content">
           <ImageUploadArea placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+            :show-loading="!!props.uploading"
             :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
             @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)"
             v-if="imageUrl.length < 6" />
           <ImageUploadArea v-for="(item, index) in imageUrl" :key="index" :image-url="item || ''" image-type="main"
             :image-name="`slot-${index}`" placeholder-text="上传或拖拽参考图" :show-history-tip="false" area-width="145px"
+            :show-loading="!!props.uploading"
             :enable-history-replace="true" @delete="(p: any) => emit('delete', p)"
             @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: any) => emit('drop-file', p)" />
         </div>
@@ -89,6 +92,8 @@ const props = defineProps<{
   defaultImageParams?: string[]
   /** 父级提交生成中（与 index loading 同步） */
   submitting?: boolean
+  /** 参考图上传中：禁用上传/替换，防止重复触发 */
+  uploading?: boolean
 }>()
 
 // 监听inspirationWords变化
@@ -137,7 +142,7 @@ const generateButtonDisabled = computed(() => !isCreationTypeReady.value)
 
 const showFeatureModal = ref(false)
 const designFeatureSelection = ref<DesignFeatureSelection>({})
-const featureCategories = ref<Array<{ key: string; label: string; options: string[] }>>([])
+const featureCategories = ref<Array<{ key: string; label: string; options: string[]; functionIcon?: string; functionIconSelected?: string }>>([])
 type DesignFeatureOptionMeta = { id: string; configType: string; prentId: string; content: string }
 // featureOptionMetaMap[categoryKey][optionLabel] => 后端 payload 必填字段
 const featureOptionMetaMap = ref<Record<string, Record<string, DesignFeatureOptionMeta>>>({})
@@ -167,6 +172,8 @@ const normalizeFeatureCategories = (list: any[] = []) => {
     .map((item: any) => ({
       key: String(item?.code ?? item?.typeCode ?? item?.id ?? ''),
       label: String(item?.title ?? item?.typeName ?? item?.content ?? ''),
+      functionIcon: String(item?.functionIcon ?? '').trim(),
+      functionIconSelected: String(item?.functionIconSelected ?? '').trim(),
       options: (item?.wordsList || item?.children || [])
         .map((w: any) => String(w?.name ?? w?.wordsName ?? w?.content ?? '').trim())
         .filter(Boolean),

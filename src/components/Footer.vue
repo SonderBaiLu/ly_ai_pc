@@ -50,7 +50,7 @@
             </div>
             <div class="nav-column">
               <h4>{{ t('footer.nav.help') }}</h4>
-              <a href="#" @click.prevent="showComingSoon">{{ t('footer.nav.productTutorial') }}</a>
+              <a href="#" @click.prevent="handleProductTutorialClick">{{ t('footer.nav.productTutorial') }}</a>
             </div>
           </div>
         </div>
@@ -73,6 +73,7 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useAuthGate } from '@/composables/useAuthGate'
 import { AGREEMENT_TYPES, type AgreementType } from '@/constants/agreement'
+import { appApi } from '@/api/app'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -90,12 +91,26 @@ const goAgreement = (type: AgreementType) => {
   router.push({ path: '/agreement', query: { type } })
 }
 
-const showComingSoon = () => {
-  ElMessage.info(
-    locale.value === 'zh-chs'
-      ? '功能暂未开放，敬请期待'
-      : 'This feature is not available yet. Stay tuned.'
-  )
+const handleProductTutorialClick = () => {
+  void (async () => {
+    try {
+      // 文档分类（后端字段必填：categoriesCode）
+      const res = (await appApi.getTutorialList({ categoriesCode: 'ALL' })) as any
+      if (String(res?.code) !== '0000' && res?.success !== true) {
+        ElMessage.error(res?.msg || (locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials'))
+        return
+      }
+      const url = String(res?.data?.[0]?.url ?? '').trim()
+      if (!url) {
+        ElMessage.info(locale.value === 'zh-chs' ? '暂无教程' : 'No tutorials yet')
+        return
+      }
+      window.open(url, '_blank')
+    } catch (e) {
+      console.error('[Footer] getTutorialList error:', e)
+      ElMessage.error(locale.value === 'zh-chs' ? '获取教程失败' : 'Failed to fetch tutorials')
+    }
+  })()
 }
 </script>
 

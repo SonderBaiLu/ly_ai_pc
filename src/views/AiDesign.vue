@@ -23,10 +23,10 @@
 
         <!-- 二级菜单卡片（接口） -->
         <div class="card-row" :class="{ 'card-row--single': secondLevelCards.length === 1 }">
-          <div v-for="(card, index) in secondLevelCards" :key="card.id || card.menuCode" class="feature-card"
-            role="button" tabindex="0" @click="() => goToStudio(getModeByMenuCode(card.menuCode))">
+          <div v-for="card in secondLevelCards" :key="card.id || card.menuCode" class="feature-card" role="button"
+            tabindex="0" @click="() => goToStudio(getModeByMenuCode(card.menuCode))">
             <div class="card-image">
-              <img :src="card.imgUrl || images[`aiDesign${index + 1}` as keyof typeof images]" alt="" />
+              <img :src="card.imgUrl" alt="" />
             </div>
             <div class="card-content">
               <h3 class="card-title">
@@ -46,7 +46,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { images } from '@/assets'
-import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthGate } from '@/composables/useAuthGate'
 import { appApi, type SysPlatformMenuItem } from '@/api/app'

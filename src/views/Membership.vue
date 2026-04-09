@@ -1,5 +1,7 @@
 <template>
   <div class="membership-page">
+    <div class="membership-bg membership-bg--top" :style="{ backgroundImage: `url(${images.memberBgTop})` }" />
+    <div class="membership-bg membership-bg--bottom" :style="{ backgroundImage: `url(${images.memberBgBottom})` }" />
     <Header />
 
     <div class="membership-content">
@@ -15,8 +17,9 @@
               <!-- 基本信息 -->
               <div class="user-details">
                 <div class="user-nickname">{{ userInfo?.nickName || userInfo?.userName || '' }}</div>
+                <!-- 主账号显示手机号 子账号和管理员显示账号名userName -->
                 <div class="user-mobile" v-if="userInfo?.mainAccount">+86 {{ userInfo?.mobile || '' }}</div>
-                <div class="user-mobile" v-else>{{ userInfo?.nickName || '' }}</div>
+                <div class="user-mobile" v-else>{{ userInfo?.userName || '' }}</div>
               </div>
               <!-- 右侧：灵衍与订单 -->
               <div class="user-extra">
@@ -907,6 +910,35 @@ const getPurchaseButtonText = (plan: any) => {
   flex-direction: column;
   min-height: 100vh;
   background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(11, 79, 141, 1) 0%, rgba(11, 7, 23, 1) 70%);
+  position: relative;
+}
+
+.membership-bg {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  pointer-events: none;
+  z-index: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% auto;
+}
+
+.membership-bg--top {
+  top: 64px;
+  height: 220px;
+}
+
+.membership-bg--bottom {
+  bottom: 0;
+  height: 420px;
+}
+
+.membership-content,
+.main-content {
+  position: relative;
+  z-index: 1;
 }
 
 .membership-content {

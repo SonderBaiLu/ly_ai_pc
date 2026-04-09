@@ -21,7 +21,8 @@
         <div class="assets-list">
           <!-- 创作项 -->
           <div v-for="(asset, index) in assets"
-            :key="asset.id || asset.algoOrderId || asset.algoUuId || `creation-${index}`" class="asset-item" :class="[
+            :key="asset.id || (asset as any).algoOrderNo || asset.algoOrderId || asset.algoUuId || `creation-${index}`"
+            class="asset-item" :class="[
               { active: index === currentIndex },
               asset.status === 0 || asset.status === 1 || asset.status === 2 ? 'generating' : asset.status === 4 ? 'failed' : '',
             ]" @click="selectAsset(index)">
@@ -200,7 +201,8 @@ watch(
 // 响应式数据
 const mainContentRef = ref<HTMLElement>()
 const scrollbarRef = ref<any>(null)
-const activeContentTab = ref(props.activeTabKey || 'all')
+// 父级 tabs 的 key 可能是 '' / menuCode / favorites；避免使用不存在的默认 key 导致回传错误
+const activeContentTab = ref(props.activeTabKey || '')
 const downloadMenuVisibleIndex = ref<number | null>(null)
 
 // 回到顶部相关
@@ -265,34 +267,9 @@ let intersectionObserver: IntersectionObserver | null = null
 // 当前正在播放的视频索引
 const currentPlayingIndex = ref<number | null>(null)
 
-// 计算属性：获取当前选中的创作（预留扩展，当前未直接使用）
-
-const currentAsset = computed(() => {
-  // 只有当用户主动选择了创作（currentIndex >= 0）且索引有效时才返回
-  if (props.currentIndex >= 0 && props.currentIndex < props.assets.length) {
-    return props.assets[props.currentIndex]
-  }
-  // 没有选择时返回 null，不显示任何创作
-  return null
-})
-void currentAsset
-
-// 计算属性：根据图片尺寸判断媒体框架的样式类（预留扩展，当前未使用）
-
-const mediaFrameClass = computed(() => '')
-void mediaFrameClass
-
-// 默认内容标签（历史/兜底用；若父级传入 contentTabs 则以父级为准）
-const defaultContentTabs = [
-  { key: 'all', label: '全部' },
-  { key: 'fashion', label: '服装设计', fileType: 3 },
-  { key: 'fabric', label: 'AI面料', fileType: 4 },
-  { key: 'favorites', label: '收藏' },
-]
-
-// 内容标签：优先使用父级传入
+// 内容标签
 const contentTabs = computed(() => {
-  return Array.isArray(props.contentTabs) && props.contentTabs.length ? props.contentTabs : defaultContentTabs
+  return Array.isArray(props.contentTabs) && props.contentTabs.length ? props.contentTabs : []
 })
 
 // activeContentTab 若不在 tabs 列表中，则切换到第一个 tab
@@ -389,12 +366,15 @@ const handleAssetDragStart = (asset: CreationResult, event: DragEvent) => {
   }
 }
 
-// 方法
-const handleTabChange = (tabKey: string | number) => {
-  const key = String(tabKey)
+// 处理标签切换
+const handleTabChange = (tabKey: any) => {
+  const key =
+    typeof tabKey === 'string' || typeof tabKey === 'number'
+      ? String(tabKey)
+      : String(tabKey?.paneName ?? tabKey?.props?.name ?? tabKey?.name ?? '')
   activeContentTab.value = key
   const tab = contentTabs.value.find((t) => t.key === key)
-  emit('tab-change', key, (tab as any)?.fileType)
+  emit('tab-change', key, (tab as any)?.fileType || '')
 }
 
 // 点击标志
@@ -418,13 +398,13 @@ const handleLoadMore = () => {
 
 // 处理查看详情
 const handleViewDetail = (index: number) => {
-  console.log('[操作] 查看详情:', index)
+  // console.log('[操作] 查看详情:', index)
   emit('view-detail', index)
 }
 
 // 处理收藏
 const handleCollect = (index: number) => {
-  console.log('[操作] 收藏创作:', index)
+  // console.log('[操作] 收藏创作:', index)
   emit('collect', index)
 }
 
@@ -477,7 +457,7 @@ const handleRemoveWatermarkToggle = async (enabled: boolean) => {
 }
 // 处理删除
 const handleDelete = (index: number) => {
-  console.log('[操作] 删除创作:', index)
+  // console.log('[操作] 删除创作:', index)
   emit('delete', index)
 }
 
@@ -616,7 +596,7 @@ watch(
 // 初始化 Intersection Observer
 const initIntersectionObserver = () => {
   if (!mainContentRef.value) {
-    console.log('[智能播放] mainContentRef 未准备好，稍后重试')
+    // console.log('[智能播放] mainContentRef 未准备好，稍后重试')
     return
   }
 
@@ -635,7 +615,7 @@ const initIntersectionObserver = () => {
       }
     )
 
-    console.log('[智能播放] Intersection Observer 初始化成功')
+    // console.log('[智能播放] Intersection Observer 初始化成功')
 
     // 观察所有媒体元素
     observeMediaElements()
@@ -658,7 +638,7 @@ const observeMediaElements = () => {
       intersectionObserver!.observe(item)
     })
 
-    console.log(`[智能播放] 正在观察 ${assetItems.length} 个创作元素`)
+    // console.log(`[智能播放] 正在观察 ${assetItems.length} 个创作元素`)
   } catch (error) {
     console.error('[智能播放] 观察媒体元素时出错:', error)
   }
@@ -671,29 +651,29 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       const target = entry.target as HTMLElement
       const mediaFrame = target.querySelector('.media-frame') as HTMLElement
       if (!mediaFrame) {
-        console.log('[智能播放] 未找到 media-frame 元素')
+        // console.log('[智能播放] 未找到 media-frame 元素')
         return
       }
 
       const indexStr = mediaFrame.getAttribute('data-asset-index')
       if (!indexStr) {
-        console.log('[智能播放] 未找到 data-asset-index 属性')
+        // console.log('[智能播放] 未找到 data-asset-index 属性')
         return
       }
 
       const index = parseInt(indexStr, 10)
       const asset = props.assets[index]
       if (!asset) {
-        console.log('[智能播放] 未找到创作数据:', index)
+        // console.log('[智能播放] 未找到创作数据:', index)
         return
       }
 
-      console.log(`[智能播放] 检测创作 ${index}:`, {
-        isIntersecting: entry.isIntersecting,
-        intersectionRatio: Math.round(entry.intersectionRatio * 100) / 100, // 保持数字类型，保留2位小数
-        fileType: asset.fileType,
-        status: asset.status,
-      })
+      // console.log(`[智能播放] 检测创作 ${index}:`, {
+      //   isIntersecting: entry.isIntersecting,
+      //   intersectionRatio: Math.round(entry.intersectionRatio * 100) / 100, // 保持数字类型，保留2位小数
+      //   fileType: asset.fileType,
+      //   status: asset.status,
+      // })
 
       // 当创作进入视口（可见度超过30%时更新选中状态）
       if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
@@ -702,9 +682,9 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
         if (props.currentIndex !== index) {
           isAutoScrolling = true // 标记为自动滚动触发，避免 watch 再次滚动
           emit('asset-click', index)
-          console.log(
-            `[智能播放] 更新选中索引: ${index}，可见度: ${Math.round(entry.intersectionRatio * 100)}%`
-          )
+          // console.log(
+          //   `[智能播放] 更新选中索引: ${index}，可见度: ${Math.round(entry.intersectionRatio * 100)}%`
+          // )
         }
       }
 
@@ -713,7 +693,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
         // 如果是视频，自动播放
         if (isVideo(asset)) {
           const mediaPlayer = mediaPlayerRefs.get(index)
-          console.log(`[智能播放] 获取到的 mediaPlayer ref:`, mediaPlayer)
+          // console.log(`[智能播放] 获取到的 mediaPlayer ref:`, mediaPlayer)
 
           if (!mediaPlayer) {
             console.warn(`[智能播放] 未找到索引 ${index} 的 MediaPlayer ref`)
@@ -725,7 +705,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
             const currentPlayer = mediaPlayerRefs.get(currentPlayingIndex.value)
             if (currentPlayer && typeof currentPlayer.pause === 'function') {
               currentPlayer.pause()
-              console.log(`[智能播放] 暂停其他视频 ${currentPlayingIndex.value}`)
+              // console.log(`[智能播放] 暂停其他视频 ${currentPlayingIndex.value}`)
             }
           }
 
@@ -738,7 +718,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
                 playPromise
                   .then(() => {
                     currentPlayingIndex.value = index
-                    console.log(`[智能播放] ✅ 自动播放视频 ${index} 成功`)
+                    // console.log(`[智能播放] ✅ 自动播放视频 ${index} 成功`)
                   })
                   .catch((error: any) => {
                     console.error(`[智能播放] ❌ 播放视频 ${index} 失败:`, error)
@@ -751,7 +731,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
                 playPromise
                   .then(() => {
                     currentPlayingIndex.value = index
-                    console.log(`[智能播放] ✅ 通过$el自动播放视频 ${index} 成功`)
+                    // console.log(`[智能播放] ✅ 通过$el自动播放视频 ${index} 成功`)
                   })
                   .catch((error: any) => {
                     console.error(`[智能播放] ❌ 通过$el播放视频 ${index} 失败:`, error)
@@ -771,7 +751,7 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
           if (mediaPlayer && typeof mediaPlayer.pause === 'function') {
             mediaPlayer.pause()
             currentPlayingIndex.value = null
-            console.log(`[智能播放] 自动暂停视频 ${index}`)
+            // console.log(`[智能播放] 自动暂停视频 ${index}`)
           }
         }
       }
@@ -783,14 +763,14 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
 
 // 处理用户点击播放视频
 const handleVideoPlay = (index: number) => {
-  console.log(`[用户点击] 播放视频 ${index}`)
+  // console.log(`[用户点击] 播放视频 ${index}`)
 
   // 如果有其他视频正在播放，先暂停
   if (currentPlayingIndex.value !== null && currentPlayingIndex.value !== index) {
     const currentPlayer = mediaPlayerRefs.get(currentPlayingIndex.value)
     if (currentPlayer && typeof currentPlayer.pause === 'function') {
       currentPlayer.pause()
-      console.log(`[用户点击] 暂停其他视频 ${currentPlayingIndex.value}`)
+      // console.log(`[用户点击] 暂停其他视频 ${currentPlayingIndex.value}`)
     }
   }
 
@@ -800,7 +780,7 @@ const handleVideoPlay = (index: number) => {
 
 // 处理用户点击暂停视频
 const handleVideoPause = (index: number) => {
-  console.log(`[用户点击] 暂停视频 ${index}`)
+  // console.log(`[用户点击] 暂停视频 ${index}`)
 
   // 如果暂停的是当前播放的视频，清除播放索引
   if (currentPlayingIndex.value === index) {

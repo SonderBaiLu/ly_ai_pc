@@ -19,9 +19,14 @@
       <!-- 步骤一：协议+按钮 -->
       <div v-if="!payQrCode" class="vip-pay-agreement-card">
         <div class="agreement-text-top">支付前请阅读</div>
-        <div class="agreement-name" @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">
+        <a
+          class="agreement-name"
+          :href="getAgreementHref('PAY_SERVICE_AGREEMENT')"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           《灵衍AI付费服务协议》
-        </div>
+        </a>
         <el-button class="agree-button" type="primary" :loading="isCreatingPayment" @click="createVipPaymentOrder()">
           同意并支付
         </el-button>
@@ -80,7 +85,15 @@
         </p>
         <p class="link-text">
           • 支付即视您已同意
-          <span @click="navigateToAgreement('PAY_SERVICE_AGREEMENT')">《灵衍AI付费服务协议》</span>
+          <a
+            :href="getAgreementHref('PAY_SERVICE_AGREEMENT')"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="agreement-inline-link"
+            @click.stop
+          >
+            《灵衍AI付费服务协议》
+          </a>
         </p>
       </div>
     </div>
@@ -329,14 +342,11 @@ const checkAlipayPayStatus = async () => {
   }
 }
 
-// 跳转到协议页面（兼容模板中的 navigateToAgreement，接受参数）
-const navigateToAgreement = (agreementType: string) => {
-  // 在新标签页中打开协议页面，避免关闭支付弹窗导致金额丢失
-  const routeData = router.resolve({
+const getAgreementHref = (agreementType: string) => {
+  return router.resolve({
     path: '/agreement',
     query: { type: agreementType },
-  })
-  window.open(routeData.href, '_blank')
+  }).href
 }
 
 // 打开客服弹窗
@@ -494,6 +504,9 @@ onBeforeUnmount(() => {
 
     .agreement-name {
       margin-bottom: 41px;
+      color: $color-primary-dark;
+      cursor: pointer;
+      text-decoration: underline;
     }
 
     .agree-button {
@@ -610,6 +623,16 @@ onBeforeUnmount(() => {
           opacity: 0.8;
         }
       }
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+
+    .agreement-inline-link {
+      color: $color-primary-dark;
+      cursor: pointer;
+      text-decoration: underline;
 
       &:hover {
         opacity: 0.8;

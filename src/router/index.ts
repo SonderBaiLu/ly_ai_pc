@@ -80,26 +80,23 @@ router.beforeEach((to, _from, next) => {
     // 后端传过来的有时候 是字符出 有时候是 boolean 这样防止报错
     const isAdmin = userInfo.mainAdmin === 'true' || userInfo.mainAdmin === true
     const isMainAccount = userInfo.mainAccount === 'true' || userInfo.mainAccount === true
-    // 会员管理页面
-    if(to.meta.loginRequired){
+    // 会员管理页面：未登录拦截
+    if (to.meta.loginRequired) {
         const token = userStore.token
-        if(token){
-            next()
-        }else {
+        if (!token) {
             next('/') // 无权限，踢回首页
             ElMessage.error("请先登录!")
+            return
         }
     }
-    // 团队管理页面
-    if (to.meta.requiresAdmin) {
-        if (isAdmin || isMainAccount) {
-            next()
-        } else {
-            next('/') // 无权限，踢回首页
-            ElMessage.error("您无访问权限!")
-        }
-    } else {
-        next() // 不需要特殊权限的页面，直接放行
+
+    // 团队管理页面：非主账号/非管理员拦截
+    if (to.meta.requiresAdmin && !(isAdmin || isMainAccount)) {
+        next('/') // 无权限，踢回首页
+        ElMessage.error("您无访问权限!")
+        return
     }
+
+    next() // 其余情况放行（保证只调用一次）
 });
 export default router

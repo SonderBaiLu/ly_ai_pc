@@ -282,6 +282,7 @@ import type { CreativeTemplate } from '@/types'
 import { copyToClipboard } from '@/utils/clipboard'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { useCreativeDetailFlow } from '@/composables/useCreativeDetailFlow'
+import { useAlgoPollingStore } from '@/stores/algoPolling'
 
 // Props 定义（支持弹窗模式）
 interface Props {
@@ -314,6 +315,7 @@ const router = useRouter()
 
 // 用户store
 const userStore = useUserStore()
+const algoPollingStore = useAlgoPollingStore()
 const templateStore = useTemplateStore()
 const modalStore = useModalStore()
 
@@ -386,10 +388,6 @@ const detailStatus = computed(() => {
   return Number.isFinite(s) ? s : 3
 })
 
-// 获取订单号候选
-const getOrderNoCandidate = (item: any) =>
-  String(item?.algoOrderId ?? item?.algoOrderNo ?? item?.id ?? '').trim()
-
 // 右侧详情面板状态优先跟随当前选中缩略图，避免“左侧已切到生成中，但右侧仍显示旧完成态”
 const selectedTemplate = computed<any>(() => relatedTemplates.value[selectedThumbnail.value] as any)
 watch(selectedTemplate, (current) => {
@@ -400,7 +398,7 @@ watch(selectedTemplate, (current) => {
 
   // 如果当前选中项仍在生成中，则启动轮询，确保列表成功后详情也能刷新出结果
   if (status === 1 || status === 2) {
-    const orderNoCandidate = getOrderNoCandidate(current)
+    const orderNoCandidate = String(current?.algoOrderNo ?? '').trim()
     if (orderNoCandidate) {
       void startPollingGenerateResult(orderNoCandidate, {
         successText: '生成完成',
@@ -410,6 +408,42 @@ watch(selectedTemplate, (current) => {
     }
   }
 })
+
+// 将全局轮询状态回写到当前详情（保证列表/详情进度一致，且完成后不再停留在“生成中”）
+watch(
+  () => [
+    selectedThumbnail.value,
+    (selectedTemplate.value as any)?.algoOrderNo,
+    algoPollingStore.tasks,
+  ],
+  () => {
+    const current = selectedTemplate.value as any
+    if (!current) return
+    const orderNo = String(current?.algoOrderNo ?? '').trim()
+    if (!orderNo) return
+    const s = (algoPollingStore.tasks as any)?.[orderNo]
+    if (!s) return
+
+    const idx = selectedThumbnail.value
+    const nextStatus = Number(s.status ?? current.status)
+    const nextProgress = Math.max(Number(current?.progress ?? 0), Number(s.progress ?? 0))
+
+    const prevStatus = Number((relatedTemplates.value[idx] as any)?.status ?? current?.status ?? 0)
+    const prevProgress = Number((relatedTemplates.value[idx] as any)?.progress ?? current?.progress ?? 0)
+    if (nextStatus === prevStatus && nextProgress === prevProgress) return
+
+    // 更新列表当前项 + 右侧详情数据
+    relatedTemplates.value[idx] = {
+      ...(relatedTemplates.value[idx] as any),
+      status: nextStatus,
+      progress: nextProgress,
+      successfulCount: (s as any)?.successfulCount ?? (relatedTemplates.value[idx] as any)?.successfulCount,
+      failedCount: (s as any)?.failedCount ?? (relatedTemplates.value[idx] as any)?.failedCount,
+    } as any
+    templateDetail.value = { ...(templateDetail.value as any), ...(relatedTemplates.value[idx] as any) } as any
+  },
+  { deep: true },
+)
 
 // 详情是否属于 AI 工作台四模块（以详情返回的 menuCode 为准）
 const isAiFashionStudioAssetsDetail = computed(() => {
@@ -1508,6 +1542,32 @@ const {
   loadDetailOnce,
 } = detailFlow
 
+// 在详情页内“继续点消息跳转到另一个详情”时，路由仍复用同一组件：
+// 需要监听 id 变化并重新初始化数据流，否则右侧/媒体仍停留在旧详情。
+watch(
+  () => route.params.id,
+  async (nextId, prevId) => {
+    if (nextId == null || String(nextId) === String(prevId ?? '')) return
+
+    // 重置关键状态，避免旧数据闪回/错位
+    clearScrollDetailTimer()
+    isInitialLoad.value = true
+    isDataReady.value = false
+    templateDetail.value = null
+    relatedTemplates.value = []
+    selectedThumbnail.value = 0
+    previousThumbnailIndex.value = -1
+
+    // 重新走初始化流程（优先使用 store 缓存，否则拉列表 + 定位 id）
+    await detailFlow.onMountedFlow()
+
+    // 初始化完成后再恢复平滑滚动
+    nextTick(() => {
+      isInitialLoad.value = false
+    })
+  },
+)
+
 // 组件挂载
 onMounted(async () => {
   cateTitleRef.value = props.cateTitle || (route.query.cateTitle as string) || ''
@@ -1541,16 +1601,6 @@ onMounted(async () => {
     nextTick(() => {
       isInitialLoad.value = false
     })
-  }
-
-  // 兜底校验：如果滚动到第一个内容（selectedThumbnail=0），但右侧详情回显的 id 不是第一个，
-  // 需要再拉一次列表第一个项的详情，避免刷新后的错位。
-  if (relatedTemplates.value.length > 0 && selectedThumbnail.value === 0 && templateDetail.value) {
-    const firstId = getAlgoResultId(relatedTemplates.value[0] as any)
-    const detailId = getAlgoResultId(templateDetail.value as any)
-    if (firstId && detailId && String(firstId) !== String(detailId)) {
-      await loadDetailOnce(firstId)
-    }
   }
 
   // 如果第一个项是视频，自动播放

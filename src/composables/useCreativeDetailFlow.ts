@@ -2,6 +2,8 @@ import { nextTick, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { algoApi } from '@/api/algo'
 import type { CreativeTemplate } from '@/types'
+import { useAlgoPollingStore } from '@/stores/algoPolling'
+import { mergeOrderResultsIntoList } from '@/utils/orderResultMerge'
 
 type FlowCtx = {
   props: any
@@ -23,54 +25,40 @@ type FlowCtx = {
 }
 
 export function useCreativeDetailFlow(ctx: FlowCtx) {
-  /**
-   * ====== 再生成（orderNo）轮询控制 ======
-   * 同一个 orderNo 可能被多处触发（按钮点击、watch 状态变化等）。
-   * 使用 Promise 复用：保证同一 orderNo 只会轮询一次。
-   */
+  const algoPollingStore = useAlgoPollingStore()
+  // /algo/query 的 orderNo 只用 algoOrderNo
+  const getOrderNoCandidate = (item: any) => String(item?.algoOrderNo ?? '').trim()
+  const normalizeOrderNo = (raw: any) => String(raw ?? '').trim()
+
+  // 同一 orderNo 复用轮询 Promise，避免重复请求
   const pollingPromiseMap = new Map<string, Promise<void>>()
   const lastPollingStateMap = new Map<string, { status: number; progress: number }>()
 
-  /**
-   * ====== 详情接口（getAlgoResultDetails）并发保护 ======
-   * 避免用户快速切换/轮询成功后同时触发详情请求造成乱序覆盖。
-   *
-   * - detailRequestToken：请求版本号，用于丢弃过期返回
-   * - currentDetailTargetId：当前应该展示的详情 id
-   * - inFlightDetailId：同 id 并发请求直接跳过
-   * - lastLoadedDetailId：同 id 已加载过则跳过，减少重复请求
-   */
-  const detailRequestToken = ref(0)
-  const currentDetailTargetId = ref<string | number | null>(null)
-  const lastLoadedDetailId = ref<string | number | null>(null)
-  const inFlightDetailId = ref<string | number | null>(null)
+  // getAlgoResultDetails 并发保护：丢弃过期请求，避免乱序覆盖
+  const detailRequestToken = ref(0) // 请求版本号，用于丢弃过期返回
+  const currentDetailTargetId = ref<string | number | null>(null) // 当前应该展示的详情 id
+  const lastLoadedDetailId = ref<string | number | null>(null) // 同 id 已加载过则跳过，减少重复请求
+  const inFlightDetailId = ref<string | number | null>(null) // 同 id 并发请求直接跳过
 
-  const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
-
-  /**
-   * 是否需要调用详情接口补全右侧展示字段：
-   * - 生成中/待请求/失败阶段：不调用详情接口（右侧直接用列表/占位回显）
-   * - 生成完成：需要调用详情接口获取完整字段（模型参数/输出类型等）
-   */
+  // 只有 status=3（完成）才需要补全详情
   const shouldFetchDetailForId = (id?: string | number) => {
     if (id === undefined || id === null) return false
     const target = ctx.relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
     const status = Number(target?.status)
-    // status: 0初始化 1待请求 2处理中 3完成 4失败
     if (status === 0 || status === 1 || status === 2 || status === 4) return false
     return status === 3 || !Number.isFinite(status)
   }
 
-  /**
-   * ====== 占位与占位 patch ======
-   * 提交“再次生成”后先在列表最前面插入 pending-${orderNo} 占位卡，
-   * 然后轮询 status/progress 把占位卡更新为实时状态，直到 status=3 成功。
-   */
+  // 再生成：插入 pending 占位，并在轮询中回填 status/progress
   const prependGeneratingPlaceholder = (orderNo: string, payload: any) => {
+    const key = normalizeOrderNo(orderNo)
+    if (!key) return
     const now = new Date().toISOString()
     const placeholder: any = {
-      id: `pending-${orderNo}`,
-      algoOrderId: orderNo,
+      id: `pending-${key}`,
+      algoOrderId: key,
+      // 保证轮询/回填使用同一语义的订单号字段
+      algoOrderNo: key,
       menuCode: String((ctx.templateDetail.value as any)?.menuCode || ''),
       fileType: Number((ctx.templateDetail.value as any)?.fileType ?? 1),
       status: 2,
@@ -84,7 +72,10 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
     }
 
     const existed = ctx.relatedTemplates.value.findIndex(
-      (x: any) => String(x?.algoOrderId || '') === String(orderNo) || String(x?.id || '') === String(placeholder.id),
+      (x: any) =>
+        normalizeOrderNo((x as any)?.algoOrderNo) === key ||
+        normalizeOrderNo((x as any)?.algoOrderId) === key ||
+        String((x as any)?.id || '') === String(placeholder.id),
     )
     if (existed >= 0) ctx.relatedTemplates.value[existed] = { ...(ctx.relatedTemplates.value[existed] as any), ...placeholder }
     else ctx.relatedTemplates.value = [placeholder, ...ctx.relatedTemplates.value] as any[]
@@ -100,49 +91,53 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
    * 若 pending 恰好是当前 selectedThumbnail，则同步更新 templateDetail 以保证右侧显示一致。
    */
   const patchAgainGeneratePlaceholder = (orderNo: string, patch: Record<string, any>) => {
+    const key = normalizeOrderNo(orderNo)
+    if (!key) return
     const idx = ctx.relatedTemplates.value.findIndex(
-      (x: any) => String(x?.algoOrderId || '') === String(orderNo) || String(x?.id || '') === `pending-${orderNo}`,
+      (x: any) =>
+        normalizeOrderNo((x as any)?.algoOrderNo) === key ||
+        normalizeOrderNo((x as any)?.algoOrderId) === key ||
+        String((x as any)?.id || '') === `pending-${key}`,
     )
     if (idx < 0) return
     ctx.relatedTemplates.value[idx] = {
       ...(ctx.relatedTemplates.value[idx] as any),
       ...patch,
-      algoOrderId: String((ctx.relatedTemplates.value[idx] as any)?.algoOrderId || orderNo),
+      algoOrderId: String((ctx.relatedTemplates.value[idx] as any)?.algoOrderId || key),
+      algoOrderNo: String((ctx.relatedTemplates.value[idx] as any)?.algoOrderNo || key),
     } as any
     if (ctx.selectedThumbnail.value === idx) ctx.templateDetail.value = { ...(ctx.relatedTemplates.value[idx] as any) }
   }
 
   /**
-   * status=3 成功后，把 orderResultVOS 映射插入 relatedTemplates：
-   * - 新结果排在最前（selectedThumbnail=0）
-   * - 去重：避免与已存在记录重复（pending 占位也会被替换掉）
-   * - 同步 templateDetail：右侧直接展示最新一张
+   * status=3 成功后，把 orderResultVOS 回填到 relatedTemplates：
+   * - 优先“原地替换”同 orderNo 的生成中/占位项（避免详情页看起来又新增了一组列表）
+   * - 若找不到目标项，则退化为把新结果插到最前
+   * - 去重：避免与已存在记录重复
+   * - 同步 templateDetail：右侧直接展示第一张结果
    */
-  const prependGeneratedResults = (records: any[], orderNo?: string) => {
+  const applyGeneratedResults = (records: any[], orderNo?: string) => {
     if (!Array.isArray(records) || records.length === 0) return null
     const normalized = records
       .map((item: any) => ({ ...item, id: ctx.getAlgoResultId(item) != null ? String(ctx.getAlgoResultId(item)) : '' }))
       .filter((item: any) => !!item?.id)
     if (normalized.length === 0) return null
 
-    const idSet = new Set(normalized.map((x: any) => String(x.id)))
-    const merged = [
-      ...normalized,
-      ...ctx.relatedTemplates.value.filter((x: any) => {
-        const sameId = idSet.has(String(x?.id))
-        const sameOrderPlaceholder =
-          !!orderNo && Number((x as any)?.status) === 2 && String((x as any)?.algoOrderId || '') === String(orderNo)
-        return !sameId && !sameOrderPlaceholder
-      }),
-    ]
-    ctx.relatedTemplates.value = merged as any[]
-
-    const first = normalized[0]
-    ctx.selectedThumbnail.value = 0
-    ctx.previousThumbnailIndex.value = 0
-    ctx.templateDetail.value = { ...first } as any
+    const key = normalizeOrderNo(orderNo)
+    const merged = mergeOrderResultsIntoList(
+      (ctx.relatedTemplates.value || []) as any[],
+      key,
+      normalized as any[],
+      { preferInPlace: true, insertAtIfNotFound: () => 0 },
+    )
+    ctx.relatedTemplates.value = merged.list as any[]
+    const replaceIdx = merged.replacedIndex >= 0 ? merged.replacedIndex : 0
+    ctx.selectedThumbnail.value = Math.max(0, Math.min(replaceIdx, ctx.relatedTemplates.value.length - 1))
+    ctx.previousThumbnailIndex.value = ctx.selectedThumbnail.value
+    const current = ctx.relatedTemplates.value[ctx.selectedThumbnail.value] as any
+    ctx.templateDetail.value = current ? ({ ...current } as any) : null
     nextTick(() => ctx.syncMediaContainerToSelected(true))
-    return first
+    return current || null
   }
 
   /**
@@ -178,92 +173,39 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
     orderNo: string,
     opts?: { successText?: string; failText?: string; timeoutText?: string; noResultText?: string },
   ) => {
-    const key = String(orderNo ?? '')
+    const key = normalizeOrderNo(orderNo)
     if (!key) return
     const existedPromise = pollingPromiseMap.get(key)
     if (existedPromise) return existedPromise
-    const promise = pollAgainGenerateResult(key, opts).finally(() => {
-      pollingPromiseMap.delete(key)
-      lastPollingStateMap.delete(key)
-    })
-    pollingPromiseMap.set(key, promise)
-    return promise
-  }
-
-  /**
-   * 轮询逻辑：
-   * - status 1/2：回填 pending 占位卡 progress
-   * - status 3：成功 -> 刷新用户信息 + 插入结果 + 只做详情回显（不刷新列表）
-   * - status 4：失败 -> pending 占位卡切失败态
-   */
-  const pollAgainGenerateResult = async (
-    orderNo: string,
-    opts?: { successText?: string; failText?: string; timeoutText?: string; noResultText?: string },
-  ) => {
-    const successText = opts?.successText ?? '再次生成完成'
-    const failText = opts?.failText ?? '再次生成失败'
-    const timeoutText = opts?.timeoutText ?? '再次生成超时，请稍后在列表查看'
-    const noResultText = opts?.noResultText ?? '生成完成，但未返回结果'
-
-    for (let i = 0; i < 120; i++) {
-      if (ctx.isUnmountedRef.value) return
-      try {
-        const queryResp = await algoApi.query({ orderNo })
-        if ((queryResp as any)?.code !== '0000' || !(queryResp as any)?.data) {
-          await sleep(3000)
-          continue
-        }
-        const data: any = (queryResp as any).data
-        const status = Number(data?.status)
-        const orderResultVOS = Array.isArray(data?.orderResultVOS) ? data.orderResultVOS : []
-        const firstVO = orderResultVOS[0] || {}
-        const mergedProgress = Number(data?.progress ?? firstVO?.progress ?? 0)
-
-        if (status === 1 || status === 2) {
-          const prevState = lastPollingStateMap.get(orderNo)
-          const nextState = { status, progress: mergedProgress }
-          if (!prevState || prevState.status !== nextState.status || prevState.progress !== nextState.progress) {
-            patchAgainGeneratePlaceholder(orderNo, nextState)
-            lastPollingStateMap.set(orderNo, nextState)
-          }
-        }
-
+    // 统一走全局轮询：避免列表/详情重复请求
+    const promise = (algoPollingStore.start(key) as Promise<any>)
+      .then((finalState) => {
+        if (!finalState) return
+        const status = Number(finalState.status)
         if (status === 3) {
-          const first = prependGeneratedResults(orderResultVOS, orderNo)
+          const vos = Array.isArray((finalState as any).orderResultVOS) ? (finalState as any).orderResultVOS : []
+          const first = applyGeneratedResults(vos, key)
           if (!first) {
-            ElMessage.warning(noResultText)
+            ElMessage.warning(opts?.noResultText ?? '生成完成，但未返回结果')
             return
           }
           const firstId = ctx.getAlgoResultId(first)
-          if (firstId) await loadDetailOnce(firstId)
-          ElMessage.success(successText)
+          if (firstId) return loadDetailOnce(firstId)
+          ElMessage.success(opts?.successText ?? '生成完成')
           return
         }
-
         if (status === 4) {
-          patchAgainGeneratePlaceholder(orderNo, {
-            status: 4,
-            prompt: '生成失败',
-            thumbUrl: '',
-            url: '',
-            originalUrl: '',
-          })
-          ctx.selectedThumbnail.value = 0
-          ctx.previousThumbnailIndex.value = 0
-          const top = ctx.relatedTemplates.value[0] as any
-          if (top) ctx.templateDetail.value = { ...top }
-          nextTick(() => ctx.syncMediaContainerToSelected(true))
-          ElMessage.error(failText)
-          return
+          patchAgainGeneratePlaceholder(key, { status: 4, progress: Number(finalState.progress ?? 0), prompt: '生成失败' })
+          ElMessage.error(opts?.failText ?? '生成失败')
         }
-      } catch (error) {
-        console.error('[pollAgainGenerateResult] query failed:', error)
-      }
-      await sleep(3000)
-    }
-    ElMessage.warning(timeoutText)
+      })
+      .finally(() => {
+        pollingPromiseMap.delete(key)
+        lastPollingStateMap.delete(key)
+      })
+    pollingPromiseMap.set(key, promise)
+    return promise
   }
-
   /**
    * loadTemplateDetail：请求 /api/v1/algo/getAlgoResultDetails 补全详情字段。
    * 先用列表项兜底（避免空白），再回填补全字段。
@@ -291,12 +233,14 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
       const target = ctx.relatedTemplates.value.find((x: any) => String(x?.id) === String(id)) as any
       const status = Number(target?.status)
       if (myToken != null && myToken === detailRequestToken.value && (status === 1 || status === 2)) {
-        const orderNo = String(target?.algoOrderId ?? target?.id ?? expectedId ?? '')
-        startPollingGenerateResult(orderNo, {
-          successText: '生成完成',
-          failText: '生成失败',
-          timeoutText: '生成超时，请稍后在“我的创作”中查看',
-        })
+        const orderNo = getOrderNoCandidate(target)
+        if (orderNo) {
+          startPollingGenerateResult(orderNo, {
+            successText: '生成完成',
+            failText: '生成失败',
+            timeoutText: '生成超时，请稍后在“我的创作”中查看',
+          })
+        }
       }
       return
     }
@@ -349,7 +293,7 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
       const orderNo = String(
         (typeof data === 'string' || typeof data === 'number'
           ? data
-          : data?.orderNo ?? data?.algoOrderNo ?? data?.algoOrderId ?? '') || '',
+          : data?.algoOrderNo ?? data?.algoOrderId ?? '') || '',
       )
       if (!orderNo) return ElMessage.warning('提交成功，但未返回任务编号')
 
@@ -391,20 +335,14 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
     }
 
     if (foundIndex >= 0 && foundIndex < cachedListData.list.length) {
-      const selectedItem = cachedListData.list[foundIndex]
-      const processedList = cachedListData.list.map((item: any) => {
-        if (!item.creativeTemplate) return item
-        return {
-          ...item.creativeTemplate,
-          likeId: item.likeId || item.creativeTemplate?.likeId,
-          useLikes: item.useLikes !== undefined ? item.useLikes : item.creativeTemplate?.useLikes,
-          creativeTemplateId: item.creativeTemplateId || item.creativeTemplate?.id,
-        }
-      })
+      // 缓存列表里的每一项 id 语义不一致（有的会把 creativeTemplate.id 覆盖进来），
+      // 这里不做扁平化转换，保持“列表项 id=algoResulId”的语义，避免误调详情接口。
+      const list = Array.isArray(cachedListData.list) ? cachedListData.list : []
+      const selectedItem = list[foundIndex]
 
       ctx.selectedThumbnail.value = foundIndex
-      ctx.templateDetail.value = processedList[foundIndex] as CreativeTemplate
-      ctx.relatedTemplates.value = processedList as any[]
+      ctx.relatedTemplates.value = list as any[]
+      ctx.templateDetail.value = selectedItem as any
 
       await nextTick()
       if (ctx.mediaContainerRef.value && ctx.relatedTemplates.value.length > 0) {
@@ -416,12 +354,12 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
       }
 
       ctx.isDataReady.value = true
-      const detailId = selectedItem.creativeTemplateId || selectedItem.creativeTemplate?.id || selectedItem.id
-      if (detailId) await loadTemplateDetail(detailId)
+      const detailId = ctx.getAlgoResultId(selectedItem)
+      if (detailId) await loadDetailOnce(detailId)
       return
     }
 
-    await loadTemplateDetail(ctx.route.params.id as string | number | undefined)
+    await loadDetailOnce(ctx.route.params.id as string | number | undefined)
     if (ctx.templateDetail.value) {
       ctx.relatedTemplates.value = [ctx.templateDetail.value as any]
       ctx.selectedThumbnail.value = 0
@@ -437,7 +375,7 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
     const targetAlgoResulIdStr = targetAlgoResulId != null ? String(targetAlgoResulId) : ''
     await ctx.loadRelatedTemplates(true)
     if (!ctx.relatedTemplates.value.length) {
-      await loadTemplateDetail(targetAlgoResulId)
+      await loadDetailOnce(targetAlgoResulId)
       if (ctx.templateDetail.value) {
         ctx.relatedTemplates.value = [ctx.templateDetail.value as any]
         ctx.selectedThumbnail.value = 0
@@ -470,14 +408,13 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
 
   return {
     handleAgainGenerate,
-    pollAgainGenerateResult,
     startPollingGenerateResult,
     loadTemplateDetail,
     loadDetailOnce,
     initFromCachedList,
     initByLoadingListFirst,
     onMountedFlow,
-    getOrderNoCandidate: (item: any) => String(item?.algoOrderId ?? item?.algoOrderNo ?? item?.id ?? '').trim(),
+    getOrderNoCandidate,
   }
 }
 

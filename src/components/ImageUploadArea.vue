@@ -196,6 +196,7 @@ const isDragging = ref(false)
 
 // 拖拽上传处理函数
 const handleDragOver = (_e: DragEvent) => {
+  if (props.showLoading) return
   // 只在没有图片时才显示拖拽状态
   if (!props.imageUrl) {
     isDragging.value = true
@@ -207,6 +208,7 @@ const handleDragLeave = (_e: DragEvent) => {
 }
 const handleDrop = (e: DragEvent) => {
   isDragging.value = false
+  if (props.showLoading) return
 
   const dt = e.dataTransfer
   if (!dt) return
@@ -284,6 +286,10 @@ let uploadTimer: ReturnType<typeof setTimeout> | null = null
 
 // 打开本地文件选择器，并把结果透传为 drop-file
 const openLocalUploadPicker = (type: string, position: string) => {
+  if (props.showLoading) {
+    ElMessage.info(props.loadingText || '图片上传中…')
+    return
+  }
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -299,6 +305,10 @@ const openLocalUploadPicker = (type: string, position: string) => {
 // 处理上传（本地上传）
 const handleUpload = (type: string, position: string) => {
   if (uploadTimer) return
+  if (props.showLoading) {
+    ElMessage.info(props.loadingText || '图片上传中…')
+    return
+  }
   if (props.delegateClickUpload) {
     emit('upload')
     uploadTimer = setTimeout(() => {
@@ -314,6 +324,10 @@ const handleUpload = (type: string, position: string) => {
 
 // 处理替换下拉菜单命令
 const handleReplaceCommand = (command: string) => {
+  if (props.showLoading) {
+    ElMessage.info(props.loadingText || '图片上传中…')
+    return
+  }
   if (command === 'upload') {
     // 本地上传（替换已上传图片）
     openLocalUploadPicker(props.imageType, props.imageName)

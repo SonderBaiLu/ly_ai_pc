@@ -8,7 +8,7 @@
         <div v-for="item in leftRailItems" :key="item.key" class="rail-item" :class="{ active: leftMenu === item.key }"
           @click="leftMenu = item.key">
           <div class="rail-icon">
-            <img :src="getRailIcon(item, leftMenu === item.key)" alt="" />
+            <img :src="leftMenu === item.key ? item.functionIconSelected : item.functionIcon" alt="" />
           </div>
           <div class="rail-text">{{ item.label }}</div>
         </div>
@@ -22,7 +22,7 @@
             <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="formDataByMenu.aiFashion.image"
               v-model:prompt="formDataByMenu.aiFashion.prompt" :task-result-id="formDataByMenu.aiFashion.taskResultId"
               :creation-type-selection="formDataByMenu.aiFashion.creationTypeSelection" :submitting="loading"
-              :default-image-params="currentImageDefaultParams"
+              :uploading="refImageUploading" :default-image-params="currentImageDefaultParams"
               :inspiration-words="formDataByMenu.aiFashion.inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
               @open-type-modal="() => openTypeModal('aiFashion')"
               @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
@@ -37,7 +37,7 @@
               :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
               :inspiration-words="formDataByMenu.fabricCreative.inspirationWords" :coin="imageCoin"
               :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
-              @open-type-modal="() => openTypeModal('fabricCreative')"
+              :uploading="refImageUploading" @open-type-modal="() => openTypeModal('fabricCreative')"
               @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
@@ -50,7 +50,7 @@
               :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
               :inspiration-words="formDataByMenu.sketchToReal.inspirationWords" :coin="imageCoin"
               :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
-              @open-type-modal="() => openTypeModal('sketchToReal')"
+              :uploading="refImageUploading" @open-type-modal="() => openTypeModal('sketchToReal')"
               @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleSketchToRealGenerate" @inspiration-library="handleInspirationLibrary"
@@ -64,7 +64,7 @@
               :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
               :inspiration-words="formDataByMenu.realToSketch.inspirationWords" :coin="imageCoin"
               :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
-              @open-type-modal="() => openTypeModal('realToSketch')"
+              :uploading="refImageUploading" @open-type-modal="() => openTypeModal('realToSketch')"
               @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
               @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
               @generate="handleRealToSketchGenerate" @inspiration-library="handleInspirationLibrary"
@@ -100,7 +100,7 @@
 
     <!-- 款型选择弹窗（父层统一管理，按 leftMenu 分开回显） -->
     <CreationTypeSelectModal v-model="showTypeModal" :selection="activeCreationTypeSelection"
-      :option-tree="creationTypeOptionTree" @confirm="handleTypeConfirm" />
+      :option-tree="creationTypeOptionTree" :loading="creationTypeLoading" @confirm="handleTypeConfirm" />
 
     <!-- 灵感词词典弹窗（父层统一管理） -->
     <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData"
@@ -112,9 +112,10 @@
 </template>
 
 <script setup lang="ts">
+// 与 App.vue 中 keep-alive :include 一致，避免跳转详情后创作台卸载导致上传图/表单丢失
+defineOptions({ name: 'AiFashionStudio' })
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { images } from '@/assets'
 import { useUserStore } from '@/stores/user'
 import { appApi } from '@/api/app'
 import { algoApi, buildTemplateParamsFromPopup } from '@/api/algo'
@@ -124,7 +125,8 @@ import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { CREATION_PARAM_CODES } from '@/constants/creationParamCode'
 import type { CreationResult } from '@/composables/useTaskPolling'
 import { mapRecordToCreationResult as mapRecordToCreationResultCommon } from '@/utils/creationResult'
-import HistoryCreativeModal from '@/components/HistoryCreativeModal.vue'
+import { mergeOrderResultsIntoList } from '@/utils/orderResultMerge'
+import { useAlgoPollingStore } from '@/stores/algoPolling'
 import CreationTypeSelectModal, { type CreationTypeSelection } from '@/components/CreationTypeSelectModal.vue'
 import { useTemplateStore } from '@/stores/template'
 import Fashion from './left/Fashion.vue'
@@ -145,6 +147,7 @@ const route = useRoute()
 const router = useRouter()
 const templateStore = useTemplateStore()
 const userStore = useUserStore()
+const algoPollingStore = useAlgoPollingStore()
 
 const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
 
@@ -152,13 +155,41 @@ const removeWatermarkEnabled = computed(() => {
   return userStore.userInfo?.watermarkStatus === 1 ? true : false
 })
 
-const leftMenuRouteMode = route.query.mode as LeftMenuKey | undefined
-const initialLeftMenu: LeftMenuKey =
-  leftMenuRouteMode && (['aiFashion', 'sketchToReal', 'realToSketch', 'fabricCreative'] as LeftMenuKey[]).includes(leftMenuRouteMode)
-    ? leftMenuRouteMode
-    : 'aiFashion'
+function parseLeftMenuFromRouteMode(mode: unknown): LeftMenuKey | null {
+  const raw = Array.isArray(mode) ? mode[0] : mode
+  const m = raw as LeftMenuKey | undefined
+  if (!m || typeof m !== 'string') return null
+  const keys: LeftMenuKey[] = ['aiFashion', 'sketchToReal', 'realToSketch', 'fabricCreative']
+  return keys.includes(m as LeftMenuKey) ? (m as LeftMenuKey) : null
+}
+
+const initialLeftMenu: LeftMenuKey = parseLeftMenuFromRouteMode(route.query.mode) ?? 'aiFashion'
 const leftMenu = ref<LeftMenuKey>(initialLeftMenu)
-const isFabricEntry = route.query.mode === 'fabricCreative'
+// keep-alive 下组件只创建一次：必须响应式读 query，否则从面料入口进一次后左侧栏永远只显示面料
+const isFabricEntry = computed(() => route.query.mode === 'fabricCreative')
+
+watch(
+  () => route.query.mode,
+  (mode) => {
+    const parsed = parseLeftMenuFromRouteMode(mode)
+    if (parsed) leftMenu.value = parsed
+  },
+)
+
+// 在工作台内切换模块时，同步更新 URL 的 mode（用 replace，避免返回时被入口 mode 覆盖）
+watch(
+  () => leftMenu.value,
+  (menu) => {
+    const currentMode = Array.isArray(route.query.mode) ? route.query.mode[0] : route.query.mode
+    if (currentMode === menu) return
+    router.replace({
+      query: {
+        ...route.query,
+        mode: menu,
+      },
+    })
+  },
+)
 const showComingSoon = () => ElMessage.warning('暂未开放')
 
 const menuKeyByCode: Record<string, LeftMenuKey> = {
@@ -175,13 +206,13 @@ const menuCodeByKey: Record<LeftMenuKey, string> = {
 }
 /**
  * 款型弹窗拉树用的 typeCode（getInspirationWords）
- * - 实物转线稿：garment_style（创作款型）
+ * - 实物转线稿：creation_style（创作款型）
  */
 const creationTypeCodeByMenu: Record<LeftMenuKey, string> = {
   aiFashion: CREATION_PARAM_CODES.CREATION_STYLE,
   // 线稿转实物：款型选择与 AI 服装设计一致，typeCode 为 creation_style
   sketchToReal: CREATION_PARAM_CODES.CREATION_STYLE,
-  realToSketch: CREATION_PARAM_CODES.GARMENT_STYLE,
+  realToSketch: CREATION_PARAM_CODES.CREATION_STYLE,
   // 面料创款：弹窗选择“创作款型”（creation_style）
   fabricCreative: CREATION_PARAM_CODES.CREATION_STYLE,
 }
@@ -197,6 +228,9 @@ const allPlatformMenus = ref<any[]>([])
 const activeMenuCode = ref<string>('')
 // 记录已经拉取过算法模型配置的菜单 code，避免重复请求
 const fetchedAlgoMenuCodes = new Set<string>()
+
+// 参考图上传中：用于禁用重复点击/重复选择文件
+const refImageUploading = ref(false)
 
 // 右侧展示导航：只展示“一级菜单（menuCode）+ 收藏”
 const rightContentTabs = computed(() => {
@@ -237,7 +271,7 @@ const leftRailItems = computed<RailItem[]>(() => {
     }
   })
 
-  const codes = isFabricEntry
+  const codes = isFabricEntry.value
     ? [APP_MENU_CODES.FABRIC_DESIGN_CONCEPT]
     : [
       APP_MENU_CODES.AI_FASHION_DESIGN,
@@ -258,24 +292,13 @@ const leftRailItems = computed<RailItem[]>(() => {
   })
 })
 
-const getRailIcon = (item: RailItem, isActive: boolean) => {
-  // 优先后端下发图标；缺失时回退本地默认图标
-  const apiIcon = isActive ? item.functionIconSelected : item.functionIcon
-  if (apiIcon) return apiIcon
-
-  const key = item.key
-  if (key === 'aiFashion') return isActive ? images.designActive : images.designIcon
-  if (key === 'sketchToReal') return isActive ? images.sketchActive : images.sketchIcon
-  if (key === 'realToSketch') return isActive ? images.realActive : images.realIcon
-  return images.fabricActive
-}
-
 const fetchSysPlatformMenu = async () => {
   try {
     const res = await appApi.getSysPlatformMenu()
     if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
       allPlatformMenus.value = res.data
       syncActiveMenuCode()
+      normalizePendingLocalMenuCodes()
     }
   } catch (error) {
     console.error('获取功能菜单失败', error)
@@ -714,15 +737,20 @@ const submitByMenuCode = async (
       ElMessage.success('已提交生成任务')
       // 提交成功会扣灵衍值，刷新 Header 等处的灵衍值/余额展示
       await refreshUserInfoIfLoggedIn()
-      const orderNo = String((res as any)?.data?.orderNo ?? '')
-      if (orderNo) {
-        upsertGeneratingAssetByOrderNo(orderNo, String(form.prompt || '').trim(), menuCode)
-        await startQueryByOrderNo(orderNo)
+      if (res.data.orderNo) {
+        _upsertGeneratingAssetByOrderNo(
+          String(res.data.orderNo),
+          String(form?.prompt || '').trim(),
+          String(menuCode || '').trim(),
+        )
+        void algoPollingStore.start(res.data.orderNo)
       }
     } else {
       ElMessage.error(res.msg || '提交失败')
     }
   } catch (e) {
+    // 登录态失效时由全局拦截器统一提示/跳转，这里不再重复弹窗
+    if ((e as any)?.__AUTH_EXPIRED__) return
     console.error('[AiFashionStudio] doCalculationPoint failed:', e)
     ElMessage.error('网络开小差了，请稍后重试~')
   } finally {
@@ -736,29 +764,28 @@ const assets = ref<CreationResult[]>([])
 const currentIndex = ref(0)
 const mainImageRef = ref<any>(null)
 const thumbnailRef = ref<any>(null)
+// 主图当前滚动百分比（0=顶部），用于避免轮询回填时“把用户拉回顶部”
+const lastMainScrollPercentage = ref(0)
+// 对“本次提交的每个任务”生效：生成成功后自动回到顶部并选中第一个（支持并发提交）
+const autoFocusOrderNoSet = reactive(new Set<string>())
+// 完成态回填去重：避免同一 orderNo 的同一批结果被 watcher 反复 apply，导致列表顺序/可见性异常
+const appliedDoneSignatureByOrderNo = reactive(new Map<string, string>())
+// 本地生成中占位：不挂在 assets 上，避免切 tab/reset 时被过滤丢失
+const pendingLocalMap = reactive(new Map<string, CreationResult>())
 
-// ==================== 生成结果轮询（提交后持续拉取状态并回填 assets） ====================
-const queryTimerMap = new Map<string, ReturnType<typeof setInterval>>()
-
-// 清理所有轮询定时器（切换 tab/重新加载时避免残留轮询）
+// ==================== 生成结果轮询（全局唯一：列表/详情共用同一份） ====================
 const stopAllQueryTimers = () => {
-  queryTimerMap.forEach((timer) => clearInterval(timer))
-  queryTimerMap.clear()
+  algoPollingStore.stopAll()
 }
 
-// 停止某个 orderNo 对应的轮询定时器
-const stopQueryTimer = (orderNo: string) => {
-  const timer = queryTimerMap.get(orderNo)
-  if (timer) {
-    clearInterval(timer)
-    queryTimerMap.delete(orderNo)
-  }
-}
-
-// 根据 orderNo / algoOrderId / id 在 assets 中定位创作
+// 根据 orderNo / algoOrderId 在 assets 中定位创作
 const findAssetIndexByOrderNo = (orderNo: string) => {
+  const key = String(orderNo ?? '').trim()
+  if (!key) return -1
   return assets.value.findIndex((item: CreationResult) => {
-    return String(item?.algoOrderNo ?? '') === orderNo || String(item?.algoOrderId ?? '') === orderNo || String(item?.id ?? '') === orderNo
+    const a = String((item as any)?.algoOrderNo ?? '').trim()
+    const b = String((item as any)?.algoOrderId ?? '').trim()
+    return a === key || b === key
   })
 }
 
@@ -770,16 +797,28 @@ const updateAssetByOrderNo = (orderNo: string, updater: (asset: CreationResult) 
 }
 
 // 提交成功后：先插入“生成中”的占位卡片，并开始轮询
-const upsertGeneratingAssetByOrderNo = (orderNo: string, prompt: string, menuCode: string) => {
+const _upsertGeneratingAssetByOrderNo = (
+  orderNo: string,
+  prompt: string,
+  anyMenuCode: string,
+) => {
+  const key = String(orderNo ?? '').trim()
+  if (!key) return
+  autoFocusOrderNoSet.add(key)
+  // submit 侧通常是二级/叶子 menuCode，这里统一归一化为右侧 tab 使用的一级 menuCode
+  const pendingMenuCode = String(resolveTopMenuCodeByAnyCode(anyMenuCode) || '').trim()
+  if (!pendingMenuCode) return
   const now = new Date().toISOString()
-  const idx = findAssetIndexByOrderNo(orderNo)
+  const idx = findAssetIndexByOrderNo(key)
 
   const generatingItem: CreationResult = {
-    id: orderNo,
-    algoOrderId: orderNo,
-    algoOrderNo: orderNo,
+    // 生成中占位卡片只有 orderNo；结果 id 只能来自 queryDone / 列表接口
+    id: '',
+    algoOrderId: '',
+    algoOrderNo: key,
     algoUuId: null,
-    menuCode,
+    // 这里存“右侧一级 tabKey”，用于 tab 过滤与展示规则（服装设计为聚合）
+    menuCode: pendingMenuCode,
     thumbUrl: null,
     url: null,
     originalUrl: null,
@@ -791,15 +830,29 @@ const upsertGeneratingAssetByOrderNo = (orderNo: string, prompt: string, menuCod
     progress: 0,
   }
 
+  // 先写入本地 pendingMap（跨 tab 持久），后续列表按 tab 规则投影展示
+  pendingLocalMap.set(key, generatingItem)
+
+  // 当前右侧 tab 不属于该模块：不把占位插入当前列表（避免跨模块串到 AI面料/收藏等）
+  if (!shouldShowPendingInTab(currentContentTab.value, pendingMenuCode)) return
+
   if (idx === -1) {
     assets.value.unshift(generatingItem)
     currentIndex.value = 0
-    // 提交后强制把右侧缩略图滚动到顶部，确保“生成中”可见（避免仅改 currentIndex 但列表仍停留在旧 scrollTop）
+    // 提交后强制回到顶部：避免滚动同步/布局变化把缩略图又“同步回去”
     nextTick(() => {
       requestAnimationFrame(() => {
         thumbnailRef.value?.scrollToTop?.()
         thumbnailRef.value?.scrollToIndex?.(0)
+        thumbnailRef.value?.syncScroll?.(0)
         mainImageRef.value?.scrollToAsset?.(0)
+        mainImageRef.value?.syncScroll?.(0)
+        // 二次兜底：部分情况下主图滚动事件会把缩略图同步回非顶部
+        setTimeout(() => {
+          thumbnailRef.value?.scrollToTop?.()
+          thumbnailRef.value?.syncScroll?.(0)
+          mainImageRef.value?.syncScroll?.(0)
+        }, 350)
       })
     })
     return
@@ -821,54 +874,72 @@ const upsertGeneratingAssetByOrderNo = (orderNo: string, prompt: string, menuCod
     requestAnimationFrame(() => {
       thumbnailRef.value?.scrollToTop?.()
       thumbnailRef.value?.scrollToIndex?.(0)
+      thumbnailRef.value?.syncScroll?.(0)
       mainImageRef.value?.scrollToAsset?.(0)
+      mainImageRef.value?.syncScroll?.(0)
+      setTimeout(() => {
+        thumbnailRef.value?.scrollToTop?.()
+        thumbnailRef.value?.syncScroll?.(0)
+        mainImageRef.value?.syncScroll?.(0)
+      }, 350)
     })
   })
 }
 
 // 轮询完成后：把 orderResultVOS 映射回 assets（包含多结果扩展）
 const applyQueryDoneResult = (orderNo: string, orderResultVOS: any[]) => {
-  const idx = findAssetIndexByOrderNo(orderNo)
-  if (idx === -1) return
-  const oldItem = assets.value[idx]
-  const mappedList = orderResultVOS.map((vo: any) => mapOrderResultToAsset(vo, orderNo))
+  const key = String(orderNo ?? '').trim()
+  const idx = findAssetIndexByOrderNo(key)
+  const mappedList = orderResultVOS.map((vo: any) => mapOrderResultToAsset(vo, key))
   if (!mappedList.length) return
 
-  const firstItem = mappedList[0]
-  assets.value[idx] = {
-    ...oldItem,
-    ...firstItem,
-    status: 3,
-    progress: 100,
-  }
+  // 已完成：移除本地生成中占位
+  pendingLocalMap.delete(key)
 
-  if (mappedList.length > 1) {
-    const extraAssets = mappedList.slice(1).map((item, index) => ({
-      ...oldItem,
-      ...item,
-      id: String(item.id || `${orderNo}-${index + 1}`),
-      algoOrderId: String(item.algoOrderId || orderNo),
-      algoOrderNo: String(item.algoOrderNo || orderNo),
-      status: 3,
-      progress: 100,
-    }))
-    assets.value.splice(idx + 1, 0, ...extraAssets)
-  }
+  const shouldAutoFocus = autoFocusOrderNoSet.has(key)
+  const merged = mergeOrderResultsIntoList(
+    assets.value as any[],
+    key,
+    mappedList as any[],
+    {
+      preferInPlace: idx >= 0,
+      insertAtIfNotFound: (list) => (shouldAutoFocus ? 0 : list.length),
+    },
+  )
+  assets.value = dedupeCreationResultsPreserveOrder(merged.list as any)
 
-  currentIndex.value = idx
-  setTimeout(() => {
-    mainImageRef.value?.scrollToAsset?.(idx)
-  }, 0)
+  // 完成后保持“原位替换”：生成中在哪展示，结果就在哪展示。
+  // 但当“本次提交集合”全部完成时，自动回到顶部展示一次最终结果。
+  if (shouldAutoFocus) {
+    autoFocusOrderNoSet.delete(key)
+    if (autoFocusOrderNoSet.size === 0) {
+      currentIndex.value = 0
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          thumbnailRef.value?.scrollToTop?.()
+          thumbnailRef.value?.scrollToIndex?.(0)
+          thumbnailRef.value?.syncScroll?.(0)
+          mainImageRef.value?.scrollToAsset?.(0)
+          mainImageRef.value?.syncScroll?.(0)
+        })
+      })
+    }
+  }
+  // 一次完成态回填后，pending 已经结束；允许释放签名缓存，避免长期增长
+  // 注意：这里不删 appliedDoneSignatureByOrderNo，避免同一完成态在后续 watcher 触发时重复 apply。
 }
 
 // 把单条后端结果 VO 映射为前端 CreationResult
 const mapOrderResultToAsset = (vo: any, fallbackOrderNo: string): CreationResult => {
+  const key = String(fallbackOrderNo ?? '').trim()
+  const pendingMenuCode = key ? String((pendingLocalMap.get(key) as any)?.menuCode ?? '').trim() : ''
   return {
-    id: String(vo?.id ?? fallbackOrderNo),
-    algoOrderId: String(vo?.algoOrderId ?? fallbackOrderNo),
-    algoOrderNo: String(vo?.algoOrderNo ?? fallbackOrderNo),
+    id: String(vo?.id ?? key).trim(),
+    algoOrderId: String(vo?.algoOrderId ?? key).trim(),
+    algoOrderNo: String(vo?.algoOrderNo ?? key).trim(),
     algoUuId: vo?.algoUuId == null ? null : String(vo.algoUuId),
-    menuCode: String(vo?.menuCode ?? activeMenuCode.value ?? ''),
+    // queryDone 在部分场景不返回 menuCode：优先继承本地 pending 的分组，避免按当前 activeMenuCode 串模块
+    menuCode: String(vo?.menuCode ?? '').trim() || pendingMenuCode || '',
     thumbUrl: vo?.thumbUrl ?? null,
     url: vo?.url ?? null,
     originalUrl: vo?.originalUrl ?? null,
@@ -884,65 +955,69 @@ const mapOrderResultToAsset = (vo: any, fallbackOrderNo: string): CreationResult
 }
 
 // 查询单个 orderNo 的生成状态，并把结果回填到 assets
-const queryAlgoResultByOrderNo = async (orderNo: string) => {
-  try {
-    const res = await algoApi.query({ orderNo })
-    if (res.code !== '0000' || !res.data) return
-    const status = Number(res.data?.status ?? 0)
-    const orderResultVOS = Array.isArray(res.data?.orderResultVOS) ? res.data.orderResultVOS : []
-    const firstVO = orderResultVOS[0]
-    const mergedProgress = Number(res.data?.progress ?? firstVO?.progress ?? 0)
+// 轮询由 useAlgoPollingStore 统一负责，这里仅消费 store 的最新状态回填到 assets
+watch(
+  () => algoPollingStore.tasks,
+  (tasks) => {
+    if (!tasks) return
+    for (const [orderNo, s] of Object.entries(tasks)) {
+      const st = Number(s?.status ?? 0)
+      const doneListRaw = Array.isArray((s as any)?.orderResultVOS) ? ((s as any).orderResultVOS as any[]) : []
+      const doneList = doneListRaw.filter((vo: any) => {
+        const id = String(vo?.id ?? vo?.algoOrderId ?? vo?.algoOrderNo ?? '').trim()
+        const url = String(vo?.url ?? vo?.thumbUrl ?? '').trim()
+        return !!id || !!url
+      })
+      const hasDonePayload = doneList.length > 0
 
-    if (status === 2 || status === 1) {
-      updateAssetByOrderNo(orderNo, (oldItem) => ({
-        ...oldItem,
-        status: status === 1 ? 1 : 2,
-        progress: mergedProgress,
-        successfulCount: res.data?.successfulCount ?? firstVO?.successfulCount ?? oldItem.successfulCount,
-        failedCount: res.data?.failedCount ?? firstVO?.failedCount ?? oldItem.failedCount,
-      }))
-      return
-    }
-
-    if (status === 3) {
-      if (orderResultVOS.length) {
-        applyQueryDoneResult(orderNo, orderResultVOS)
-        // 生成结果就绪后再拉一次用户信息，与后端最终扣费/回写余额对齐
-        void refreshUserInfoIfLoggedIn()
-      } else {
-        updateAssetByOrderNo(orderNo, (oldItem) => ({
-          ...oldItem,
-          status: 4,
-          prompt: '生成完成但未返回结果',
-        }))
+      // 切 tab 时生成中占位来自 pendingLocalMap：这里也要同步更新，避免投影后进度归零/反复新增
+      const key = String(orderNo ?? '').trim()
+      const pending = key ? pendingLocalMap.get(key) : undefined
+      if (pending) {
+        // 兼容“status=3 但结果列表尚未返回”的窗口期：继续保持占位可见
+        const nextStatus = st === 3 && !hasDonePayload ? Number((pending as any).status ?? 2) || 2 : st
+        pendingLocalMap.set(key, {
+          ...(pending as any),
+          status: nextStatus,
+          progress: Math.max(Number((pending as any).progress ?? 0), Number((s as any)?.progress ?? 0)),
+          successfulCount: (s as any)?.successfulCount ?? (pending as any).successfulCount,
+          failedCount: (s as any)?.failedCount ?? (pending as any).failedCount,
+        } as any)
       }
-      stopQueryTimer(orderNo)
-      return
-    }
+      // 关键修复：
+      // 完成态回填不能依赖“当前 assets 里是否还能找到该 orderNo”。
+      // 并发/切换/重置时占位可能暂时不在当前列表，若只走 updateAssetByOrderNo 会导致“成功结果丢失，需刷新才出现”。
+      if (hasDonePayload) {
+        const doneSig = doneList
+          .map((vo: any) => String(vo?.id ?? vo?.algoOrderId ?? vo?.algoOrderNo ?? '').trim())
+          .filter(Boolean)
+          .join('|')
+        const prevSig = appliedDoneSignatureByOrderNo.get(key) || ''
+        if (doneSig && doneSig === prevSig) continue
+        applyQueryDoneResult(orderNo, doneList)
+        if (doneSig) appliedDoneSignatureByOrderNo.set(key, doneSig)
+        continue
+      }
+      // 非完成态：允许后续完成时重新回填
+      if (st !== 3) appliedDoneSignatureByOrderNo.delete(key)
 
-    if (status === 4) {
-      updateAssetByOrderNo(orderNo, (oldItem) => ({
-        ...oldItem,
-        status: 4,
-        prompt: '生成失败',
-      }))
-      stopQueryTimer(orderNo)
+      updateAssetByOrderNo(orderNo, (oldItem) => {
+        const st = Number(s?.status ?? oldItem.status ?? 0)
+        const next: any = {
+          ...oldItem,
+          status: st,
+          progress: Math.max(Number(oldItem.progress ?? 0), Number(s?.progress ?? 0)),
+          successfulCount: s?.successfulCount ?? oldItem.successfulCount,
+          failedCount: s?.failedCount ?? oldItem.failedCount,
+        }
+        // 失败：保持失败态文案
+        if (st === 4) next.prompt = oldItem.prompt || '生成失败'
+        return next
+      })
     }
-  } catch (error) {
-    console.error('[AiFashionStudio] query algo result failed:', error)
-  }
-}
-
-// 开启轮询：定期调用 queryAlgoResultByOrderNo
-const startQueryByOrderNo = async (orderNo: string) => {
-  if (!orderNo) return
-  stopQueryTimer(orderNo)
-  await queryAlgoResultByOrderNo(orderNo)
-  const timer = setInterval(() => {
-    queryAlgoResultByOrderNo(orderNo)
-  }, 5000)
-  queryTimerMap.set(orderNo, timer)
-}
+  },
+  { deep: true },
+)
 
 // ==================== ai服装设计：提交生成 ====================
 const handleAiFashionGenerate = async () => {
@@ -963,6 +1038,9 @@ const handleRealToSketchGenerate = async () => {
 const handleViewDetail = (index: number) => {
   const list = assets.value || []
   const item: any = list[index]
+  // “生成中/排队中”没有结果 id，不能进入详情（否则会把 orderNo 当成 id 去打详情接口）
+  const status = Number(item?.status)
+  if (status === 1 || status === 2) return
   if (!item?.id) return
 
   // 缓存列表数据，详情页可直接用来渲染 & 支持“上一张/下一张”
@@ -985,6 +1063,7 @@ const handleViewDetail = (index: number) => {
 const showTypeModal = ref(false)
 const activeTypeMenu = ref<LeftMenuKey>('aiFashion')
 const creationTypeOptionTree = ref<any[]>([])
+const creationTypeLoading = ref(false)
 
 const creationTypeSelectionByMenu = reactive<Record<Exclude<LeftMenuKey, 'aiFashion'>, Partial<CreationTypeSelection>>>({
   sketchToReal: {},
@@ -1004,6 +1083,7 @@ const fetchCreationTypeWords = async (menu: LeftMenuKey) => {
     creationTypeOptionTree.value = []
     return
   }
+  creationTypeLoading.value = true
   try {
     const res = await appApi.getInspirationWords({ functionCode, typeCode })
     if (String((res as any)?.code) === '0000' && Array.isArray(res?.data)) {
@@ -1014,6 +1094,8 @@ const fetchCreationTypeWords = async (menu: LeftMenuKey) => {
   } catch (error) {
     creationTypeOptionTree.value = []
     console.error('获取创作款型词典失败', error)
+  } finally {
+    creationTypeLoading.value = false
   }
 }
 
@@ -1394,6 +1476,45 @@ const resolveMenuCodeByLeftMenu = (menu: LeftMenuKey) => {
   return String(targetCode || '')
 }
 
+// 把任意层级 menuCode 归一化到一级菜单 code（用于 submit 的 functionCode -> 右侧 tabKey）
+const resolveTopMenuCodeByAnyCode = (targetCode: string) => {
+  const code = String(targetCode ?? '').trim()
+  if (!code) return ''
+  const isMatch = (node: any, c: string): boolean => {
+    if (!node) return false
+    if (String(node?.menuCode ?? '') === c) return true
+    const children = Array.isArray(node?.children) ? node.children : []
+    return children.some((n: any) => isMatch(n, c))
+  }
+  for (const top of allPlatformMenus.value || []) {
+    const topCode = String(top?.menuCode ?? '')
+    if (!topCode) continue
+    if (isMatch(top, code)) return topCode
+  }
+  // 菜单树未就绪/找不到：先返回原 code（后续菜单加载后会再归一化）
+  return code
+}
+
+// 菜单树加载后，把 pendingLocalMap 里已存在的占位 menuCode 归一化到一级菜单 key
+const normalizePendingLocalMenuCodes = () => {
+  if (!pendingLocalMap.size) return
+  const topTabKeySet = new Set<string>(
+    (rightContentTabs.value || [])
+      .map((t: any) => String(t?.key ?? '').trim())
+      .filter(Boolean),
+  )
+  for (const [k, v] of pendingLocalMap.entries()) {
+    const current = String((v as any)?.menuCode ?? '').trim()
+    if (!current) continue
+    // 已经是合法的一级 tabKey：不要改，避免“刚显示又被改掉从而被过滤”
+    if (topTabKeySet.has(current)) continue
+    const nextMenuCode = resolveTopMenuCodeByAnyCode(current)
+    if (nextMenuCode && nextMenuCode !== current) {
+      pendingLocalMap.set(k, { ...(v as any), menuCode: nextMenuCode })
+    }
+  }
+}
+// 同步激活菜单代码
 const syncActiveMenuCode = () => {
   activeMenuCode.value = resolveMenuCodeByLeftMenu(leftMenu.value)
 }
@@ -1667,17 +1788,29 @@ const loading = ref(false)
 const loadingMore = ref(false)
 
 const currentContentTab = ref<string>('favorites')
+// 首次进入后右侧列表已初始化；keep-alive 下切换 leftMenu 时才触发刷新，避免 onMounted 重复拉取
+const hasInitializedRightList = ref(false)
 
-// 根据左侧模块 key，兜底推导右侧 tabKey（确保默认能选中“服装设计”）
+// 根据左侧模块 key 推导右侧 tabKey：来源是哪个模块就选中哪个模块的一级菜单
 const deriveRightTabKeyFromLeftMenu = () => {
-  const moduleMenuCode = activeMenuCode.value
+  const moduleMenuCode = resolveMenuCodeByLeftMenu(leftMenu.value)
   const rightTabs = rightContentTabs.value
-  if (rightTabs.some((t) => t.key === moduleMenuCode)) return moduleMenuCode
+  return rightTabs.some((t) => t.key === moduleMenuCode) ? moduleMenuCode : ''
+}
 
-  // 如果 menuCode 映射不上，按 label 兜底匹配（右侧显示的是“一级菜单”+ 收藏）
-  const fallbackLabel = defaultRailLabelByKey[leftMenu.value]
-  const byLabel = rightTabs.find((t) => String(t.label ?? '').includes(fallbackLabel))
-  return byLabel?.key ?? ''
+// 进入面料创款时，右侧应优先展示“AI面料”分组
+const resolveFabricRightTabKey = () => {
+  const moduleMenuCode = resolveMenuCodeByLeftMenu('fabricCreative')
+  const rightTabs = rightContentTabs.value || []
+  if (rightTabs.some((t) => t.key === moduleMenuCode)) return moduleMenuCode
+  // 兜底：部分环境菜单 code 可能有历史差异，按“面料”文案匹配
+  const fallback = rightTabs.find((t: any) => {
+    const key = String(t?.key ?? '').trim()
+    if (!key || key === 'favorites') return false
+    const label = String(t?.label ?? '').trim()
+    return label.includes('面料')
+  })
+  return String(fallback?.key ?? '')
 }
 
 // 右侧 tab -> 列表查询参数
@@ -1697,6 +1830,16 @@ const deriveListQueryParams = (tabKey: string) => {
   return { collectStatus, fileType }
 }
 
+// 生成中占位的展示规则：只在「全部」和「对应一级菜单」里出现；「收藏」不出现
+const shouldShowPendingInTab = (tabKey: string, moduleMenuCode: string) => {
+  const t = String(tabKey ?? '').trim()
+  const m = String(moduleMenuCode ?? '').trim()
+  if (!m) return false
+  if (t === 'favorites') return false
+  if (t === '') return true // 全部
+  return t === m
+}
+
 // 把 queryAlgoResultPage 返回记录映射为前端 CreationResult（复用公共映射）
 const mapRecordToCreationResult = (r: any): CreationResult | null => {
   return mapRecordToCreationResultCommon(r, {
@@ -1704,17 +1847,51 @@ const mapRecordToCreationResult = (r: any): CreationResult | null => {
   })
 }
 
-const dedupeCreationResultsByIdPreserveOrder = (arr: CreationResult[]): CreationResult[] => {
+// 列表合并去重：
+// - 优先用结果 id（algoResulId）
+// - 若 id 缺失（提交后的本地“生成中”占位），退化用 algoOrderNo 去重
+// - 同 key 冲突时优先保留“信息更完整”的那条（有 id / 有 url）
+const dedupeCreationResultsPreserveOrder = (arr: CreationResult[]): CreationResult[] => {
   const map = new Map<string, CreationResult>()
-  for (const item of arr) {
-    const id = item?.id
-    if (!id) continue
-    if (!map.has(id)) map.set(id, item)
+  const keyOf = (item: CreationResult) => {
+    const id = String((item as any)?.id ?? '').trim()
+    if (id) return `id:${id}`
+    const orderNo = String((item as any)?.algoOrderNo ?? '').trim()
+    if (orderNo) return `order:${orderNo}`
+    return ''
+  }
+  const score = (item: CreationResult) => {
+    const id = String((item as any)?.id ?? '').trim()
+    const url = String((item as any)?.url ?? '').trim()
+    const thumb = String((item as any)?.thumbUrl ?? '').trim()
+    return (id ? 10 : 0) + (url ? 3 : 0) + (thumb ? 1 : 0)
+  }
+
+  for (let i = 0; i < arr.length; i++) {
+    const item = arr[i]
+    if (!item) continue
+    const key = keyOf(item) || `fallback:${i}` // 稳定兜底 key：同一次合并内固定
+    if (!map.has(key)) {
+      map.set(key, item)
+      continue
+    }
+    const existed = map.get(key) as CreationResult
+    if (score(item) > score(existed)) map.set(key, item)
   }
   return Array.from(map.values())
 }
 
-type FetchCreationsOpts = { clearList?: boolean }
+type FetchCreationsOpts = {
+  clearList?: boolean
+  /** 是否强制刷新「生成中」列表（orderResulGenerated） */
+  forceInProgress?: boolean
+}
+
+// 每个 tabKey 仅在“首次进入/首次拉取”时注入一次后端的 orderResulGenerated，
+// 避免下拉加载更多时把生成中记录越堆越多。
+const injectedInProgressByTab = new Map<string, boolean>()
+// 列表请求序号：只允许最新一次请求回填，避免切 tab 与提交并发时旧响应覆盖新状态
+let fetchCreationsRequestSeq = 0
 
 // 拉取“我的创作列表”（支持 reset=重置分页、并把新结果合并去重）
 const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
@@ -1728,12 +1905,14 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
     hasMoreData.value = false
     // 仅切换 tab 等需要「立刻换一批」时清空；从详情返回重挂载时不先清空，避免空状态闪烁
     if (opts?.clearList) {
+      // reset 直接清空当前列表；本地生成中占位由 pendingLocalMap 统一托管
       assets.value = []
       currentIndex.value = 0
     }
   }
 
   const tabKey = currentContentTab.value
+  const requestSeq = ++fetchCreationsRequestSeq
   const { collectStatus, fileType } = deriveListQueryParams(tabKey)
   const menuCode = deriveListMenuCode(tabKey)
   // menuCode 可能是空字符串（对应“全部”tab），此时依然要发起查询
@@ -1760,23 +1939,64 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
     const data: any = (res as any)?.data ?? {}
     const recordsRaw: any[] = Array.isArray(data?.list) ? data.list : []
 
-    const recordsMapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
-    // 进行中：后端会单独返回 orderResulGenerated，需要插入到列表最前面
-    const inProgressRaw: any[] = Array.isArray(data?.orderResulGenerated) ? data.orderResulGenerated : []
-    const inProgressMapped = inProgressRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    // 若期间又触发了新的列表请求（如切 tab/提交后刷新），丢弃当前旧响应，避免覆盖最新 UI
+    if (requestSeq !== fetchCreationsRequestSeq) return
+
+    let recordsMapped = recordsRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    // 进行中：后端会单独返回 orderResulGenerated
+    // - 仅在 reset（第一页刷新）时按需注入兜底（首次进入/切 tab/手动刷新）
+    // - loadMore（下拉分页）时绝不注入，避免生成中内容重复堆叠
+    // - 若本地已存在生成中占位（submit 插入），则无需再从后端兜底注入
+    const hasLocalInProgress =
+      reset &&
+      Array.from(pendingLocalMap.values()).some((a: any) => {
+        const st = Number(a?.status ?? 0)
+        if (st !== 1 && st !== 2 && st !== 0) return false
+        return shouldShowPendingInTab(tabKey, String(a?.menuCode ?? ''))
+      })
+    const shouldInjectInProgress =
+      reset &&
+      !hasLocalInProgress &&
+      (opts?.forceInProgress === true || injectedInProgressByTab.get(tabKey) !== true)
+    const inProgressRaw: any[] = shouldInjectInProgress && Array.isArray(data?.orderResulGenerated)
+      ? data.orderResulGenerated
+      : []
+    let inProgressMapped = inProgressRaw.map(mapRecordToCreationResult).filter(Boolean) as CreationResult[]
+    if (shouldInjectInProgress) injectedInProgressByTab.set(tabKey, true)
+
+    // 收藏：不展示生成中（无论后端是否返回）
+    if (tabKey === 'favorites') {
+      const notGenerating = (a: any) => {
+        const st = Number(a?.status ?? 0)
+        return st !== 0 && st !== 1 && st !== 2
+      }
+      recordsMapped = recordsMapped.filter(notGenerating)
+      inProgressMapped = []
+    }
 
     if (reset) {
-      // 首次/重置：inProgress + 当前页 records
-      assets.value = dedupeCreationResultsByIdPreserveOrder([...inProgressMapped, ...recordsMapped])
+      // 首次/重置：本地 pending（按 tab 规则投影） + 后端 inProgress + 当前页 records
+      const localPending = Array.from(pendingLocalMap.values()).filter((a: any) => {
+        const st = Number(a?.status ?? 0)
+        const orderNo = String(a?.algoOrderNo ?? '').trim()
+        const hasOrderNo = !!orderNo
+        if (!hasOrderNo) return false
+        if (st !== 1 && st !== 2 && st !== 0) return false
+        return shouldShowPendingInTab(tabKey, String(a?.menuCode ?? ''))
+      }) as CreationResult[]
+      // reset 不应该把旧列表再拼回去（否则顺序会乱，变成“新页插到前面”）
+      assets.value = dedupeCreationResultsPreserveOrder([...localPending, ...inProgressMapped, ...recordsMapped])
     } else {
-      // 加载更多：保持当前选中项不跳动，同时把 inProgress 提到最前
+      // 加载更多：只追加 records（不再注入 inProgress），保持当前选中项不跳动
       const selectedId = assets.value[currentIndex.value]?.id
-      assets.value = dedupeCreationResultsByIdPreserveOrder([...inProgressMapped, ...assets.value, ...recordsMapped])
+      assets.value = dedupeCreationResultsPreserveOrder([...assets.value, ...recordsMapped])
       if (selectedId) {
         const nextIdx = assets.value.findIndex((a) => a?.id === selectedId)
         currentIndex.value = nextIdx >= 0 ? nextIdx : 0
       }
     }
+
+    // 不在这里强制置顶：避免用户下滚查看时被轮询/刷新“拉回顶部”
 
     // 如果列表里已经包含“进行中”记录（orderResulGenerated），需要补上轮询，
     // 以便后端返回 status=3 后自动刷新 UI。
@@ -1785,10 +2005,10 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
       return st === 1 || st === 2
     })
     for (const a of inProgressAssets) {
-      const key = String(a?.algoOrderNo ?? a?.algoOrderId ?? a?.id ?? '')
+      // 注意：轮询接口 query({ orderNo }) 需要传“订单号”，列表字段为 algoOrderNo
+      const key = String(a?.algoOrderNo ?? '')
       if (!key) continue
-      if (queryTimerMap.has(key)) continue
-      void startQueryByOrderNo(key)
+      void algoPollingStore.start(key)
     }
 
     // 有更多数据判断：后端 hasNext 直接决定是否还有下一页
@@ -1882,11 +2102,13 @@ const handleThumbnailClick = (idx: number) => {
 
 // 主图滚动：同步缩略图列表滚动位置
 const handleScrollChange = (scrollPercentage: number) => {
+  lastMainScrollPercentage.value = Number(scrollPercentage ?? 0) || 0
   thumbnailRef.value?.syncScroll?.(scrollPercentage)
 }
 
 // 缩略图滚动：同步主图滚动位置
 const handleScrollSync = (scrollPercentage: number) => {
+  lastMainScrollPercentage.value = Number(scrollPercentage ?? 0) || 0
   mainImageRef.value?.syncScroll?.(scrollPercentage)
 }
 
@@ -2036,16 +2258,27 @@ const handleDropFile = async (payload: any) => {
   // 1) 本地文件拖拽：{ file, type, position }
   // 2) 我的创作拖拽：{ url, taskResultId, type, position, fileType }
   if (payload?.file) {
+    if (refImageUploading.value) {
+      ElMessage.info('图片上传中…')
+      return
+    }
+    refImageUploading.value = true
     const file: File = payload.file
-    const uploadResult = await uploadApi.uploadImage(file, {
-      showLoading: true,
-      showMessage: true,
-    })
-    if (!uploadResult.success || !uploadResult.url) {
+    let uploadResult: any
+    try {
+      uploadResult = await uploadApi.uploadImage(file, {
+        showLoading: true,
+        showMessage: true,
+      })
+    } finally {
+      refImageUploading.value = false
+    }
+    if (!uploadResult?.success || !uploadResult?.url) {
       ElMessage.error('图片上传失败，请重试')
       return
     }
     const fileUrl = String(uploadResult.url).trim()
+    if (!fileUrl) return
 
     if (leftMenu.value === 'aiFashion') {
       const parsedIdx = parseAiFashionSlotIndex(payload.position)
@@ -2294,7 +2527,7 @@ onMounted(async () => {
   }
 
   await fetchSysPlatformMenu()
-  await syncActiveMenuCode()
+  syncActiveMenuCode()
 
   // 初始化右侧 tab：左侧当前模块对应的一级菜单；否则默认“全部”
   const moduleMenuCode = activeMenuCode.value
@@ -2309,6 +2542,7 @@ onMounted(async () => {
     })
   }
   void fetchMyCreations(true)
+  hasInitializedRightList.value = true
 
   setTimeout(() => {
     // 这里同样传二级菜单 code
@@ -2317,18 +2551,29 @@ onMounted(async () => {
 })
 
 onActivated(() => {
+  // 返回工作台时只刷新用户信息，不再强制根据初始 route.mode 覆盖用户当前选择的模块
   refreshUserInfoIfLoggedIn()
 })
 
 onBeforeUnmount(() => {
-  queryTimerMap.forEach((timer) => clearInterval(timer))
-  queryTimerMap.clear()
+  algoPollingStore.stopAll()
 })
 
 watch(
   () => leftMenu.value,
   (menu) => {
     syncActiveMenuCode()
+    // 从入口或路由切到“面料创款”时，右侧 tab 需要对齐到 AI面料
+    if (menu === 'fabricCreative') {
+      const fabricTabKey = resolveFabricRightTabKey()
+      if (fabricTabKey && currentContentTab.value !== fabricTabKey) {
+        currentContentTab.value = fabricTabKey
+        if (hasInitializedRightList.value) {
+          void fetchMyCreations(true, { clearList: true })
+        }
+      }
+    }
+    // 左侧切换仅影响“提交面板/参数”，不联动刷新右侧列表
     fetchInspirationWords(menu)
     if (menu === 'fabricCreative') void fetchFabricImageTypeOptionTree()
     // 线稿转实物：进入模块时单独拉一次左侧三组选项（避免每次点“灵感词词库”都重复请求）

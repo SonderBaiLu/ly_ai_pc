@@ -4,7 +4,6 @@
     <template #header>
       <div class="modal-header">
         <div class="header-left">
-          <img class="header-icon" :src="images.designFeatures" alt="" />
           <div class="header-title-wrap">
             <span class="header-title">设计特征</span>
             <span class="header-sub">（多选模式）</span>
@@ -16,9 +15,11 @@
 
     <div class="modal-body">
       <aside class="left-rail">
-        <button v-for="(c, index) in categories" :key="c.key" type="button" class="category-item"
+        <button v-for="c in categories" :key="c.key" type="button" class="category-item"
           :class="{ active: activeCategoryKey === c.key }" @click="activeCategoryKey = c.key">
-          <img :src="getCategoryIcon(index, c.key)" :alt="c.label" class="category-icon" />
+          <img v-if="(c.key === activeCategoryKey ? c.functionIconSelected : c.functionIcon)"
+            :src="c.key === activeCategoryKey ? c.functionIconSelected || '' : c.functionIcon || ''" :alt="c.label"
+            class="category-icon" />
           <span class="category-text">{{ c.label }}</span>
         </button>
       </aside>
@@ -54,35 +55,9 @@ type FeatureCategory = {
   key: string
   label: string
   options: string[]
-}
-
-const categoryIconKeys = [
-  'designFeatures1',
-  'designFeatures2',
-  'designFeatures3',
-  'designFeatures4',
-  'designFeatures5',
-  'designFeatures6',
-  'designFeatures7',
-  'designFeatures8',
-  'designFeatures9',
-  'designFeatures10',
-] as const
-
-const activeCategoryIconKeys = [
-  'designActive1',
-  'designActive2',
-  'designActive3',
-  'designActive4',
-  'designActive5',
-  'designActive6',
-  'designActive7',
-  'designActive8',
-  'designActive9',
-  'designActive10',
-] as const
-const getCategoryIcon = (index: number, categoryKey: string) => {
-  return categoryKey === activeCategoryKey.value ? images[activeCategoryIconKeys[index] as keyof typeof images] : images[categoryIconKeys[index] as keyof typeof images]
+  /** 接口下发图标（未选中/选中） */
+  functionIcon?: string | null
+  functionIconSelected?: string | null
 }
 
 const props = withDefaults(
@@ -108,57 +83,22 @@ const visible = computed({
   set: (v: boolean) => emit('update:modelValue', v),
 })
 
-// 默认配置：当外部未下发接口数据时兜底展示
-const defaultCategories: FeatureCategory[] = [
-  {
-    key: 'silhouette',
-    label: '廓形',
-    options: [
-      'A型',
-      'H型',
-      'O型',
-      'X型',
-      'S型',
-      'T型',
-      'V型',
-      '宽松',
-      '修身',
-      '紧身',
-      '收腰型',
-      '短款',
-      '常规款',
-      '长款',
-      '超长款',
-      '茧型',
-      '超大廓形',
-      '箱型',
-      '挂脖',
-      '解构',
-    ],
-  },
-  { key: 'color', label: '色彩', options: [] },
-  { key: 'fabric', label: '面料', options: [] },
-  { key: 'material', label: '材质性能', options: [] },
-  { key: 'detail', label: '设计细节', options: [] },
-  { key: 'craft', label: '服装工艺', options: [] },
-  { key: 'style', label: '穿搭风格', options: [] },
-  { key: 'visual', label: '视觉艺术', options: [] },
-  { key: 'scene', label: '场景', options: [] },
-]
-
 const categories = computed<FeatureCategory[]>(() => {
-  return Array.isArray(props.categories) && props.categories.length ? props.categories : defaultCategories
+  // 只使用接口下发；不做本地兜底
+  return Array.isArray(props.categories) ? props.categories : []
 })
 
-const activeCategoryKey = ref(categories.value[0]?.key || 'silhouette')
+const activeCategoryKey = ref(categories.value[0]?.key || '')
 
 watch(
   categories,
   (list) => {
-    const next = list[0]?.key || 'silhouette'
-    if (!list.some((x) => x.key === activeCategoryKey.value)) {
-      activeCategoryKey.value = next
+    const next = list[0]?.key || ''
+    if (!list.length) {
+      activeCategoryKey.value = ''
+      return
     }
+    if (!list.some((x) => x.key === activeCategoryKey.value)) activeCategoryKey.value = next
   },
   { immediate: true, deep: true }
 )

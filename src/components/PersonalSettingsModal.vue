@@ -11,7 +11,8 @@
     <!-- 基本信息部分 -->
     <div class="section-header">
       <span class="section-title">{{ t('personalSettings.basicInfo') }}</span>
-      <el-button class="write-off-btn" type="default" size="small" @click="goToWriteOff">
+      <el-button class="write-off-btn" type="default" size="small" @click="goToWriteOff"
+        v-if="userStore.userInfo.mainAccount">
         {{ t('personalSettings.writeOff') }}
       </el-button>
     </div>
@@ -31,7 +32,7 @@
     <!-- 账号名 -->
     <div class="form-item flex-between">
       <div class="form-label">{{ t('personalSettings.accountName') }}<span class="account-name">{{ editingData.userName
-          }}</span></div>
+      }}</span></div>
       <!--密码修改-->
       <el-button type="primary" size="small" @click="updatePwd()" class="password-edit-btn">
         {{ hasPassword ?

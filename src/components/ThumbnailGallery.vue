@@ -3,15 +3,23 @@
     <!-- 缩略图列表 -->
     <div ref="thumbnailListRef" class="thumbnail-list">
       <div v-for="(asset, index) in assets"
-        :key="asset.id || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`" class="thumbnail-item" :class="[
+        :key="asset.id || (asset as any).algoOrderNo || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`" class="thumbnail-item" :class="[
           { active: index === currentIndex },
           { generating: asset.status === 0 || asset.status === 1 || asset.status === 2 },
           { failed: asset.status === 4 },
         ]" :draggable="!isVideo(asset)" @click="selectThumbnail(index)" @dragstart="handleDragStart(asset, $event)">
         <!-- 生成中状态 -->
         <div v-if="asset.status === 0 || asset.status === 1 || asset.status === 2" class="thumbnail-generating">
-          <LoadingSpinner :size="16" :thickness="2" :arc-ratio="0.24" />
-          <span class="generating-text">生成中...</span>
+          <div class="thumb-gen-main">
+            <LoadingSpinner :size="16" :thickness="2" :arc-ratio="0.24" />
+            <span class="generating-text">生成中...</span>
+          </div>
+          <div class="thumbnail-progress-row">
+            <div class="thumbnail-progress-track" aria-hidden="true">
+              <div class="thumbnail-progress-fill" :style="{ width: `${thumbProgressPercent(asset)}%` }" />
+            </div>
+            <span class="thumbnail-progress-label">{{ thumbProgressPercent(asset) }}%</span>
+          </div>
         </div>
 
         <!-- 生成失败状态 -->
@@ -77,6 +85,13 @@ const fileTypeBadgeText = (asset: CreationResult) => {
 
 const getImagePoster = (asset: CreationResult) => {
   return (asset as any).thumbUrl || ''
+}
+
+/** 缩略图进度条：与主区域一致，0–100 整数 */
+const thumbProgressPercent = (asset: CreationResult) => {
+  const p = Number((asset as any).progress ?? 0)
+  if (!Number.isFinite(p)) return 0
+  return Math.min(100, Math.max(0, Math.floor(p)))
 }
 
 // 标志位：防止循环滚动
@@ -308,19 +323,63 @@ defineExpose({
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 4px 4px 5px;
+  box-sizing: border-box;
   overflow: hidden;
   border-radius: 8px;
   background: url('@/assets/images/generating_80.gif') no-repeat center center;
   background-size: 100% 100%;
+
+  .thumb-gen-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
 
   .generating-text {
     font-size: 10px;
     line-height: 1;
     color: #96ddff;
     white-space: nowrap;
+  }
+
+  .thumbnail-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .thumbnail-progress-track {
+    flex: 1;
+    min-width: 0;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+  }
+
+  .thumbnail-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: radial-gradient(0.5% 0.5% at 50% 50%, rgba(23, 160, 225, 1) 0%, rgba(112, 197, 237, 1) 100%);
+    transition: width 0.25s ease-out;
+  }
+
+  .thumbnail-progress-label {
+    flex-shrink: 0;
+    font-size: 9px;
+    line-height: 1;
+    color: #96ddff;
+    font-variant-numeric: tabular-nums;
+    min-width: 22px;
+    text-align: right;
   }
 }
 

@@ -8,6 +8,7 @@
           上传实物图<span class="required-mark">（必传）</span>
         </div>
         <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="real" :show-actions="!!imageUrl"
+          :show-loading="!!props.uploading"
           :clickable="true" placeholder-text="上传或拖拽1张图片" :show-history-tip="true" :history-max-count="1"
           @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)"
           @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)" />
@@ -64,6 +65,8 @@ const props = defineProps<{
   paramCategories?: any[]
   defaultImageParams?: string[]
   submitting?: boolean
+  /** 参考图上传中：禁用上传/替换，防止重复触发 */
+  uploading?: boolean
 }>()
 
 watch(

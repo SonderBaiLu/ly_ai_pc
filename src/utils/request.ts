@@ -208,6 +208,12 @@ const handleAuthExpired = (msg?: string) => {
 
 const SERVER_ERROR_TOAST = '网络开小差了，请稍后重试~'
 
+const isAuthExpiredBiz = (code: string, _msg: string) => {
+  const c = String(code ?? '').trim()
+  if (c === '102') return true
+  return false
+}
+
 // 响应拦截器：统一返回 ApiResponse（仅支持新结构），并处理登录过期/102
 ;(request.interceptors.response as any).use(
   (response: any) => {
@@ -222,11 +228,16 @@ const SERVER_ERROR_TOAST = '网络开小差了，请稍后重试~'
     }
 
     const code = String((data as any).code ?? '')
+    const msg = String((data as any).msg ?? '')
 
-    // 业务码由调用方根据 res.code 处理；此处仅在 HTTP 成功且 body 结构合法时 resolve
-    if (code === '102') {
-      handleAuthExpired()
-      handleAuthExpired('该账号已被管理员停用或删除，请联系管理员')
+    // 登录态失效：不要把这次响应继续下发给页面，避免“token无效/未登录”等重复 toast
+    if (isAuthExpiredBiz(code, msg)) {
+      handleAuthExpired('登录状态已失效，请重新登录')
+      const authError: any = new Error('AUTH_EXPIRED')
+      authError.__AUTH_EXPIRED__ = true
+      authError.code = code || '102'
+      authError.msg = msg
+      return Promise.reject(authError)
     }
 
     return data as any
@@ -240,7 +251,6 @@ const SERVER_ERROR_TOAST = '网络开小差了，请稍后重试~'
       if ((error.config as any)?.noAuthRedirect) {
         return Promise.reject(error)
       }
-      handleAuthExpired()
       handleAuthExpired('登录状态已失效，请重新登录')
       const authError: any = error
       authError.__AUTH_EXPIRED__ = true

@@ -12,6 +12,7 @@
             @click="emit('open-type-modal')">选择款型</el-button>
         </div>
         <ImageUploadArea v-model:image-url="imageUrl" image-type="main" image-name="fabric" :show-actions="!!imageUrl"
+          :show-loading="!!props.uploading"
           :clickable="true" :history-max-count="1" placeholder-text="上传或拖拽1张图片" :show-history-tip="true"
           @upload="emit('coming-soon')" @replace="emit('coming-soon')" @delete="(p: any) => emit('delete', p)"
           @show-history="(p: any) => emit('show-history', p)" @drop-file="(p: File) => emit('drop-file', p)" />
@@ -91,6 +92,8 @@ const props = defineProps<{
   defaultImageParams?: string[]
   /** 父级提交生成中（与 index loading 同步） */
   submitting?: boolean
+  /** 参考图上传中：禁用上传/替换，防止重复触发 */
+  uploading?: boolean
 }>()
 
 // 监听inspirationWords变化

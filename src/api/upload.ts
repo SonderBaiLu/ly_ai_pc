@@ -107,6 +107,10 @@ export const uploadApi = {
       }
 
       console.error('图片上传失败:', error)
+      // 登录态失效：由全局拦截器统一提示/跳转，这里不再重复弹“网络错误/未登录”
+      if ((error as any)?.__AUTH_EXPIRED__) {
+        return { success: false, message: 'AUTH_EXPIRED' }
+      }
       const failMsg = pickErrorMsg(error)
       if (showMessage) {
         ElMessage.error(failMsg || '网络开小差了，请稍后重试~')
@@ -183,6 +187,10 @@ export const uploadApi = {
       }
 
       console.error('视频上传失败:', error)
+      // 登录态失效：由全局拦截器统一提示/跳转，这里不再重复弹“网络错误/未登录”
+      if ((error as any)?.__AUTH_EXPIRED__) {
+        return { success: false, message: 'AUTH_EXPIRED' }
+      }
       const failMsg = pickErrorMsg(error)
       if (showMessage) {
         ElMessage.error(failMsg || '网络开小差了，请稍后重试~')
@@ -248,6 +256,10 @@ export const uploadApi = {
       }
 
       console.error('文件上传失败:', error)
+      // 登录态失效：由全局拦截器统一提示/跳转，这里不再重复弹“网络错误/未登录”
+      if ((error as any)?.__AUTH_EXPIRED__) {
+        return { success: false, message: 'AUTH_EXPIRED' }
+      }
       const failMsg = pickErrorMsg(error)
       if (showMessage) {
         ElMessage.error(failMsg || '网络开小差了，请稍后重试~')
