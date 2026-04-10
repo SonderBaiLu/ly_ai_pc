@@ -15,6 +15,15 @@ type PollState = {
   orderResultVOS?: any[]
 }
 
+type PollMeta = {
+  /** 触发提交时的功能 menuCode（用于列表侧插入“生成中”占位分组） */
+  menuCode?: string
+  /** 触发提交时的描述/提示词（用于占位文案兜底展示） */
+  prompt?: string
+  /** 提交时间（可用于调试/排序） */
+  createTime?: string
+}
+
 // 内部：全局唯一轮询控制（不放到 store state，避免序列化/热更新污染）
 const inFlightPromiseMap = new Map<string, Promise<PollState | null>>()
 const timerMap = new Map<string, number>()
@@ -27,10 +36,27 @@ export const useAlgoPollingStore = defineStore('algoPolling', {
   state: () => ({
     /** key=algoOrderNo，value=最新轮询状态 */
     tasks: {} as Record<string, PollState>,
+    /** key=algoOrderNo，value=提交侧的元信息（用于跨页面插入“生成中”占位） */
+    meta: {} as Record<string, PollMeta>,
+    /** 列表刷新信号：提交/再次生成后递增，用于工作台 onActivated 触发强制刷新第一页 */
+    listDirtyToken: 0,
   }),
   actions: {
     get(orderNo: string) {
       return this.tasks[orderNo]
+    },
+    getMeta(orderNoRaw: string) {
+      const orderNo = normalizeOrderNo(orderNoRaw)
+      return orderNo ? this.meta[orderNo] : undefined
+    },
+    setMeta(orderNoRaw: string, meta: PollMeta) {
+      const orderNo = normalizeOrderNo(orderNoRaw)
+      if (!orderNo) return
+      const prev = this.meta[orderNo] || {}
+      this.meta[orderNo] = { ...prev, ...(meta || {}) }
+    },
+    markListDirty() {
+      this.listDirtyToken += 1
     },
     stop(orderNoRaw: string) {
       const orderNo = normalizeOrderNo(orderNoRaw)

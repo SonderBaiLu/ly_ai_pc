@@ -5,11 +5,12 @@ import { userApi } from '@/api/user'
 type UseOfficialMessagesDeps = {
   userStore: any
   router: any
+  templateStore?: { clearTemplateListData?: () => void }
   warn: (message: string) => void
 }
 
 export function useOfficialMessages(deps: UseOfficialMessagesDeps) {
-  const { userStore, router, warn } = deps
+  const { userStore, router, warn, templateStore } = deps
 
   // 原始消息数据（后端分页累计结果）
   const officialMessages = ref<any[]>([])
@@ -145,8 +146,20 @@ export function useOfficialMessages(deps: UseOfficialMessagesDeps) {
       return
     }
 
-    // 从消息进入详情时使用 replace，避免连续查看多个详情导致返回栈过长
-    void router.replace({
+    // 从消息进入详情，应当“单条查看”：
+    // 清理从列表进入详情时缓存的上下文（上一张/下一张），避免在详情页内跳转时错用旧列表数据。
+    try {
+      templateStore?.clearTemplateListData?.()
+    } catch {
+      // ignore
+    }
+
+    // 主流体验：
+    // - 如果当前不在详情页：用 push，保证“返回”能回到来源页（如 /ai-design）
+    // - 如果已经在详情页连续点多条：用 replace，避免返回栈过长
+    const currentName = (router?.currentRoute?.value as any)?.name
+    const nav = currentName === 'CreativeDetail' ? router.replace : router.push
+    void nav.call(router, {
       name: 'CreativeDetail',
       params: { id: businessId },
     })

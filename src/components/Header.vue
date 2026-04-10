@@ -14,6 +14,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
+import { useTemplateStore } from '@/stores/template'
 import { userLanguageToI18nLocale } from '@/i18n'
 import { appApi } from '@/api/app'
 import { images } from '@/assets'
@@ -62,6 +63,7 @@ const showInspirationValueModal = ref(false)
 
 // 用户信息
 const userStore = useUserStore()
+const templateStore = useTemplateStore()
 const {
   officialMsgTab,
   officialMsgLoading,
@@ -79,6 +81,7 @@ const {
 } = useOfficialMessages({
   userStore,
   router,
+  templateStore,
   warn: (message: string) => ElMessage.warning(message),
 })
 // 官方消息弹窗显示

@@ -788,6 +788,8 @@ const lastMainScrollPercentage = ref(0)
 const autoFocusOrderNoSet = reactive(new Set<string>())
 // 完成态回填去重：避免同一 orderNo 的同一批结果被 watcher 反复 apply，导致列表顺序/可见性异常
 const appliedDoneSignatureByOrderNo = reactive(new Map<string, string>())
+// 从详情页返回：根据 algoPollingStore.listDirtyToken 判断是否需要强制刷新第一页
+const lastSeenListDirtyToken = ref<number>(Number((algoPollingStore as any)?.listDirtyToken ?? 0))
 // 本地生成中占位：不挂在 assets 上，避免切 tab/reset 时被过滤丢失
 const pendingLocalMap = reactive(new Map<string, CreationResult>())
 
@@ -980,6 +982,7 @@ watch(
     if (!tasks) return
     for (const [orderNo, s] of Object.entries(tasks)) {
       const st = Number(s?.status ?? 0)
+      const key = String(orderNo ?? '').trim()
       const doneListRaw = Array.isArray((s as any)?.orderResultVOS) ? ((s as any).orderResultVOS as any[]) : []
       // 仅认“可展示结果”（有 id 或有 url），避免 status 变化但空 payload 触发误回填
       const doneList = doneListRaw.filter((vo: any) => {
@@ -990,7 +993,6 @@ watch(
       const hasDonePayload = doneList.length > 0
 
       // 切 tab 时生成中占位来自 pendingLocalMap：这里也要同步更新，避免投影后进度归零/反复新增
-      const key = String(orderNo ?? '').trim()
       const pending = key ? pendingLocalMap.get(key) : undefined
       if (pending) {
         // 兼容“status=3 但结果列表尚未返回”的窗口期：继续保持占位可见
@@ -1064,18 +1066,21 @@ const handleViewDetail = (index: number) => {
   if (!item?.id) return
 
   // 缓存列表数据，详情页可直接用来渲染 & 支持“上一张/下一张”
+  // 注意：从「全部」tab 进入时，item 可能来自其它模块；这里必须用 item.menuCode 归一到一级 modeCode，
+  // 否则详情页会按错误模块去拉“相关列表”，导致缩略图/上一张下一张对不上。
+  const detailModeCode = resolveTopMenuCodeByAnyCode(String(item?.menuCode ?? '').trim() || activeMenuCode.value)
   templateStore.setTemplateListData({
     list,
     currentIndex: index,
     // 记录当前模块“一级菜单” code，详情页按模块动态展示
-    modeCode: activeMenuCode.value,
+    modeCode: detailModeCode,
   })
 
   router.push({
     name: 'CreativeDetail',
     params: { id: String(item.id) },
     // 路由也携带一级菜单 code，方便详情页按模块还原 UI
-    query: { modeCode: activeMenuCode.value },
+    query: { modeCode: detailModeCode },
   })
 }
 
@@ -2139,7 +2144,9 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
 // 右侧 tab 切换：重置列表并重新加载
 const handleContentTabChange = (tabKey: string, _fileType?: number) => {
   currentContentTab.value = tabKey === 'favorites' ? 'favorites' : String(tabKey)
-  void fetchMyCreations(true, { clearList: true })
+  // 切 tab 属于“第一页刷新”场景：必须强制注入后端 orderResulGenerated，
+  // 否则 injectedInProgressByTab 的“只注入一次”会导致切来切去生成中消失。
+  void fetchMyCreations(true, { clearList: true, forceInProgress: true })
 }
 
 // 无限滚动加载更多：分页 +1 并继续追加到 assets
@@ -2606,6 +2613,16 @@ onMounted(async () => {
 onActivated(() => {
   // 返回工作台时只刷新用户信息，不再强制根据初始 route.mode 覆盖用户当前选择的模块
   refreshUserInfoIfLoggedIn()
+
+  // 从详情页返回时：若期间发生“再次生成/提交”等会影响生成中列表的动作，
+  // 强制刷新第一页并注入后端 orderResulGenerated，保证生成中立刻可见且分组正确。
+  if (hasInitializedRightList.value) {
+    const dirty = Number((algoPollingStore as any)?.listDirtyToken ?? 0)
+    if (dirty > 0 && dirty !== lastSeenListDirtyToken.value) {
+      lastSeenListDirtyToken.value = dirty
+      void fetchMyCreations(true, { clearList: true, forceInProgress: true })
+    }
+  }
 })
 
 onBeforeUnmount(() => {

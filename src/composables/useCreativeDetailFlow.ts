@@ -290,12 +290,15 @@ export function useCreativeDetailFlow(ctx: FlowCtx) {
       const resp = await algoApi.submit(payload as any)
       if ((resp as any)?.code !== '0000') return ElMessage.error((resp as any)?.msg || '再次生成提交失败')
       const data = (resp as any)?.data
-      const orderNo = String(
-        (typeof data === 'string' || typeof data === 'number'
-          ? data
-          : data?.algoOrderNo ?? data?.algoOrderId ?? '') || '',
-      )
+      const orderNo = String(data?.orderNo ?? '')
       if (!orderNo) return ElMessage.warning('提交成功，但未返回任务编号')
+
+      // 标记列表需要刷新：回到工作台时会强制刷新第一页并注入后端 orderResulGenerated
+      try {
+        ;(algoPollingStore as any)?.markListDirty?.()
+      } catch {
+        // ignore
+      }
 
       // 只要提交成功就刷新一次个人信息（扣点/会员状态可能已变化）
       await ctx.userStore.getUserInfo().catch((e: any) => {
