@@ -3,7 +3,7 @@
     <div class="app" :class="{ dark: isDark }">
       <router-view v-slot="{ Component }">
         <keep-alive :include="['AiFashionStudio']">
-          <component :is="Component" />
+          <component :is="Component" :key="`${route.fullPath}::${userStore.sessionVersion}`" />
         </keep-alive>
       </router-view>
 
@@ -28,6 +28,8 @@
 <script setup lang="ts">
 import { ElConfigProvider } from 'element-plus'
 import { useModalStore } from '@/stores/modal'
+import { useUserStore } from '@/stores/user'
+import { useRoute } from 'vue-router'
 
 // 配置 Element Plus 暗黑主题
 const isDark = ref(true)
@@ -36,6 +38,8 @@ const size = 'default'
 
 // 全局弹窗状态
 const modalStore = useModalStore()
+const userStore = useUserStore()
+const route = useRoute()
 
 // Element Plus 暗黑主题开关：需要给 html 加/删 dark 类（popper 等挂载到 body 才会跟着变）
 watchEffect(() => {

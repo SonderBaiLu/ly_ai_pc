@@ -37,6 +37,8 @@ export const useUserStore = defineStore('user', {
     // 初始化时尝试从 localStorage 读取，防止刷新页面后丢失登录状态
     token: localStorage.getItem('token') || '',
     userInfo: JSON.parse(localStorage.getItem('userInfo') || 'null'),
+    // 会话版本：logout 时递增，用于让 keep-alive 缓存整体失效重建
+    sessionVersion: 0,
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
@@ -155,6 +157,7 @@ export const useUserStore = defineStore('user', {
         // 无论接口是否成功，都先清理本地登录态，保证 UI 立即切回未登录
         this.setToken('')
         this.setUserInfo(null)
+        this.sessionVersion += 1
         await router.push('/')
       }
     }

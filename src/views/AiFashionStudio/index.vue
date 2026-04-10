@@ -446,12 +446,31 @@ const buildFabricImageTypeParamsByOutputType = (outputType: string, tree: any[])
     return null
   }
 
+  const toLeafOnlyParam = (resolved: { pathValues: string[]; pathNodeIds: string[] }) => {
+    const values = Array.isArray(resolved?.pathValues) ? resolved.pathValues : []
+    const ids = Array.isArray(resolved?.pathNodeIds) ? resolved.pathNodeIds : []
+    if (!values.length) return []
+    const lastIdx = values.length - 1
+    return [{
+      id: String(ids[lastIdx] ?? ''),
+      configType: 'class',
+      prentId: String(lastIdx > 0 ? (ids[lastIdx - 1] ?? '') : ''),
+      content: String(values[lastIdx] ?? ''),
+    }].filter((x) => x.content)
+  }
+
   const resolved = Array.isArray(tree) && tree.length ? dfs(tree, [], []) : null
-  if (resolved?.pathValues?.length) return buildCreationStyleParams(resolved)
+  // 仅提交命中的“生成图片类型”叶子项（不带父级）
+  if (resolved?.pathValues?.length) return toLeafOnlyParam(resolved)
 
   // 兜底：未知树结构时，仅把叶子 content 传给后端（id/prentId 为空）
   const leafContent = getFabricImageLeafContentByOutputType(outputType)
-  return buildCreationStyleParams({ pathValues: [leafContent], pathNodeIds: [''] })
+  return [{
+    id: '',
+    configType: 'class',
+    prentId: '',
+    content: leafContent,
+  }]
 }
 
 /** 线稿转实物：左侧三组单选 → sketchTypeParams / sketchStyleParams / imageTypeParams（与详情页字段一致） */
@@ -2617,6 +2636,7 @@ watch(
   },
   { immediate: true }
 )
+
 </script>
 
 <style scoped lang="scss">
