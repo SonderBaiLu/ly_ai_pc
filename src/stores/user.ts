@@ -157,10 +157,11 @@ export const useUserStore = defineStore('user', {
         // 无论接口是否成功，都先清理本地登录态，保证 UI 立即切回未登录
         this.setToken('')
         this.setUserInfo(null)
-        await router.push('/')
+        this.sessionVersion += 1
+        if (window.location.pathname !== '/') {
+          await router.push('/')
+        }
       }
     }
   }
 })
-// oppo
-// sss123
