@@ -629,11 +629,17 @@ const handleBatchCollect = async () => {
     const ids = selectedIds.value.map((id) => String(id))
     const res = await algoApi.collect({ algoOrderResultId: ids })
     if (res.code !== '0000') throw new Error(res.msg || '收藏失败')
-    allData.value = allData.value.map((x) => {
-      if (!set.has(x.id)) return x
-      return { ...x, collectStatus: shouldCancel ? 0 : 1 }
-    })
-    list.value = allData.value
+    // 取消收藏：在「收藏」tab 里应立即从列表移除（否则需要手动刷新才消失，体验像没生效）
+    if (shouldCancel && activeTab.value === 'collect') {
+      allData.value = allData.value.filter((x) => !set.has(x.id))
+      list.value = allData.value
+    } else {
+      allData.value = allData.value.map((x) => {
+        if (!set.has(x.id)) return x
+        return { ...x, collectStatus: shouldCancel ? 0 : 1 }
+      })
+      list.value = allData.value
+    }
     selectedIds.value = []
     batchMode.value = false
     ElMessage.success(

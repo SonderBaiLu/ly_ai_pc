@@ -811,7 +811,6 @@ const refreshUserInfoIfLoggedIn = async () => {
 // 组件挂载
 onMounted(async () => {
   await refreshUserInfoIfLoggedIn()
-  console.log('Membership 组件挂载，当前用户信息:', userInfo.value)
 
   // 加载会员和灵衍套餐数据
   await Promise.all([loadMembershipPlans(), loadTideCoinPlans()])

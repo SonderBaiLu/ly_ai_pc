@@ -147,10 +147,8 @@ type DesignFeatureOptionMeta = { id: string; configType: string; prentId: string
 // featureOptionMetaMap[categoryKey][optionLabel] => 后端 payload 必填字段
 const featureOptionMetaMap = ref<Record<string, Record<string, DesignFeatureOptionMeta>>>({})
 
-const handleFeatureConfirm = (v: DesignFeatureSelection) => {
-  designFeatureSelection.value = v
-
-  // 把用户选择转换为后端需要的 designFeaturesParams 结构
+// 将当前 selection 转换为后端需要的 designFeaturesParams，并上抛给父组件
+const emitDesignFeaturesParamsFromSelection = (v: DesignFeatureSelection) => {
   const params: Array<{ id: string; configType: string; prentId: string; content: string }> = []
   for (const [categoryKey, labels] of Object.entries(v || {})) {
     if (!Array.isArray(labels)) continue
@@ -161,8 +159,12 @@ const handleFeatureConfirm = (v: DesignFeatureSelection) => {
       params.push({ id: m.id, configType: m.configType, prentId: m.prentId, content: m.content })
     }
   }
-
   emit('update:design-features-params', params)
+}
+
+const handleFeatureConfirm = (v: DesignFeatureSelection) => {
+  designFeatureSelection.value = v
+  emitDesignFeaturesParamsFromSelection(v)
 }
 
 const normalizeFeatureCategories = (list: any[] = []) => {
@@ -248,6 +250,8 @@ const removeFeature = (categoryKey: string, label: string) => {
   next[categoryKey] = arr.filter((x) => String(x || '').trim() !== label)
   if (!next[categoryKey]?.length) delete next[categoryKey]
   designFeatureSelection.value = next
+  // 删除 chip 后也要同步更新父级 payload，否则提交仍会带上旧的 designFeaturesParams
+  emitDesignFeaturesParamsFromSelection(next)
 }
 </script>
 
