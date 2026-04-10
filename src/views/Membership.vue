@@ -1,7 +1,7 @@
 <template>
   <div class="membership-page">
-    <div class="membership-bg membership-bg--top" :style="{ backgroundImage: `url(${images.memberBgTop})` }" />
-    <div class="membership-bg membership-bg--bottom" :style="{ backgroundImage: `url(${images.memberBgBottom})` }" />
+    <!-- <div class="membership-bg membership-bg--top" :style="{ backgroundImage: `url(${images.memberBgTop})` }" /> -->
+    <!-- <div class="membership-bg membership-bg--bottom" :style="{ backgroundImage: `url(${images.memberBgBottom})` }" /> -->
     <Header />
 
     <div class="membership-content">
@@ -912,27 +912,28 @@ const getPurchaseButtonText = (plan: any) => {
   position: relative;
 }
 
-.membership-bg {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100vw;
-  pointer-events: none;
-  z-index: 0;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% auto;
-}
+// .membership-bg {
+//   position: fixed;
+//   left: 50%;
+//   transform: translateX(-50%);
+//   width: 100vw;
+//   pointer-events: none;
+//   z-index: 0;
+//   background-repeat: no-repeat;
+//   background-position: center;
+//   background-size: 100% auto;
+// }
 
-.membership-bg--top {
-  top: 64px;
-  height: 220px;
-}
+// .membership-bg--top {
+//   top: 64px;
+//   width: 100%;
+//   height: 220px;
+// }
 
-.membership-bg--bottom {
-  bottom: 0;
-  height: 420px;
-}
+// .membership-bg--bottom {
+//   bottom: 0;
+//   height: 460px;
+// }
 
 .membership-content,
 .main-content {
@@ -1713,7 +1714,7 @@ const getPurchaseButtonText = (plan: any) => {
       margin: 0;
 
       &.el-button--default {
-        background-color: rgba(43, 40, 49, 1);
+        background-color: rgba(17, 17, 21, 1);
       }
 
       .recommend-tag {
