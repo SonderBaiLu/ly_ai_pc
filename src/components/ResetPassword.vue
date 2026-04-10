@@ -92,14 +92,14 @@ import {ref, reactive, computed, watch, onUnmounted} from 'vue'
 import {images} from '@/assets'
 import {useI18n} from 'vue-i18n'
 import {ElMessage} from 'element-plus'
-import {changePwdBySms, doUserWechatLogin, getSmsCodeApi, logout} from "@/api/userLogin"
+import {changePwdBySms, doUserWechatLogin, getSmsCodeApi} from "@/api/userLogin"
 import userApi from '@/api/user'
 import {useUserStore} from '@/stores/user'
 import {userLanguageToI18nLocale} from '@/i18n'
 
 const userStore = useUserStore()
 import {baseRules} from '@/utils/validationSchemas.ts'
-import router from "@/router";
+import {useModalStore} from "@/stores/modal.ts";
 
 const {t, locale} = useI18n({useScope: 'local'})
 
@@ -255,13 +255,13 @@ const handleSubmit = async () => {
           if (props.isSetPassword) {
             ElMessage.success('密码设置成功')
             setTimeout(async () => {
-              await logout() // 修改成功后退出登录
-            }, 1500); // 等待1.5秒防止卡顿
+              await userStore.logout() // 修改成功后退出登录
+            }, 500); // 等待0.5秒防止卡顿
           } else {
             ElMessage.success('密码重置成功')
             setTimeout(async () => {
-              await logout() // 修改成功后退出登录
-            }, 1500); // 等待1.5秒防止卡顿
+              await userStore.logout() // 修改成功后退出登录
+            }, 500); // 等待0.5秒防止卡顿
           }
 
         } else {
@@ -293,10 +293,9 @@ const handleSubmit = async () => {
         }
         if (String((res as any).code) === '0000') {
           ElMessage.success('修改密码成功')
-          setTimeout(async () => {
-            await logout() // 修改成功后退出登录
-            await router.push('/')
-          }, 1500); // 等待1.5秒防止卡顿
+          const modalStore = useModalStore()
+          modalStore.closePersonalSettingsModal()
+          await userStore.logout() // 修改成功后退出登录
         } else {
           ElMessage.error(res?.msg || '操作失败')
         }
