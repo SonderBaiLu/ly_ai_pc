@@ -1,3 +1,7 @@
+/**
+ * 算法任务轮询（按 algoOrderNo）：全局单例、同订单不重复开多路轮询。
+ * 页面侧只读 tasks，完成/失败时写入 orderResultVOS 供列表回填。
+ */
 import { defineStore } from 'pinia'
 import { algoApi } from '@/api/algo'
 import { waitForNavigatorOnline } from '@/utils/networkWait'
@@ -90,6 +94,7 @@ export const useAlgoPollingStore = defineStore('algoPolling', {
             failedCount: data?.failedCount ?? firstVO?.failedCount,
             orderResultVOS,
           }
+          // 先写入 tasks，让 UI 能立即吃到最新进度/计数
           this.tasks[orderNo] = next
 
           const hasDonePayload = orderResultVOS.some((vo: any) => {

@@ -1,3 +1,7 @@
+/**
+ * 将「单次订单」的 query 结果合并进创作列表；与 AiFashionStudio 占位/并发回填配套使用。
+ */
+
 type MergeOptions<T> = {
   /** 找到对应项时是否原地回填（不改变顺序） */
   preferInPlace?: boolean

@@ -15,6 +15,7 @@
       </el-select>
     </div>
 
+    <!-- 顶部导航：普通链接 + 二维码弹层入口（联系我们/关注我们） -->
     <nav class="nav-menu">
       <template v-for="item in ctx.menuData" :key="item.key">
         <QrCodePopover v-if="item.key === 'contactUs'" :items="ctx.pcCustomerService"
@@ -44,6 +45,7 @@
 
     <div class="nav-right nav-right--ai">
       <template v-if="ctx.isAuthed">
+        <!-- 登录态：创作入口 + 灵衍值/消息/用户菜单 -->
         <span class="ai-link" role="button" tabindex="0"
           @click="ctx.enterModule(() => ctx.router.push('/my-creations'))"
           @keydown.enter="ctx.enterModule(() => ctx.router.push('/my-creations'))">
@@ -54,6 +56,7 @@
           :show-arrow="false" :width="229" popper-class="header-wave-points-popover"
           :popper-options="{ modifiers: [{ name: 'offset', options: { offset: [30, 24] } }] }"
           :visible="ctx.isWavePointsPanelOpen" @update:visible="ctx.setWavePointsOpen">
+          <!-- 灵衍值入口：hover 展示余额与购买动作 -->
           <template #reference>
             <div class="ai-coin-pill" @mouseenter="ctx.setActivePopper('wavePoints')">
               <img src="@/assets/images/coin.png" alt="Coin" class="coin-icon" />
@@ -146,6 +149,7 @@
         <UserCenterPopover :ctx="ctx" variant="ai" :offset="[-41, 21]" :visible="ctx.isUserCardOpen"
           @update:visible="ctx.setUserCardOpen" />
 
+        <!-- 三点菜单：设置/协议/教程/团队管理/登出 -->
         <el-popover placement="bottom" trigger="hover" :enterable="true" :show-after="0" :hide-after="150"
           :popper-options="{ modifiers: [{ name: 'offset', options: { offset: [-100, 21] } }] }" :show-arrow="false"
           :width="229" popper-class="header-user-card-popover" :visible="ctx.isUserMenuOpen"

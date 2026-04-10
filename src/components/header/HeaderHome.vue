@@ -1,10 +1,11 @@
 <template>
   <div class="nav-container">
+    <!-- Logo：回首页 -->
     <div class="logo">
       <img class="logo-icon" src="@/assets/images/logo.png" alt="Logo" @click="ctx.router.push('/')">
     </div>
 
-    <!-- 联系我们、关注我们 -->
+    <!-- 顶部导航：普通链接 + 二维码弹层（联系我们 / 关注我们） -->
     <nav class="nav-menu">
       <template v-for="item in ctx.menuItems" :key="item.key">
         <QrCodePopover
@@ -43,6 +44,7 @@
       </template>
     </nav>
 
+    <!-- 右侧：语言 + 登录态（头像/注册 或 登录/注册） -->
     <div class="nav-right">
       <div class="lang-select-wrapper">
         <img class="globe-icon" src="@/assets/images/language.png" alt="Globe" />
@@ -54,6 +56,7 @@
         </el-select>
       </div>
 
+      <!-- 已登录：用户卡片 + 进入 AI 设计（注册按钮文案） -->
       <div v-if="ctx.isAuthed" class="user-menu user-menu--home">
         <UserCenterPopover
           :ctx="ctx"
@@ -68,6 +71,7 @@
         </span>
       </div>
 
+      <!-- 未登录：登录弹窗 + 进入 AI 设计 -->
       <div class="auth-buttons" v-else>
         <span class="login-btn" @click="ctx.showLoginModal">{{ ctx.t('header.login') }}</span>
         <span class="register-btn" @click="ctx.enterModule(() => ctx.router.push('/ai-design'))">
@@ -76,6 +80,7 @@
       </div>
     </div>
 
+    <!-- 每月登录赠送灵衍值提示（由 ctx 控制显隐与动画） -->
     <div v-if="ctx.showMonthlyLoginPointsTip" class="monthly-login-points-tip" :class="{ 'is-hiding': ctx.isMonthlyTipHiding }">
       每月{{ ctx.monthlyLoginPoints }}免费灵衍值已到账
     </div>

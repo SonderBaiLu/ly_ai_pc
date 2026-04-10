@@ -92,6 +92,7 @@ export const uploadApi = {
       const uploadedUrl = String(respData?.url || respData?.fileUrl || '').trim()
       const code = String((response as any).code ?? '')
       if (code === '0000' && uploadedUrl) {
+        // 成功提示仅在「有全屏 loading」时弹出；showLoading=false 时不弹，避免与后续业务成功提示叠两层
         if (showLoading && showMessage) {
           ElMessage.success('图片上传成功')
         }

@@ -319,14 +319,13 @@ const handleFabricGenerate = async (payload: any) => {
       ElMessage.error('面料处理图生成失败，请重试')
       return
     }
+    // showLoading=false 时 uploadApi 不会弹「上传成功」，避免与后续「已提交生成任务」叠两层；
+    // 失败/异常仍由 uploadApi 按接口 msg 弹一次（与拖拽本地上传一致）
     const uploadResult = await uploadApi.uploadImage(payload.file as File, {
       showLoading: false,
-      showMessage: false,
+      showMessage: true,
     })
-    if (!uploadResult.success || !uploadResult.url) {
-      ElMessage.error(String(uploadResult.message || '').trim() || '上传缩放后的面料图失败，请重试')
-      return
-    }
+    if (!uploadResult.success || !uploadResult.url) return
     currentForm.fabricProcessedImageUrl = String(uploadResult.url).trim()
 
     await submitByMenuCode(menuCodeByKey.fabricCreative, { skipLoading: true })
@@ -766,7 +765,7 @@ const mainImageRef = ref<any>(null)
 const thumbnailRef = ref<any>(null)
 // 主图当前滚动百分比（0=顶部），用于避免轮询回填时“把用户拉回顶部”
 const lastMainScrollPercentage = ref(0)
-// 对“本次提交的每个任务”生效：生成成功后自动回到顶部并选中第一个（支持并发提交）
+// 对“本次提交的每个任务”生效：全部完成后统一回到顶部（支持并发提交）
 const autoFocusOrderNoSet = reactive(new Set<string>())
 // 完成态回填去重：避免同一 orderNo 的同一批结果被 watcher 反复 apply，导致列表顺序/可见性异常
 const appliedDoneSignatureByOrderNo = reactive(new Map<string, string>())
@@ -963,6 +962,7 @@ watch(
     for (const [orderNo, s] of Object.entries(tasks)) {
       const st = Number(s?.status ?? 0)
       const doneListRaw = Array.isArray((s as any)?.orderResultVOS) ? ((s as any).orderResultVOS as any[]) : []
+      // 仅认“可展示结果”（有 id 或有 url），避免 status 变化但空 payload 触发误回填
       const doneList = doneListRaw.filter((vo: any) => {
         const id = String(vo?.id ?? vo?.algoOrderId ?? vo?.algoOrderNo ?? '').trim()
         const url = String(vo?.url ?? vo?.thumbUrl ?? '').trim()
@@ -988,6 +988,7 @@ watch(
       // 完成态回填不能依赖“当前 assets 里是否还能找到该 orderNo”。
       // 并发/切换/重置时占位可能暂时不在当前列表，若只走 updateAssetByOrderNo 会导致“成功结果丢失，需刷新才出现”。
       if (hasDonePayload) {
+        // 同一订单同一批结果只 apply 一次，避免 tasks 深度变更导致重复回填
         const doneSig = doneList
           .map((vo: any) => String(vo?.id ?? vo?.algoOrderId ?? vo?.algoOrderNo ?? '').trim())
           .filter(Boolean)
@@ -1813,6 +1814,41 @@ const resolveFabricRightTabKey = () => {
   return String(fallback?.key ?? '')
 }
 
+// 左侧模块与右侧 tab 必须一致：从面料切回服装设计时，不能把 tab 留在「AI面料」
+const resolveRightTabKeyForLeftMenu = (menu: LeftMenuKey) => {
+  if (menu === 'fabricCreative') return resolveFabricRightTabKey()
+  const moduleMenuCode = resolveMenuCodeByLeftMenu(menu)
+  const rightTabs = rightContentTabs.value || []
+  if (rightTabs.some((t) => t.key === moduleMenuCode)) return moduleMenuCode
+  return deriveRightTabKeyFromLeftMenu()
+}
+
+const syncRightContentTabToLeftMenu = (menu: LeftMenuKey) => {
+  const fabricTabKey = resolveFabricRightTabKey()
+  const nextTab = resolveRightTabKeyForLeftMenu(menu)
+  if (!nextTab) return
+
+  // 进入面料创款：右侧必须是 AI面料
+  if (menu === 'fabricCreative') {
+    if (currentContentTab.value === nextTab) return
+    currentContentTab.value = nextTab
+    if (hasInitializedRightList.value) {
+      void fetchMyCreations(true, { clearList: true })
+    }
+    return
+  }
+
+  // 非面料：仅当右侧仍停留在「AI面料」时才纠正（避免从面料回到服装设计仍高亮面料）
+  // 不强制覆盖用户已选的「全部 / 收藏」，也不在线稿子模块之间切换时改 tab
+  if (fabricTabKey && currentContentTab.value === fabricTabKey) {
+    if (currentContentTab.value === nextTab) return
+    currentContentTab.value = nextTab
+    if (hasInitializedRightList.value) {
+      void fetchMyCreations(true, { clearList: true })
+    }
+  }
+}
+
 // 右侧 tab -> 列表查询参数
 // - tabKey 是一级菜单的 menuCode（favorites 为收藏）,默认空字符串
 // - fileType默认为''
@@ -2273,10 +2309,8 @@ const handleDropFile = async (payload: any) => {
     } finally {
       refImageUploading.value = false
     }
-    if (!uploadResult?.success || !uploadResult?.url) {
-      ElMessage.error('图片上传失败，请重试')
-      return
-    }
+    // uploadApi 已按 showMessage 展示接口 msg，此处勿再弹窗避免重复
+    if (!uploadResult?.success || !uploadResult?.url) return
     const fileUrl = String(uploadResult.url).trim()
     if (!fileUrl) return
 
@@ -2562,18 +2596,11 @@ onBeforeUnmount(() => {
 watch(
   () => leftMenu.value,
   (menu) => {
+    // 左侧模块变化时，更新左侧菜单激活状态
     syncActiveMenuCode()
-    // 从入口或路由切到“面料创款”时，右侧 tab 需要对齐到 AI面料
-    if (menu === 'fabricCreative') {
-      const fabricTabKey = resolveFabricRightTabKey()
-      if (fabricTabKey && currentContentTab.value !== fabricTabKey) {
-        currentContentTab.value = fabricTabKey
-        if (hasInitializedRightList.value) {
-          void fetchMyCreations(true, { clearList: true })
-        }
-      }
-    }
-    // 左侧切换仅影响“提交面板/参数”，不联动刷新右侧列表
+    // 左侧模块变化时，右侧 tab 与列表必须与当前模块一致（避免从面料回到服装设计仍高亮 AI面料）
+    syncRightContentTabToLeftMenu(menu)
+    // 左侧切换：面料必对 AI面料；从面料回到其它模块时若右侧仍为 AI面料则纠正（「全部/收藏」在线稿子模块间切换时保留）
     fetchInspirationWords(menu)
     if (menu === 'fabricCreative') void fetchFabricImageTypeOptionTree()
     // 线稿转实物：进入模块时单独拉一次左侧三组选项（避免每次点“灵感词词库”都重复请求）
