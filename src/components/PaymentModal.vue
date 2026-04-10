@@ -19,14 +19,7 @@
       <!-- 步骤一：协议+按钮 -->
       <div v-if="!payQrCode" class="vip-pay-agreement-card">
         <div class="agreement-text-top">支付前请阅读</div>
-        <a
-          class="agreement-name"
-          :href="getAgreementHref('PAY_SERVICE_AGREEMENT')"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          《灵衍AI付费服务协议》
-        </a>
+        <div class="agreement-name">《灵衍AI付费服务协议》</div>
         <el-button class="agree-button" type="primary" :loading="isCreatingPayment" @click="createVipPaymentOrder()">
           同意并支付
         </el-button>
@@ -85,13 +78,8 @@
         </p>
         <p class="link-text">
           • 支付即视您已同意
-          <a
-            :href="getAgreementHref('PAY_SERVICE_AGREEMENT')"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="agreement-inline-link"
-            @click.stop
-          >
+          <a :href="getAgreementHref('PAY_SERVICE_AGREEMENT')" target="_blank" rel="noopener noreferrer"
+            class="agreement-inline-link" @click.stop>
             《灵衍AI付费服务协议》
           </a>
         </p>
@@ -504,9 +492,6 @@ onBeforeUnmount(() => {
 
     .agreement-name {
       margin-bottom: 41px;
-      color: $color-primary-dark;
-      cursor: pointer;
-      text-decoration: underline;
     }
 
     .agree-button {
@@ -632,11 +617,7 @@ onBeforeUnmount(() => {
     .agreement-inline-link {
       color: $color-primary-dark;
       cursor: pointer;
-      text-decoration: underline;
-
-      &:hover {
-        opacity: 0.8;
-      }
+      text-decoration: none;
     }
   }
 }
