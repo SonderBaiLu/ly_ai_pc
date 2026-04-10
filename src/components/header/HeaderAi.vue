@@ -117,7 +117,8 @@
               </span>
             </div>
 
-            <div :ref="ctx.officialMsgScrollRef" class="header-msg-scroll" @scroll="ctx.handleOfficialMsgScroll($event)">
+            <div :ref="ctx.officialMsgScrollRef" class="header-msg-scroll"
+              @scroll="ctx.handleOfficialMsgScroll($event)">
               <div class="header-msg-list">
                 <div v-for="msg in ctx.displayedOfficialMessages" :key="msg.id" class="header-msg-card">
                   <div class="header-msg-card-content">
@@ -139,9 +140,10 @@
                 </div>
               </div>
 
-              <InfiniteScrollLoader :loading="!ctx.officialMsgLoadedOnce || ctx.officialMsgLoading || ctx.officialMsgLoadingMore"
-                :has-more="ctx.officialMsgHasMoreRemote"
-                :data-length="ctx.displayedOfficialMessages.length" :show-back-top="false" :empty-text="'暂无消息'" />
+              <InfiniteScrollLoader
+                :loading="!ctx.officialMsgLoadedOnce || ctx.officialMsgLoading || ctx.officialMsgLoadingMore"
+                :has-more="ctx.officialMsgHasMoreRemote" :data-length="ctx.displayedOfficialMessages.length"
+                :show-back-top="false" :empty-text="'暂无消息'" />
             </div>
           </div>
         </el-popover>
@@ -732,6 +734,7 @@ defineProps<{ ctx: any }>()
               width: calc(100% - 33px);
               font-size: 10px;
               color: $color-text-gray;
+              text-align: left;
 
               .header-msg-card-text {
                 .header-msg-card-title {

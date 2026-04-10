@@ -48,10 +48,11 @@ export function mergeOrderResultsIntoList<T extends Record<string, any>>(
 
   // 1) 定位“生成中/占位”记录（优先用它做原地替换）
   let targetIdx = list.findIndex((x) => isSameOrderNo(x) && isGeneratingLike(x))
-  // 兜底：有些场景会先把占位状态更新为 3，但仍然是“无 id 的占位项”
-  // 这时也应该复用这条，而不是再插入一条新结果，避免出现“多一条没用数据”。
+  // 兜底：有些场景会把占位（pending-${orderNo}）的 status 提前更新为 3，
+  // 或者占位本身有 id（pending-*）但资源仍为空。
+  // 这时也应该复用这条，而不是再插入一条新结果，避免出现“多一条空白数据”。
   if (targetIdx < 0) {
-    targetIdx = list.findIndex((x) => isSameOrderNo(x) && !normalize((x as any)?.id))
+    targetIdx = list.findIndex((x) => isSameOrderNo(x))
   }
 
   // 2) 清理同订单号的其它占位（无 id）/生成中（status=0/1/2），只保留 targetIdx 那条

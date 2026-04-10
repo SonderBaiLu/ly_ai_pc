@@ -19,7 +19,10 @@ export const mapRecordToCreationResult = (r: any, options?: MapOptions): Creatio
     algoOrderId: String(r?.algoOrderId ?? ''),
     // 轮询/回填 key 只认 algoOrderNo（与你的接口约定保持一致）
     algoOrderNo: (() => {
-      const key = r?.algoOrderNo != null ? String(r.algoOrderNo).trim() : ''
+      // 部分“生成中(orderResulGenerated)”记录可能只返回 algoOrderId 不返回 algoOrderNo，
+      // 这里兜底用 algoOrderId 作为轮询 key，避免列表去重/轮询无法命中导致出现“空白占位/重复项”。
+      const raw = r?.algoOrderNo ?? r?.algoOrderId
+      const key = raw != null ? String(raw).trim() : ''
       return key ? key : undefined
     })(),
     algoUuId: r?.algoUuId === undefined ? undefined : (r?.algoUuId == null ? null : String(r.algoUuId)),
