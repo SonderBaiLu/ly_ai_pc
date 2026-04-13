@@ -299,8 +299,6 @@ const initQrCode = async () => {
     qrCodeImg.value = res.data.qrUrl
     sceneId.value = res.data.sceneId
     const expireTime = res.data.expire || 600
-    console.log('二维码过期时间', res.data.expire)
-    console.log('二维码过期时间', expireTime)
     startQrCountdown(expireTime)
     qrStatus.value = 'waiting'; // 等待扫码
     startPolling() // 获取成功后开始轮询
@@ -324,10 +322,11 @@ const startPolling = () => {
         } else if (apiStatus === 1) {
           // 扫码成功，此时不需要再设定下一个 setTimeout 了
           if (res.data.mobileStatus) {
-            qrStatus.value = 'expired';
+            console.log("扫码成功，绑定手机号")
             dialogs.isVisible = true;
             currentMode.value = '3';
             openId.value = res.data.openId;
+            qrStatus.value = 'expired'; // 状态设置为过期
             ElMessage.success('扫码成功，请绑定手机号');
           } else {
             const accessToken = res.data.accessToken;
@@ -513,12 +512,10 @@ const handleSubmit = async () => {
     isSubmitting.value = false // 解除 loading
   }
 }
-
 // 清理短信定时器
 onUnmounted(() => {
   if (smsTimer) clearInterval(smsTimer)
 })
-
 // ==========================================
 // 4. 团队登录模块
 // ==========================================
@@ -666,7 +663,7 @@ const forgotPassword = () => {
       margin-bottom: 28px;
       font-size: 18px;
       color: rgba(255, 255, 255, 1);
-      font-family: NotoSans-bold;
+      font-family: NotoSans-bold,serif;
       text-align: justify;
       font-weight: 700;
 
