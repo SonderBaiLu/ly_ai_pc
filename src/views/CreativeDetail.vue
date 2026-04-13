@@ -116,21 +116,24 @@
             <template v-if="detailModule === 'sketchToReal' && requestImageUrls.length">
               <div class="section-title">线稿图</div>
               <div class="video-thumb-row">
-                <img v-for="(item, idx) in requestImageUrls" :key="`sketch-${idx}`" :src="item" />
+                <LazyImage v-for="(item, idx) in requestImageUrls" :key="`sketch-${idx}`" :src="item" object-fit="cover"
+                  :width="80" :height="80" :border-radius="8" class="video-thumb-image" />
               </div>
             </template>
 
             <template v-if="detailModule === 'realToSketch' && requestImageUrls.length">
               <div class="section-title">实物图</div>
               <div class="video-thumb-row">
-                <img v-for="(item, idx) in requestImageUrls" :key="`real-${idx}`" :src="item" />
+                <LazyImage v-for="(item, idx) in requestImageUrls" :key="`real-${idx}`" :src="item" object-fit="cover"
+                  :width="80" :height="80" :border-radius="8" class="video-thumb-image" />
               </div>
             </template>
 
             <template v-if="detailModule === 'fabricCreative' && requestImageUrls.length">
               <div class="section-title">面料图</div>
               <div class="video-thumb-row">
-                <img v-for="(item, idx) in requestImageUrls" :key="`fabric-${idx}`" :src="item" />
+                <LazyImage v-for="(item, idx) in requestImageUrls" :key="`fabric-${idx}`" :src="item" object-fit="cover"
+                  :width="80" :height="80" :border-radius="8" class="video-thumb-image" />
               </div>
             </template>
 
@@ -196,7 +199,8 @@
             <template v-if="requestImageUrls.length && detailModule == 'aiFashion'">
               <div class="section-title">参考图</div>
               <div v-if="isAiFashionStudioAssetsDetail" class="video-thumb-row">
-                <img v-for="(item, idx) in requestImageUrls" :key="`ref-${idx}`" :src="item" />
+                <LazyImage v-for="(item, idx) in requestImageUrls" :key="`ref-${idx}`" :src="item" object-fit="cover"
+                  :width="80" :height="80" :border-radius="8" class="video-thumb-image" />
               </div>
             </template>
           </template>

@@ -43,6 +43,9 @@ export default defineConfig(({ mode }) => {
             headers: {
               ...req.headers,
               host: domain,
+              // dev 下禁用协商缓存，避免浏览器 304 读缓存失败（ERR_CACHE_READ_FAILURE）
+              'if-none-match': undefined as any,
+              'if-modified-since': undefined as any,
             },
             rejectUnauthorized: false,
             timeout: 30000,
@@ -50,6 +53,9 @@ export default defineConfig(({ mode }) => {
           (proxyRes) => {
             res.writeHead(proxyRes.statusCode || 200, {
               ...proxyRes.headers,
+              'cache-control': 'no-store, no-cache, must-revalidate, max-age=0',
+              pragma: 'no-cache',
+              expires: '0',
               'access-control-allow-origin': '*',
               'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
               'access-control-allow-headers': '*',
@@ -126,7 +132,11 @@ export default defineConfig(({ mode }) => {
     },
   server: {
       port: 9004,
-      strictPort: false,
+      strictPort: true,
+      // 避免 Chrome 在 dev 模块 304 场景下出现 ERR_CACHE_READ_FAILURE
+      headers: {
+        'Cache-Control': 'no-store',
+      },
       proxy: {
         // 开发环境 API 代理：/api -> 线上域名（或 .env 配置）
         '/api': {
