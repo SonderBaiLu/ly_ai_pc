@@ -257,11 +257,15 @@ const handleSubmit = async () => {
             setTimeout(async () => {
               await userStore.logout() // 修改成功后退出登录
             }, 500); // 等待0.5秒防止卡顿
+            emit('success', modeType.value)
+            emit('close')
           } else {
             ElMessage.success('密码重置成功')
             setTimeout(async () => {
               await userStore.logout() // 修改成功后退出登录
             }, 500); // 等待0.5秒防止卡顿
+            emit('success', modeType.value)
+            emit('close')
           }
 
         } else {
@@ -296,6 +300,8 @@ const handleSubmit = async () => {
           const modalStore = useModalStore()
           modalStore.closePersonalSettingsModal()
           await userStore.logout() // 修改成功后退出登录
+          emit('success', modeType.value)
+          emit('close')
         } else {
           ElMessage.error(res?.msg || '操作失败')
         }
@@ -312,18 +318,17 @@ const handleSubmit = async () => {
           openId: props.openId, // 绑定手机号登录接口需要用到的 openId 在扫码登陆那边传过来的 d
           invitationsCode: props.confirmedInviteCode,  // 邀请验证码
         })
-        if (String((res as any).code) === '0000') {
+        if (String((res as any).code) === '0000' && res.success === true) {
           userStore.setToken(res.data.accessToken)
           ElMessage.success('手机号绑定成功')
+          emit('success', modeType.value)
+          emit('close')
         } else {
           ElMessage.error(res.msg)
         }
         break
       }
     }
-    // 成功后统一关闭弹窗 or 报错
-    emit('success', modeType.value)
-    emit('close')
   } catch (e: any) {
     ElMessage.error(e.message)
   }

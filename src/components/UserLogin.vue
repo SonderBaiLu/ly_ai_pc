@@ -122,9 +122,9 @@
                 <button type="button" @click.prevent="GetSmSCode" class="get-code-btn"
                         :disabled="!formData.phone || isCounting || isGettingCode">
                   {{
-                    isGettingCode ? '发送中...' :
-                        isCounting ? t('LoginPopUpPage.smsCountdown', {seconds: countdown}) :
-                            t('LoginPopUpPage.getVerificationCode')
+                  isGettingCode ? '发送中...' :
+                  isCounting ? t('LoginPopUpPage.smsCountdown', {seconds: countdown}) :
+                  t('LoginPopUpPage.getVerificationCode')
                   }}
                 </button>
 
@@ -240,7 +240,7 @@ const phoneLoginType = ref<'code' | 'password'>('code')  // 手机登录方式�
 
 // 控制所有弹窗显示状态
 const dialogs = reactive({
-  isVisible: false,  // 忘记密码弹窗
+  isVisible: false,
   invitation: false, // 邀请码弹窗
 })
 const currentMode = ref('0') // 忘记密码模式
@@ -298,7 +298,9 @@ const initQrCode = async () => {
     const res = await getWechatQrCodeApi()
     qrCodeImg.value = res.data.qrUrl
     sceneId.value = res.data.sceneId
-    const expireTime = res.data.expire || 180
+    const expireTime = res.data.expire || 600
+    console.log('二维码过期时间', res.data.expire)
+    console.log('二维码过期时间', expireTime)
     startQrCountdown(expireTime)
     qrStatus.value = 'waiting'; // 等待扫码
     startPolling() // 获取成功后开始轮询
@@ -322,6 +324,7 @@ const startPolling = () => {
         } else if (apiStatus === 1) {
           // 扫码成功，此时不需要再设定下一个 setTimeout 了
           if (res.data.mobileStatus) {
+            qrStatus.value = 'expired';
             dialogs.isVisible = true;
             currentMode.value = '3';
             openId.value = res.data.openId;
@@ -342,7 +345,7 @@ const startPolling = () => {
             }
           }
 
-        } else if (apiStatus === -1) {
+        } else if (Number(apiStatus === -1)) {
           qrStatus.value = 'expired';
           // 二维码失效，不用再设定 setTimeout
         }
@@ -537,7 +540,7 @@ const handleTeamSubmit = async () => {
     } else {
       teamErrorMsg.value = (res as any).msg
     }
-  } catch  (e: any){
+  } catch {
     teamErrorMsg.value = "登录失败，请重试"
   } finally {
     isTeamSubmitting.value = false //  解除 loading
