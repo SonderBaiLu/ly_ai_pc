@@ -75,7 +75,6 @@ import { images } from '@/assets'
 import { toRefs } from 'vue'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
-import { userLanguageToI18nLocale } from '@/i18n'
 
 interface Props {
   modelValue: boolean
@@ -97,20 +96,12 @@ const emit = defineEmits<{
   'no-remind-change': [value: boolean]
 }>()
 
-const { t, locale } = useI18n({ useScope: 'local' })
+// 与 Header / WriteOffModal 等一致：使用全局 vue-i18n，词条来自 createI18n 的 messages
+const { t } = useI18n()
 
 const modalStore = useModalStore()
 const userStore = useUserStore()
 const router = useRouter()
-
-// 个人中心弹窗：只跟随用户偏好语言，避免被全局 i18n locale 覆盖
-watch(
-  () => userStore.userInfo?.language,
-  (userLang) => {
-    locale.value = userLanguageToI18nLocale(userLang)
-  },
-  { immediate: true },
-)
 
 const isVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
 
@@ -155,7 +146,10 @@ const handleConfirm = async (successMessage: '保存成功' | '确认成功') =>
   // 确认时：只关闭弹窗并触发“确认”token；不要复用 handleCancel()
   // 否则会误触发“取消”token，影响其它页面 pending 状态。
   visible.value = false
-  await userStore.updateUserInfo({ watermarkStatus: removeWatermarkEnabled.value ? 1 : 0 }, successMessage)
+  // page：无底部开关；打开前业务侧会把本地 watermark 置 0 再弹窗，确认表示同意并开启去水印，必须传 1
+  const watermarkStatus =
+    variant.value === 'page' ? 1 : removeWatermarkEnabled.value ? 1 : 0
+  await userStore.updateUserInfo({ watermarkStatus }, successMessage)
   modalStore.notifyWatermarkDisclaimerConfirmed()
   emit('confirm')
 }
