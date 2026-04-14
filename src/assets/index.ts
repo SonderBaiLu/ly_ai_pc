@@ -114,6 +114,7 @@ export const images = {
 
   // L
   lingyan: new URL('./images/login_popup/lingyan.png', import.meta.url).href,
+  layered: new URL('./images/login_popup/layered.png', import.meta.url).href,
   language: new URL('./images/language.png', import.meta.url).href,
   languageBlack: new URL('./images/language_black.png', import.meta.url).href,
   logo: new URL('./images/logo.png', import.meta.url).href,
@@ -130,6 +131,7 @@ export const images = {
   message: new URL('./images/message.png', import.meta.url).href,
   money: new URL('./images/money.png', import.meta.url).href,
   magic: new URL('./images/magic.png', import.meta.url).href,
+  clothes: new URL('./images/login_popup/clothes.png', import.meta.url).href,
   memberBgTop: new URL('./images/member_bg_top.png', import.meta.url).href,
   memberBgBottom: new URL('./images/member_bg_bottom.png', import.meta.url).href,
 
@@ -141,6 +143,7 @@ export const images = {
 
   // P
   plus: new URL('./images/plus.png', import.meta.url).href,
+  pen: new URL('./images/login_popup/pen.png', import.meta.url).href,
   product: new URL('./images/product.png', import.meta.url).href,
 
   // R
@@ -161,6 +164,7 @@ export const images = {
   star: new URL('./images/star.png', import.meta.url).href,
   star2: new URL('./images/star2.png', import.meta.url).href,
   subscription: new URL('./images/subscription.png', import.meta.url).href,
+  shopping: new URL('./images/login_popup/shopping.png', import.meta.url).href,
   shop: new URL('./images/shop.png', import.meta.url).href,
   shopActive: new URL('./images/shop_active.png', import.meta.url).href,
   set: new URL('./images/set.png', import.meta.url).href,

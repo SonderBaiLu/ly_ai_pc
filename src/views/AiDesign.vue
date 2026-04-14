@@ -7,8 +7,8 @@
       <section class="ai-banner">
         <el-carousel height="350px" indicator-position="outside">
           <el-carousel-item v-for="index in 1" :key="index">
-            <LazyImage src="/src/assets/images/home/banner.png" alt="AI Design Banner" width="100%" height="100%"
-              object-fit="cover" :border-radius="0" />
+            <LazyImage :src="bannerImage" alt="AI Design Banner" width="100%" height="100%" object-fit="cover"
+              :border-radius="0" />
           </el-carousel-item>
         </el-carousel>
       </section>
@@ -53,7 +53,7 @@ import { useAuthGate } from '@/composables/useAuthGate'
 import { appApi, type SysPlatformMenuItem } from '@/api/app'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { useUserStore } from '@/stores/user'
-import LazyImage from '@/components/LazyImage.vue'
+import bannerImage from '@/assets/images/home/banner.png'
 
 type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 

@@ -14,19 +14,19 @@
         </div>
         <ul class="feature-list">
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/layered.png" alt=""/></span>
+            <span class="icon"><img :src="images.layered" alt=""/></span>
             <span>{{ t('LoginPopUpPage.simplifyDesign') }}</span>
           </li>
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/clothes.png" alt=""/></span>
+            <span class="icon"><img :src="images.clothes" alt=""/></span>
             <span>{{ t('LoginPopUpPage.aiEmpowerment') }}</span>
           </li>
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/shopping.png" alt=""/></span>
+            <span class="icon"><img :src="images.shopping" alt=""/></span>
             <span>{{ t('LoginPopUpPage.loginRewards') }}</span>
           </li>
           <li>
-            <span class="icon"><img src="/src/assets/images/login_popup/pen.png" alt=""/></span>
+            <span class="icon"><img :src="images.pen" alt=""/></span>
             <span>{{ t('LoginPopUpPage.backToEssence') }}</span>
           </li>
         </ul>
