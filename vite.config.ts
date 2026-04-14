@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
   const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || env.VITE_API_PROXY_TARGET
   const apiBaseUrl = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL
   const appVersion = process.env.VITE_APP_VERSION || env.VITE_APP_VERSION
+  const isProd = mode === 'production'
 
   // 文件代理中间件：统一使用 /file-proxy
   const fileProxyPlugin = (): Plugin => {
@@ -130,6 +131,12 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // 生产环境剔除 debug 日志（保留 warn/error 便于排障）
+    esbuild: isProd
+      ? {
+        drop: ['console', 'debugger'],
+      }
+      : undefined,
   server: {
       port: 9004,
       strictPort: true,

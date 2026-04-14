@@ -3,7 +3,8 @@
     <!-- 缩略图列表 -->
     <div ref="thumbnailListRef" class="thumbnail-list">
       <div v-for="(asset, index) in assets"
-        :key="asset.id || (asset as any).algoOrderNo || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`" class="thumbnail-item" :class="[
+        :key="asset.id || (asset as any).algoOrderNo || asset.algoOrderId || asset.algoUuId || `thumbnail-${index}`"
+        class="thumbnail-item" :class="[
           { active: index === currentIndex },
           { generating: asset.status === 0 || asset.status === 1 || asset.status === 2 },
           { failed: asset.status === 4 },
@@ -84,7 +85,8 @@ const fileTypeBadgeText = (asset: CreationResult) => {
 }
 
 const getImagePoster = (asset: CreationResult) => {
-  return (asset as any).thumbUrl || ''
+  // 后端有时仅返回 url/originalUrl 而不返回 thumbUrl；保证缩略图兜底正常展示
+  return String((asset as any).thumbUrl || (asset as any).url || '')
 }
 
 /** 缩略图进度条：与主区域一致，0–100 整数 */
@@ -166,16 +168,18 @@ const syncScroll = (scrollPercentage: number) => {
 }
 
 // 处理缩略图滚动，检测是否滚动到底部
+// 体验优先：滚动跟手；触底触发用冷却避免连发。
+let lastThumbLoadMoreAt = 0
+const THUMB_LOAD_MORE_COOLDOWN_MS = 250
 const handleThumbnailScroll = () => {
-  if (!thumbnailListRef.value || isSyncing || props.loading || !props.hasMoreData) {
-    return
-  }
-
+  if (!thumbnailListRef.value || isSyncing || props.loading || !props.hasMoreData) return
   const { scrollTop, scrollHeight, clientHeight } = thumbnailListRef.value
   // 距离底部少于 50px 时触发加载更多
-  if (scrollHeight - scrollTop - clientHeight < 50) {
-    emit('load-more')
-  }
+  if (scrollHeight - scrollTop - clientHeight >= 50) return
+  const now = Date.now()
+  if (now - lastThumbLoadMoreAt < THUMB_LOAD_MORE_COOLDOWN_MS) return
+  lastThumbLoadMoreAt = now
+  emit('load-more')
 }
 
 // 组件挂载时添加滚动监听

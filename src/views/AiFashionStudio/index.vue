@@ -926,7 +926,8 @@ const applyQueryDoneResult = (orderNo: string, orderResultVOS: any[]) => {
       insertAtIfNotFound: (list) => (shouldAutoFocus ? 0 : list.length),
     },
   )
-  assets.value = dedupeCreationResultsPreserveOrder(merged.list as any)
+  // mergeOrderResultsIntoList 内部已按 id 去重；这里避免再次全量 dedupe，减少长列表回填开销
+  assets.value = merged.list as any
 
   // 完成后保持“原位替换”：生成中在哪展示，结果就在哪展示。
   // 但当“本次提交集合”全部完成时，自动回到顶部展示一次最终结果。
@@ -1924,6 +1925,58 @@ const mapRecordToCreationResult = (r: any): CreationResult | null => {
   })
 }
 
+// ==================== 右侧列表性能：增量去重/更新（避免长列表频繁全量 dedupe） ====================
+type CreationKey = string
+const creationKeyOf = (item: any): CreationKey => {
+  const id = String(item?.id ?? '').trim()
+  if (id) return `id:${id}`
+  const orderNo = String(item?.algoOrderNo ?? item?.algoOrderId ?? '').trim()
+  if (orderNo) return `order:${orderNo}`
+  return ''
+}
+const creationScore = (item: any) => {
+  const id = String(item?.id ?? '').trim()
+  const url = String(item?.url ?? '').trim()
+  const thumb = String(item?.thumbUrl ?? '').trim()
+  return (id ? 10 : 0) + (url ? 3 : 0) + (thumb ? 1 : 0)
+}
+
+/**
+ * 把 newItems 合并进 current（保持 current 顺序不变；新项只追加），并做增量去重：
+ * - key：优先 id，其次 algoOrderNo/algoOrderId
+ * - 冲突：保留 score 更高的那条（信息更完整）
+ */
+const mergeCreationsIncremental = (current: CreationResult[], newItems: CreationResult[]) => {
+  const list = Array.isArray(current) ? [...current] : []
+  const indexByKey = new Map<CreationKey, number>()
+
+  for (let i = 0; i < list.length; i++) {
+    const k = creationKeyOf(list[i])
+    if (k) indexByKey.set(k, i)
+  }
+
+  for (const item of newItems || []) {
+    if (!item) continue
+    const k = creationKeyOf(item)
+    if (!k) {
+      list.push(item)
+      continue
+    }
+    const idx = indexByKey.get(k)
+    if (idx === undefined) {
+      indexByKey.set(k, list.length)
+      list.push(item)
+      continue
+    }
+    const existed = list[idx]
+    if (creationScore(item) > creationScore(existed)) {
+      list[idx] = { ...(existed as any), ...(item as any) }
+    }
+  }
+
+  return list
+}
+
 // 列表合并去重：
 // - 优先用结果 id（algoResulId）
 // - 若 id 缺失（提交后的本地“生成中”占位），退化用 algoOrderNo 去重
@@ -2062,11 +2115,12 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
         return shouldShowPendingInTab(tabKey, String(a?.menuCode ?? ''))
       }) as CreationResult[]
       // reset 不应该把旧列表再拼回去（否则顺序会乱，变成“新页插到前面”）
+      // reset 场景允许一次性去重（次数少），但保持输出顺序稳定
       assets.value = dedupeCreationResultsPreserveOrder([...localPending, ...inProgressMapped, ...recordsMapped])
     } else {
       // 加载更多：只追加 records（不再注入 inProgress），保持当前选中项不跳动
       const selectedId = assets.value[currentIndex.value]?.id
-      assets.value = dedupeCreationResultsPreserveOrder([...assets.value, ...recordsMapped])
+      assets.value = mergeCreationsIncremental(assets.value, recordsMapped)
       if (selectedId) {
         const nextIdx = assets.value.findIndex((a) => a?.id === selectedId)
         currentIndex.value = nextIdx >= 0 ? nextIdx : 0
@@ -2175,8 +2229,9 @@ const handleLoadMore = () => {
 
 // 点击缩略图：切换主图并保持 currentIndex 同步
 const handleThumbnailClick = (idx: number) => {
-  currentIndex.value = idx
   mainImageRef.value?.scrollToAsset?.(idx)
+  // 先滚动主图（内部会置 isExternalScrolling），再更新 currentIndex，避免 watch 走 smooth 滚动引发 IntersectionObserver 抢选中
+  currentIndex.value = idx
 }
 
 // 主图滚动：同步缩略图列表滚动位置
