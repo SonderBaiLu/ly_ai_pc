@@ -815,7 +815,8 @@ const selectThumbnail = async (index: number, template: CreativeTemplate) => {
   // 设置标志：表示是用户主动点击触发的（必须在最开始设置，防止滚动事件提前触发）
   isUserClickingThumbnail.value = true
   clickingTargetIndex.value = index
-  scrollSyncResumeAt.value = Date.now() + 600
+  // 点击后保护期：避免滚动事件/同步逻辑抢状态、导致右侧缩略图“二次滚动”
+  scrollSyncResumeAt.value = Date.now() + 2000
   suppressScrollDetailLoadUntil.value = Date.now() + 1200
   // 取消滚动停顿触发的详情请求，避免“刚滚动完 + 立刻点击”产生多次详情请求
   clearScrollDetailTimer()
@@ -852,7 +853,8 @@ const selectThumbnail = async (index: number, template: CreativeTemplate) => {
   const currentTemplate = relatedTemplates.value[index]
   if (currentTemplate) {
     // 立即使用列表数据更新显示，确保页面不会空白
-    templateDetail.value = { ...currentTemplate }
+    // 注意：不要覆盖已加载的详情字段（如 webRequest），应 merge 保留
+    templateDetail.value = { ...(templateDetail.value as any), ...currentTemplate } as any
     // 更新 previousThumbnailIndex，确保后续逻辑正确
     previousThumbnailIndex.value = index
   } else {
@@ -1252,17 +1254,16 @@ const handleMediaContainerScroll = async (event: Event) => {
       selectedThumbnail.value = lockedIndex
       previousThumbnailIndex.value = lockedIndex
       if (currentTemplate) {
-        templateDetail.value = { ...currentTemplate }
+        // merge：避免覆盖已拉取到的 webRequest 等详情字段
+        templateDetail.value = { ...(templateDetail.value as any), ...currentTemplate } as any
       }
     }
 
     // 点击场景：详情请求只在 selectThumbnail 中触发一次。
     // 这里不再触发任何详情请求，避免对齐滚动过程中的中间态请求覆盖点击目标。
 
-    // 同步右侧缩略图滚动
-    const scrollPercentage =
-      relatedTemplates.value.length > 1 ? lockedIndex / (relatedTemplates.value.length - 1) : 0
-    syncRightThumbnailScroll(scrollPercentage)
+    // 点击对齐滚动期间：不再同步右侧缩略图滚动（避免右侧列表“再次滚动/跳动”）
+    // 右侧只需要高亮当前 selectedThumbnail；滚动同步仅在用户手动滚动左侧时执行。
 
     return // 直接返回，不执行后续的详情加载逻辑
   }
@@ -1272,10 +1273,7 @@ const handleMediaContainerScroll = async (event: Event) => {
 
   // 点击后的保护期内，不允许滚动事件覆盖点击选中结果
   if (Date.now() < scrollSyncResumeAt.value) {
-    const safeIndex = Math.max(0, Math.min(selectedThumbnail.value, relatedTemplates.value.length - 1))
-    const scrollPercentage =
-      relatedTemplates.value.length > 1 ? safeIndex / (relatedTemplates.value.length - 1) : 0
-    syncRightThumbnailScroll(scrollPercentage)
+    // 点击后的保护期：不要同步右侧缩略图滚动（避免二次滚动导致体感不丝滑）
     logDetailFlow('handleMediaContainerScroll:normal-branch-suppressed-after-click', {
       selected: selectedThumbnail.value,
       resumeAt: scrollSyncResumeAt.value,
@@ -1324,7 +1322,8 @@ const handleMediaContainerScroll = async (event: Event) => {
     previousThumbnailIndex.value = validIndex
 
     // 滚动过程中优先使用列表数据展示（确保数据一致性）
-    templateDetail.value = { ...currentTemplate }
+    // merge：避免覆盖已拉取到的 webRequest 等详情字段
+    templateDetail.value = { ...(templateDetail.value as any), ...currentTemplate } as any
 
     // 点击跳转后的保护期内，不触发滚动详情请求，避免中间项被逐个请求
     if (Date.now() >= suppressScrollDetailLoadUntil.value) {
@@ -1361,6 +1360,9 @@ const handleMediaContainerScroll = async (event: Event) => {
 
 // 同步右侧缩略图滚动
 const syncRightThumbnailScroll = (scrollPercentage: number) => {
+  // 点击缩略图触发的程序滚动期间：禁止同步右侧列表滚动，避免“选中后右侧又滚一下”
+  if (isUserClickingThumbnail.value) return
+  if (Date.now() < scrollSyncResumeAt.value) return
   const inst = thumbnailRef.value
   if (inst && typeof inst.syncScroll === 'function') {
     inst.syncScroll(scrollPercentage)
