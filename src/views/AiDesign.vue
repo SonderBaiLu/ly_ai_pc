@@ -6,8 +6,9 @@
       <!-- 头部大图轮播 -->
       <section class="ai-banner">
         <el-carousel height="350px" indicator-position="outside">
-          <el-carousel-item v-for="index in 3" :key="index">
-            <img src="@/assets/images/home/banner.png" alt="AI Design Banner" class="banner-img" />
+          <el-carousel-item v-for="index in 1" :key="index">
+            <LazyImage src="/src/assets/images/home/banner.png" alt="AI Design Banner" width="100%" height="100%"
+              object-fit="cover" :border-radius="0" />
           </el-carousel-item>
         </el-carousel>
       </section>
@@ -26,7 +27,8 @@
           <div v-for="card in secondLevelCards" :key="card.id || card.menuCode" class="feature-card" role="button"
             tabindex="0" @click="() => goToStudio(getModeByMenuCode(card.menuCode))">
             <div class="card-image">
-              <img :src="card.imgUrl" alt="" />
+              <LazyImage :src="card.imgUrl || ''" :alt="card.menuName || ''" width="100%" height="100%"
+                object-fit="cover" :border-radius="0" />
             </div>
             <div class="card-content">
               <h3 class="card-title">
@@ -51,6 +53,7 @@ import { useAuthGate } from '@/composables/useAuthGate'
 import { appApi, type SysPlatformMenuItem } from '@/api/app'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { useUserStore } from '@/stores/user'
+import LazyImage from '@/components/LazyImage.vue'
 
 type StudioMode = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 
@@ -219,11 +222,9 @@ watch(
 .card-image {
   width: 100%;
   height: auto;
+  overflow: hidden;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  :deep(.lazy-image-wrapper) {
     display: block;
   }
 }

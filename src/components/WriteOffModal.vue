@@ -79,9 +79,17 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import { images } from '@/assets'
-import { userLanguageToI18nLocale } from '@/i18n'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 
-const { t, locale } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n({
+  useScope: 'local',
+  // 与全局 i18n 隔离，避免首页导航语言覆盖该弹窗
+  inheritLocale: false,
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
 
 interface Props {
   modelValue: boolean
@@ -102,6 +110,16 @@ watch(
     locale.value = userLanguageToI18nLocale(userLang)
   },
   { immediate: true },
+)
+
+// 弹窗每次打开时再按用户偏好语言重置一次，保证始终与个人中心一致
+watch(
+  () => props.modelValue,
+  (visible) => {
+    if (visible) {
+      locale.value = userLanguageToI18nLocale(userStore.userInfo?.language)
+    }
+  },
 )
 
 const dialogVisible = computed({

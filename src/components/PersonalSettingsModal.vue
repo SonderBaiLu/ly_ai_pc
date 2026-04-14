@@ -38,7 +38,7 @@
         {{ hasPassword ?
           t('personalSettings.changePassword')
           :
-          t('personalSettings.notSetPassword')
+          t('personalSettings.setPassword')
         }}
       </el-button>
     </div>
@@ -99,6 +99,8 @@ interface Props {
 const props = defineProps<Props>()
 const { t, locale } = useI18n({
   useScope: 'local',
+  // 与全局 i18n 隔离：避免首页导航切换时反向覆盖本弹窗语言
+  inheritLocale: false,
   messages: {
     'zh-chs': zhMessages,
     en: enMessages,
@@ -215,6 +217,9 @@ watch(
   () => props.modelValue,
   (newVal) => {
     if (newVal) {
+      // 每次打开都按用户偏好语言重置，防止被外部状态影响
+      locale.value = userLanguageToI18nLocale(userStore.userInfo?.language)
+
       const userInfo = userStore.userInfo
       if (userInfo) {
         editingData.value = {
@@ -347,7 +352,7 @@ const handleClose = () => {
 
     .password-edit-btn {
       background: $color-primary-dark !important;
-      width: 81px;
+      min-width: 81px;
       border-radius: 4px;
       font-size: $font-size-sm;
     }

@@ -37,9 +37,28 @@
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { images } from '@/assets'
+import { useUserStore } from '@/stores/user'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 
 const router = useRouter()
-const { t, locale } = useI18n()
+const userStore = useUserStore()
+// 关于页面文案仅跟随用户偏好语言，不跟随首页全局语言
+const { t, locale } = useI18n({
+  useScope: 'local',
+  inheritLocale: false,
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
+
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 const visionItems = computed(() => {
   const isZh = locale.value === 'zh-chs'

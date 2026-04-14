@@ -8,7 +8,7 @@
         <div v-for="item in leftRailItems" :key="item.key" class="rail-item" :class="{ active: leftMenu === item.key }"
           @click="leftMenu = item.key">
           <div class="rail-icon">
-            <img :src="leftMenu === item.key ? item.functionIconSelected : item.functionIcon" alt="" />
+            <img :src="getRailIcon(item, leftMenu === item.key)" :alt="item.label" />
           </div>
           <div class="rail-text">{{ item.label }}</div>
         </div>
@@ -133,6 +133,7 @@ import Fashion from './left/Fashion.vue'
 import SketchToReal from './left/SketchToReal.vue'
 import RealToSketch from './left/RealToSketch.vue'
 import Fabric from './left/FabricCreative.vue'
+import { images } from '@/assets'
 
 type LeftMenuKey = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 type RailItem = {
@@ -292,6 +293,23 @@ const leftRailItems = computed<RailItem[]>(() => {
   })
 })
 
+// 左侧栏图标：接口优先；接口未返回（空）再回退本地
+const getLocalRailIcon = (item: RailItem, isActive: boolean) => {
+  const key = item.key
+  if (key === 'aiFashion') return isActive ? images.designActive : images.designIcon
+  if (key === 'sketchToReal') return isActive ? images.sketchActive : images.sketchIcon
+  if (key === 'realToSketch') return isActive ? images.realActive : images.realIcon
+  // 面料创款目前只有一个本地图：用 fabricActive 兜底（无论选中与否都至少不空白）
+  return images.fabricActive
+}
+
+// 获取左侧栏接口图标，优先级：接口图标 > 本地图标
+const getRailIcon = (item: RailItem, isActive: boolean) => {
+  const apiIcon = isActive ? item.functionIconSelected : item.functionIcon
+  return apiIcon || getLocalRailIcon(item, isActive)
+}
+
+// 获取系统平台菜单
 const fetchSysPlatformMenu = async () => {
   try {
     const res = await appApi.getSysPlatformMenu()

@@ -2,7 +2,8 @@
   <section class="gallery-section">
     <div class="image-grid">
       <div v-for="(img, index) in doubledImages" :key="index" class="image-card">
-        <img :src="img.src" :alt="'Fashion ' + (index + 1)" />
+        <LazyImage :src="img.src" :alt="'Fashion ' + (index + 1)" width="100%" height="100%" object-fit="cover"
+          :border-radius="0" />
       </div>
     </div>
   </section>

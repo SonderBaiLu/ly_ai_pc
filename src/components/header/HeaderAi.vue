@@ -49,7 +49,7 @@
         <span class="ai-link" role="button" tabindex="0"
           @click="ctx.enterModule(() => ctx.router.push('/my-creations'))"
           @keydown.enter="ctx.enterModule(() => ctx.router.push('/my-creations'))">
-          我的创作
+          {{ ctx.t('header.myCreations') }}
         </span>
 
         <el-popover placement="bottom" trigger="hover" :enterable="true" :show-after="0" :hide-after="150"
@@ -65,7 +65,7 @@
                 {{ ctx.userStore.userInfo?.wavePoints || 0 }}
               </span>
               <el-button class="ai-coin-recharge" type="primary"
-                @click="ctx.enterModule(() => ctx.router.push('/membership?tab=1'))">充值</el-button>
+                @click="ctx.enterModule(() => ctx.router.push('/membership?tab=1'))">{{ ctx.t('header.recharge') }}</el-button>
             </div>
           </template>
 

@@ -75,6 +75,7 @@ import { images } from '@/assets'
 import { toRefs } from 'vue'
 import { useModalStore } from '@/stores/modal'
 import { useUserStore } from '@/stores/user'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 
 interface Props {
   modelValue: boolean
@@ -96,12 +97,27 @@ const emit = defineEmits<{
   'no-remind-change': [value: boolean]
 }>()
 
-// 与 Header / WriteOffModal 等一致：使用全局 vue-i18n，词条来自 createI18n 的 messages
-const { t } = useI18n()
+// 水印弹窗文案仅跟随用户偏好语言，不跟随首页全局语言
+const { t, locale } = useI18n({
+  useScope: 'local',
+  inheritLocale: false,
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
 
 const modalStore = useModalStore()
 const userStore = useUserStore()
 const router = useRouter()
+
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 const isVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)
 

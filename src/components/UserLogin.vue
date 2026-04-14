@@ -224,6 +224,7 @@ import {ElMessage} from 'element-plus'
 import {getSmsCodeApi, getUserWechat, getWechatQrCodeApi} from '@/api/userLogin'
 import {useUserStore} from "@/stores/user"
 import {images} from '@/assets'
+import {enMessages, userLanguageToI18nLocale, zhMessages} from '@/i18n'
 import ResetPassword from '@/components/ResetPassword.vue'
 import InvitationCode from '@/components/InvitationCode.vue'
 
@@ -231,7 +232,14 @@ import InvitationCode from '@/components/InvitationCode.vue'
 // 1. 全局配置与基础状态
 // ==========================================
 const userStore = useUserStore()
-const {t} = useI18n()
+const {t, locale} = useI18n({
+  useScope: 'local',
+  inheritLocale: false,
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
 const router = useRouter()
 const emit = defineEmits(['close'])
 const accountType = ref<'personal' | 'team'>('personal') // 账号类型：个人 / 团队
@@ -245,6 +253,15 @@ const dialogs = reactive({
 })
 const currentMode = ref('0') // 忘记密码模式
 const openId = ref('0') // 这个变量给ResetPassword页面的绑定手机号调用的接口使用，变量名和接口文档字段名称一样
+
+// 登录弹窗语言仅跟随用户偏好；未登录/无偏好时默认中文
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  {immediate: true},
+)
 
 // 统一关闭弹窗的方法
 const handleClose = () => {
