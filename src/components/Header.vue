@@ -331,7 +331,7 @@ const menuData = [
 // 客户服务二维码
 const customerCodeCards = [
   { src: images.customerCode1, name: '商务咨询-小潮' },
-  { src: images.customerCode2, name: '商务咨询-雾楠' },
+  { src: images.customerCode2, name: '商务咨询-雾棉' },
   { src: images.customerCode3, name: '商务咨询-云纱' },
 ]
 
