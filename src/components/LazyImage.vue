@@ -90,6 +90,7 @@ const isLoading = ref(true)
 const loadStartTime = ref(0)
 const minLoadingTime = 400
 const currentSrc = ref('')
+const retriedWithCacheBust = ref(false)
 
 let observer: IntersectionObserver | null = null
 
@@ -101,6 +102,7 @@ const formatSize = (size: string | number) => {
 const wrapperStyle = computed(() => ({
   width: formatSize(props.width),
   height: formatSize(props.height),
+  borderRadius: formatSize(props.borderRadius),
 }))
 
 const loadingStyle = computed(() => {
@@ -123,7 +125,43 @@ const errorStyle = computed(() => {
   return style
 })
 
+const appendCacheBust = (src: string) => {
+  if (!src) return src
+  const sep = src.includes('?') ? '&' : '?'
+  return `${src}${sep}_retry_ts=${Date.now()}`
+}
+
+const shouldRetryOnCacheReadFailure = (e: Event) => {
+  const anyEvent = e as any
+  const maybeTexts = [
+    String(anyEvent?.message ?? ''),
+    String(anyEvent?.error?.message ?? ''),
+    String(anyEvent?.detail ?? ''),
+    String(anyEvent?.target?.error?.message ?? ''),
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  // 仅在识别到缓存读取失败相关错误时重试，避免对其它真实错误进行无意义重试
+  return (
+    maybeTexts.includes('err_cache_read_failure') ||
+    maybeTexts.includes('cache read failure')
+  )
+}
+
 const handleError = (e: Event) => {
+  // 仅在缓存读取失败场景重试一次：追加时间戳绕过异常缓存
+  if (
+    !retriedWithCacheBust.value &&
+    currentSrc.value &&
+    shouldRetryOnCacheReadFailure(e)
+  ) {
+    retriedWithCacheBust.value = true
+    isLoading.value = true
+    loadStartTime.value = Date.now()
+    currentSrc.value = appendCacheBust(currentSrc.value)
+    return
+  }
   isLoading.value = false
   emit('error', e)
 }
@@ -182,6 +220,7 @@ watch(
   () => {
     isLoading.value = true
     loadStartTime.value = Date.now()
+    retriedWithCacheBust.value = false
     currentSrc.value = ''
     observer?.disconnect()
     initLazyLoad()

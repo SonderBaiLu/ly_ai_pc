@@ -65,7 +65,7 @@
               <div class="download-menu-item switch-row">
                 <el-switch v-model="removeWatermarkEnabled" :disabled="!isUserVip" active-color="#17A0E1"
                   inactive-color="#201B26" @change="(v) => handleWatermarkToggleChange(v)" />
-                <span>去除水印</span>
+                <span>{{ t('myCreations.actions.removeWatermark') }}</span>
                 <img :src="images.vipText" alt="VIP" class="vip-text-icon" />
               </div>
             </div>
@@ -181,7 +181,7 @@ import { useI18n } from 'vue-i18n'
 import { APP_MENU_CODES } from '@/constants/appMenuCode'
 import { useRouter } from 'vue-router'
 import { useTemplateStore } from '@/stores/template'
-import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 import type { CreationResult } from '@/composables/useTaskPolling'
 import { mapRecordToCreationResult } from '@/utils/creationResult'
 
@@ -196,9 +196,26 @@ type CreationItem = Omit<CreationResult, 'id' | 'createTime'> & {
   [key: string]: any
 }
 
-const { t } = useI18n()
+const userStore = useUserStore()
+const { t, locale } = useI18n({
+  useScope: 'local',
+  inheritLocale: false,
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+})
 const router = useRouter()
 const templateStore = useTemplateStore()
+
+// 我的创作文案仅跟随用户偏好语言，不跟随导航全局语言
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 
 const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
   { key: 'all', label: t('myCreations.tabs.all') },
@@ -217,7 +234,6 @@ const batchMode = ref(false)
 const selectedIds = ref<(string | number)[]>([])
 const isDownloading = ref(false)
 const uploading = ref(false)
-const userStore = useUserStore()
 const modalStore = useModalStore()
 
 const isUserVip = computed(() => Number(userStore.userInfo?.vipLevel ?? 0) > 0)

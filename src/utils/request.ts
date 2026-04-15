@@ -36,7 +36,6 @@ let authExpiredTimer: ReturnType<typeof setTimeout> | null = null
 
 const APP_CODE = 'ly_ai'
 const DEVICE_ID_STORAGE_KEY = 'deviceId'
-const LOCALE_STORAGE_KEY = 'locale'
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
@@ -76,21 +75,16 @@ const detectOsType = (): OSType => {
 
 const getAppLanguage = () => {
   try {
-    // 已登录：优先用个人中心语言偏好（后端字段：userInfo.language）
-    const token = localStorage.getItem('token')
-    if (token) {
-      const rawUserInfo = localStorage.getItem('userInfo')
-      if (rawUserInfo) {
-        const userInfo = JSON.parse(rawUserInfo) as any
-        const lang = String(userInfo?.language ?? '').trim()
-        if (lang === 'en') return 'en'
-        if (lang === 'zh-chs') return 'zh-chs'
-      }
+    // 仅使用用户信息里的语言字段（userInfo.language）：
+    // - en -> 英文
+    // - zh-chs/空值/异常值 -> 中文
+    const rawUserInfo = localStorage.getItem('userInfo')
+    if (rawUserInfo) {
+      const userInfo = JSON.parse(rawUserInfo) as any
+      const lang = String(userInfo?.language ?? '').trim()
+      if (lang === 'en') return 'en'
+      return 'zh-chs'
     }
-
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
-    if (stored === 'en') return 'en'
-    if (stored === 'zh-chs') return 'zh-chs'
   } catch {
     // ignore
   }

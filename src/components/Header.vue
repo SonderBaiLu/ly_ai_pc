@@ -46,14 +46,14 @@ const handleLanguageChange = async (value: 'zh-chs' | 'en') => {
   locale.value = userLanguageToI18nLocale(language.value)
 
   // 2) 同步后端语言偏好（仅登录态需要）
-  try {
-    if (userStore.isLoggedIn) {
-      await userStore.updateUserInfo({ language: language.value }, '语言切换成功')
-    }
-  } catch (e) {
-    // 后端同步失败不影响当前前端翻译
-    console.warn('[Header] 更新语言失败：', e)
-  }
+  // try {
+  //   if (userStore.isLoggedIn) {
+  //     await userStore.updateUserInfo({ language: language.value }, '语言切换成功')
+  //   }
+  // } catch (e) {
+  //   // 后端同步失败不影响当前前端翻译
+  //   console.warn('[Header] 更新语言失败：', e)
+  // }
 }
 
 const { isAuthed, enterModule } = useAuthGate()
@@ -205,11 +205,12 @@ onBeforeUnmount(() => {
   clearMonthlyTipTimers()
 })
 // 当前用户语言
-const currentUserLanguage = computed<'zh-chs' | 'en'>(() =>
-  userStore.userInfo?.language === 'en' ? 'en' : 'zh-chs'
-)
+// const currentUserLanguage = computed<'zh-chs' | 'en'>(() =>
+//   userStore.userInfo?.language === 'en' ? 'en' : 'zh-chs'
+// )
 // 当前用户语言标签
-const getCurrentLanguageLabel = () => (currentUserLanguage.value === 'zh-chs' ? '简体中文' : 'English')
+// const getCurrentLanguageLabel = () => (currentUserLanguage.value === 'zh-chs' ? '简体中文' : 'English')
+const getCurrentLanguageLabel = () => '简体中文'
 
 const homeCtx = computed(() => ({
   t,

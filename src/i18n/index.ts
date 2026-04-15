@@ -39,6 +39,8 @@ export const zhMessages = {
     about: '关于',
     contactUs: '联系我们',
     followUs: '关注我们',
+    myCreations: '我的创作',
+    recharge: '充值',
     language: '简体中文',
     login: '登录',
     register: '立即体验',
@@ -180,7 +182,7 @@ export const zhMessages = {
     nickName: '昵称',
     nickNamePlaceholder: '请输入昵称',
     changePassword: '密码修改', /* 用户已经设置了密码 页面显示数据 */
-    notSetPassword: '设置密码', /* 用户从未设置过密码 页面显示数据 */
+    setPassword: '设置密码', /* 用户从未设置过密码 页面显示数据 */
     introduction: '个人简介',
     introductionPlaceholder: '请输入您的个人简介',
     save: '保存',
@@ -226,6 +228,7 @@ export const zhMessages = {
       collect: '收藏',
       cancelCollect: '取消收藏',
       download: '下载',
+      removeWatermark: '去除水印',
       select: '选择',
       cancel: '取消',
       cancelSelect: '取消选择',
@@ -278,6 +281,29 @@ export const zhMessages = {
     getCode: '获取验证码',
     bind: '绑定',
     countdown: '{seconds}s后获取',
+    bindSuccess: '手机号绑定成功',
+  },
+  resetPasswordModal: {
+    accountName: '账号名',
+    phone: '手机号',
+    oldPassword: '旧密码',
+    code: '验证码',
+    newPassword: '新密码',
+    newPasswordHint: '6-20个数字、字母组成',
+    confirmPassword: '确认密码',
+    setPassword: '设置密码',
+    resetPassword: '重置密码',
+    changePassword: '修改密码',
+    bindPhone: '绑定手机',
+    submitReset: '重置密码',
+    enterOldPassword: '请输入旧密码',
+    enterNewPassword: '请输入新密码',
+    reenterPassword: '请再次输入密码确认',
+    passwordMismatch: '两次输入的密码不一致，请重新输入',
+    passwordSetSuccess: '密码设置成功',
+    passwordResetSuccess: '密码重置成功',
+    passwordChangeSuccess: '修改密码成功',
+    actionFailed: '操作失败',
   },
 }
 
@@ -315,6 +341,8 @@ export const enMessages = {
     about: 'About',
     contactUs: 'Contact Us',
     followUs: 'Follow Us',
+    myCreations: 'My Creations',
+    recharge: 'Recharge',
     language: 'English',
     login: 'Login',
     register: 'Start Now',
@@ -402,6 +430,7 @@ export const enMessages = {
       collect: 'Favorite',
       cancelCollect: 'Unfavorite',
       download: 'Download',
+      removeWatermark: 'Remove Watermark',
       select: 'Select',
       cancel: 'Cancel',
       cancelSelect: 'Cancel selection',
@@ -514,6 +543,7 @@ export const enMessages = {
     nickName: 'Nick Name',
     nickNamePlaceholder: 'Enter nickname',
     changePassword: 'Change Password',
+    setPassword: 'Set Password',
     introduction: 'Personal Bio',
     introductionPlaceholder: 'Please enter your personal introduction',
     save: 'Save',
@@ -562,10 +592,37 @@ export const enMessages = {
     getCode: 'Get code',
     bind: 'Bind',
     countdown: 'Resend in {seconds}s',
+    bindSuccess: 'Phone bound successfully',
+  },
+  resetPasswordModal: {
+    accountName: 'Account Name',
+    phone: 'Phone Number',
+    oldPassword: 'Old Password',
+    code: 'Verification Code',
+    newPassword: 'New Password',
+    newPasswordHint: '6-20 characters: letters and numbers',
+    confirmPassword: 'Confirm Password',
+    setPassword: 'Set Password',
+    resetPassword: 'Reset Password',
+    changePassword: 'Change Password',
+    bindPhone: 'Bind Phone',
+    submitReset: 'Reset Password',
+    enterOldPassword: 'Please enter old password',
+    enterNewPassword: 'Please enter new password',
+    reenterPassword: 'Please re-enter password to confirm',
+    passwordMismatch: 'Passwords do not match, please try again',
+    passwordSetSuccess: 'Password set successfully',
+    passwordResetSuccess: 'Password reset successfully',
+    passwordChangeSuccess: 'Password changed successfully',
+    actionFailed: 'Operation failed',
   },
 }
 
 const detectInitialLocale = (): Locale => {
+  // 启动阶段语言兜底：
+  // 1) 首屏尚未拿到 userInfo.language 时，先用本地缓存 locale，避免语言闪烁
+  // 2) 服务端环境（无 window）统一回退中文
+  // 3) 当后续拿到用户偏好语言后，会由业务侧 watch(userInfo.language) 再覆盖
   if (typeof window === 'undefined') return 'zh-chs'
   const stored = window.localStorage.getItem(STORAGE_KEY)
   if (stored === 'en') return 'en'
@@ -575,7 +632,9 @@ const detectInitialLocale = (): Locale => {
 
 // 把后端用户语言偏好（zh-chs/en）映射到 vue-i18n 的语言 key（zh/en）
 export const userLanguageToI18nLocale = (language?: string | null): Locale => {
-  return language === 'en' ? 'en' : 'zh-chs'
+  // 接口兜底：后端返回 null/undefined/空串/异常值时，统一回退中文
+  const normalized = String(language ?? '').trim().toLowerCase()
+  return normalized === 'en' ? 'en' : 'zh-chs'
 }
 
 // 把 vue-i18n 的语言 key（zh/en）映射到后端需要的用户语言偏好（zh-chs/en）

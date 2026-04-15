@@ -7,7 +7,8 @@
       <div class="model-scroller">
         <div class="model-track">
           <div class="model-item" v-for="(model, index) in doubledModels" :key="index">
-            <img :src="model.src" :alt="'Model ' + (index + 1)" class="model-image" />
+            <LazyImage :src="model.src" :alt="'Model ' + (index + 1)" class="model-image" width="100%" height="100%"
+              object-fit="cover" :border-radius="0" />
           </div>
         </div>
       </div>

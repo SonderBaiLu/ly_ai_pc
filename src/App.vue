@@ -3,7 +3,7 @@
     <div class="app" :class="{ dark: isDark }">
       <router-view v-slot="{ Component }">
         <keep-alive :include="['AiFashionStudio']">
-          <component :is="Component" :key="`${route.fullPath}::${userStore.sessionVersion}`" />
+          <component :is="Component" :key="`${route.path}::${userStore.sessionVersion}`" />
         </keep-alive>
       </router-view>
 

@@ -462,6 +462,9 @@ const handleDelete = (index: number) => {
 }
 
 // el-scrollbar 滚动：同步滚动状态 + 触底加载更多（替代 v-infinite-scroll）
+// 体验优先：滚动同步保持“即时”；仅对触底 load-more 做冷却，避免高频触发造成卡顿/重复请求。
+let lastLoadMoreAt = 0
+const LOAD_MORE_COOLDOWN_MS = 250
 const handleMainScroll = ({ scrollTop }: { scrollTop: number }) => {
   const wrapEl: HTMLElement | undefined = scrollbarRef.value?.wrapRef
   if (!wrapEl) return
@@ -483,11 +486,15 @@ const handleMainScroll = ({ scrollTop }: { scrollTop: number }) => {
     }, 200)
   }
 
-  // 触底加载更多
+  // 触底加载更多（带冷却）
   if (props.loading || props.loadingMore || !props.hasMoreData) return
   const distance = 200
   const reachBottom = wrapEl.scrollHeight - (scrollTop + wrapEl.clientHeight) <= distance
-  if (reachBottom) handleLoadMore()
+  if (!reachBottom) return
+  const now = Date.now()
+  if (now - lastLoadMoreAt < LOAD_MORE_COOLDOWN_MS) return
+  lastLoadMoreAt = now
+  handleLoadMore()
 }
 
 // 组件挂载时初始化 Intersection Observer
@@ -520,6 +527,8 @@ let isAutoScrolling = false
 let isExternalScrolling = false // 标志位：防止外部调用 scrollToAsset 时触发 watch
 // 允许自动选中（避免首屏 IntersectionObserver 误触发）
 let allowAutoSelect = false
+// 程序滚动（缩略图点击/外部同步滚动）期间，短暂禁用 IntersectionObserver 自动改选中，避免“点A选B”
+let suppressAutoSelectUntil = 0
 
 // 监听当前索引变化，自动滚动到对应位置
 watch(
@@ -678,6 +687,9 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       // 当创作进入视口（可见度超过30%时更新选中状态）
       if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
         if (!allowAutoSelect) return
+        // 外部程序滚动期间（缩略图点击/同步滚动）不要自动改选中，避免抢状态
+        if (isExternalScrolling) return
+        if (Date.now() < suppressAutoSelectUntil) return
         // 更新选中状态（同步缩略图）
         if (props.currentIndex !== index) {
           isAutoScrolling = true // 标记为自动滚动触发，避免 watch 再次滚动
@@ -814,6 +826,7 @@ const scrollToAsset = (index: number) => {
 
   // 设置标志位，防止触发 watch 中的重复滚动
   isExternalScrolling = true
+  suppressAutoSelectUntil = Date.now() + 400
 
   nextTick(() => {
     if (mainContentRef.value) {
@@ -842,6 +855,8 @@ const scrollToAsset = (index: number) => {
 const syncScroll = (scrollPercentage: number) => {
   if (!mainContentRef.value) return
 
+  // 同步滚动属于程序滚动：短暂禁用 IO 抢选中
+  suppressAutoSelectUntil = Date.now() + 250
   const { scrollHeight, clientHeight } = mainContentRef.value
   const maxScroll = scrollHeight - clientHeight
   if (maxScroll > 0) {

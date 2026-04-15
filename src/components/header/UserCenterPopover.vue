@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <div class="user-item flex-between user-item--language" @mouseenter="ctx.openLanguagePopover"
+      <!-- <div class="user-item flex-between user-item--language" @mouseenter="ctx.openLanguagePopover"
         @mouseleave="ctx.scheduleCloseLanguagePopover">
         <div class="flex items-center">
           <img :src="ctx.images.languageBlack" alt="" class="user-icon" />
@@ -74,7 +74,7 @@
             :link="ctx.getCurrentLanguageLabel() != 'English'"
             @click.stop="ctx.handleLanguageChange('en'); ctx.closeLanguagePopover()">English</el-button>
         </div>
-      </div>
+      </div> -->
 
       <div class="user-item flex items-center" @click="ctx.modalStore.openContactUsModal()">
         <img :src="ctx.images.customer" alt="Customer" class="user-icon" />

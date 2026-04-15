@@ -8,7 +8,7 @@
         <div v-for="item in leftRailItems" :key="item.key" class="rail-item" :class="{ active: leftMenu === item.key }"
           @click="leftMenu = item.key">
           <div class="rail-icon">
-            <img :src="leftMenu === item.key ? item.functionIconSelected : item.functionIcon" alt="" />
+            <img :src="getRailIcon(item, leftMenu === item.key)" :alt="item.label" />
           </div>
           <div class="rail-text">{{ item.label }}</div>
         </div>
@@ -19,58 +19,60 @@
         <div class="studio-content">
           <!-- 左侧参数面板 -->
           <section class="param-panel">
-            <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="formDataByMenu.aiFashion.image"
-              v-model:prompt="formDataByMenu.aiFashion.prompt" :task-result-id="formDataByMenu.aiFashion.taskResultId"
-              :creation-type-selection="formDataByMenu.aiFashion.creationTypeSelection" :submitting="loading"
-              :uploading="refImageUploading" :default-image-params="currentImageDefaultParams"
-              :inspiration-words="formDataByMenu.aiFashion.inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
-              @open-type-modal="() => openTypeModal('aiFashion')"
-              @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @update:design-features-params="(v) => (formDataByMenu.aiFashion.designFeaturesParams = v)"
-              @generate="handleAiFashionGenerate" @inspiration-library="handleInspirationLibrary"
-              @show-history="openHistoryModal"
-              @update:inspiration-words="(words) => formDataByMenu.aiFashion.inspirationWords = words" />
-            <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="formDataByMenu.fabricCreative.image"
-              v-model:prompt="formDataByMenu.fabricCreative.prompt"
-              :task-result-id="formDataByMenu.fabricCreative.taskResultId"
-              :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
-              :inspiration-words="formDataByMenu.fabricCreative.inspirationWords" :coin="imageCoin"
-              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
-              :uploading="refImageUploading" @open-type-modal="() => openTypeModal('fabricCreative')"
-              @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
-              @show-history="openHistoryModal"
-              @update:inspiration-words="(words) => formDataByMenu.fabricCreative.inspirationWords = words" />
-            <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="formDataByMenu.sketchToReal.image"
-              v-model:prompt="formDataByMenu.sketchToReal.prompt"
-              :sketch-param-selections="formDataByMenu.sketchToReal.sketchParamSelections"
-              :param-categories="sketchToRealParamCategories" :task-result-id="formDataByMenu.sketchToReal.taskResultId"
-              :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
-              :inspiration-words="formDataByMenu.sketchToReal.inspirationWords" :coin="imageCoin"
-              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
-              :uploading="refImageUploading" @open-type-modal="() => openTypeModal('sketchToReal')"
-              @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @generate="handleSketchToRealGenerate" @inspiration-library="handleInspirationLibrary"
-              @show-history="openHistoryModal"
-              @update:sketch-param-selections="(v) => (formDataByMenu.sketchToReal.sketchParamSelections = v)"
-              @update:inspiration-words="(words) => (formDataByMenu.sketchToReal.inspirationWords = words)" />
-            <RealToSketch v-else v-model:image-url="formDataByMenu.realToSketch.image"
-              v-model:prompt="formDataByMenu.realToSketch.prompt"
-              :sketch-param-selections="formDataByMenu.realToSketch.sketchParamSelections"
-              :param-categories="realToSketchParamCategories" :task-result-id="formDataByMenu.realToSketch.taskResultId"
-              :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
-              :inspiration-words="formDataByMenu.realToSketch.inspirationWords" :coin="imageCoin"
-              :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
-              :uploading="refImageUploading" @open-type-modal="() => openTypeModal('realToSketch')"
-              @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
-              @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
-              @generate="handleRealToSketchGenerate" @inspiration-library="handleInspirationLibrary"
-              @show-history="openHistoryModal"
-              @update:sketch-param-selections="(v) => (formDataByMenu.realToSketch.sketchParamSelections = v)"
-              @update:inspiration-words="(words) => (formDataByMenu.realToSketch.inspirationWords = words)" />
+            <KeepAlive>
+              <Fashion v-if="leftMenu === 'aiFashion'" v-model:image-url="formDataByMenu.aiFashion.image"
+                v-model:prompt="formDataByMenu.aiFashion.prompt" :task-result-id="formDataByMenu.aiFashion.taskResultId"
+                :creation-type-selection="formDataByMenu.aiFashion.creationTypeSelection" :submitting="loading"
+                :uploading="refImageUploading" :default-image-params="currentImageDefaultParams"
+                :inspiration-words="formDataByMenu.aiFashion.inspirationWords" :coin="imageCoin" :menu-id="currentMenuId"
+                @open-type-modal="() => openTypeModal('aiFashion')"
+                @clear-type-selection="() => clearTypeSelection('aiFashion')" @drop-file="handleDropFile"
+                @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+                @update:design-features-params="(v) => (formDataByMenu.aiFashion.designFeaturesParams = v)"
+                @generate="handleAiFashionGenerate" @inspiration-library="handleInspirationLibrary"
+                @show-history="openHistoryModal"
+                @update:inspiration-words="(words) => formDataByMenu.aiFashion.inspirationWords = words" />
+              <Fabric v-else-if="leftMenu === 'fabricCreative'" v-model:image-url="formDataByMenu.fabricCreative.image"
+                v-model:prompt="formDataByMenu.fabricCreative.prompt"
+                :task-result-id="formDataByMenu.fabricCreative.taskResultId"
+                :creation-type-selection="creationTypeSelectionByMenu.fabricCreative"
+                :inspiration-words="formDataByMenu.fabricCreative.inspirationWords" :coin="imageCoin"
+                :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+                :uploading="refImageUploading" @open-type-modal="() => openTypeModal('fabricCreative')"
+                @clear-type-selection="() => clearTypeSelection('fabricCreative')" @drop-file="handleDropFile"
+                @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+                @generate="handleFabricGenerate" @inspiration-library="handleInspirationLibrary"
+                @show-history="openHistoryModal"
+                @update:inspiration-words="(words) => formDataByMenu.fabricCreative.inspirationWords = words" />
+              <SketchToReal v-else-if="leftMenu === 'sketchToReal'" v-model:image-url="formDataByMenu.sketchToReal.image"
+                v-model:prompt="formDataByMenu.sketchToReal.prompt"
+                :sketch-param-selections="formDataByMenu.sketchToReal.sketchParamSelections"
+                :param-categories="sketchToRealParamCategories" :task-result-id="formDataByMenu.sketchToReal.taskResultId"
+                :creation-type-selection="creationTypeSelectionByMenu.sketchToReal"
+                :inspiration-words="formDataByMenu.sketchToReal.inspirationWords" :coin="imageCoin"
+                :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+                :uploading="refImageUploading" @open-type-modal="() => openTypeModal('sketchToReal')"
+                @clear-type-selection="() => clearTypeSelection('sketchToReal')" @drop-file="handleDropFile"
+                @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+                @generate="handleSketchToRealGenerate" @inspiration-library="handleInspirationLibrary"
+                @show-history="openHistoryModal"
+                @update:sketch-param-selections="(v) => (formDataByMenu.sketchToReal.sketchParamSelections = v)"
+                @update:inspiration-words="(words) => (formDataByMenu.sketchToReal.inspirationWords = words)" />
+              <RealToSketch v-else v-model:image-url="formDataByMenu.realToSketch.image"
+                v-model:prompt="formDataByMenu.realToSketch.prompt"
+                :sketch-param-selections="formDataByMenu.realToSketch.sketchParamSelections"
+                :param-categories="realToSketchParamCategories" :task-result-id="formDataByMenu.realToSketch.taskResultId"
+                :creation-type-selection="creationTypeSelectionByMenu.realToSketch"
+                :inspiration-words="formDataByMenu.realToSketch.inspirationWords" :coin="imageCoin"
+                :default-image-params="currentImageDefaultParams" :submitting="loading" :menu-id="currentMenuId"
+                :uploading="refImageUploading" @open-type-modal="() => openTypeModal('realToSketch')"
+                @clear-type-selection="() => clearTypeSelection('realToSketch')" @drop-file="handleDropFile"
+                @delete="handleRefDelete" @coming-soon="showComingSoon" @show-params="openImageParams"
+                @generate="handleRealToSketchGenerate" @inspiration-library="handleInspirationLibrary"
+                @show-history="openHistoryModal"
+                @update:sketch-param-selections="(v) => (formDataByMenu.realToSketch.sketchParamSelections = v)"
+                @update:inspiration-words="(words) => (formDataByMenu.realToSketch.inspirationWords = words)" />
+            </KeepAlive>
           </section>
 
           <!-- 结果列表（主图 + 缩略图） -->
@@ -133,6 +135,7 @@ import Fashion from './left/Fashion.vue'
 import SketchToReal from './left/SketchToReal.vue'
 import RealToSketch from './left/RealToSketch.vue'
 import Fabric from './left/FabricCreative.vue'
+import { images } from '@/assets'
 
 type LeftMenuKey = 'aiFashion' | 'sketchToReal' | 'realToSketch' | 'fabricCreative'
 type RailItem = {
@@ -167,12 +170,25 @@ const initialLeftMenu: LeftMenuKey = parseLeftMenuFromRouteMode(route.query.mode
 const leftMenu = ref<LeftMenuKey>(initialLeftMenu)
 // keep-alive 下组件只创建一次：必须响应式读 query，否则从面料入口进一次后左侧栏永远只显示面料
 const isFabricEntry = computed(() => route.query.mode === 'fabricCreative')
+// 区分“内部左侧切换写 mode”与“外部入口跳转带 mode”（按目标值一次性匹配，避免时序误判）
+let internalModeSyncTarget: LeftMenuKey | null = null
 
 watch(
   () => route.query.mode,
   (mode) => {
     const parsed = parseLeftMenuFromRouteMode(mode)
-    if (parsed) leftMenu.value = parsed
+    if (!parsed) return
+    const isInternal = internalModeSyncTarget === parsed
+    if (isInternal) internalModeSyncTarget = null
+    if (leftMenu.value !== parsed) leftMenu.value = parsed
+    // 内部左侧切换：不改右侧；外部入口跳转：右侧对齐到对应一级模块
+    if (isInternal) return
+    const nextTab = deriveInitialRightTabByLeftMenu(parsed) || ''
+    const shouldSyncRight = nextTab !== currentContentTab.value || assets.value.length === 0
+    if (shouldSyncRight) {
+      currentContentTab.value = nextTab
+      void fetchMyCreations(true, { clearList: true, forceInProgress: true })
+    }
   },
 )
 
@@ -182,12 +198,17 @@ watch(
   (menu) => {
     const currentMode = Array.isArray(route.query.mode) ? route.query.mode[0] : route.query.mode
     if (currentMode === menu) return
+    internalModeSyncTarget = menu
     router.replace({
       query: {
         ...route.query,
         mode: menu,
       },
     })
+      .catch(() => {
+        // 路由失败时清理目标标记，避免影响后续外部跳转判断
+        if (internalModeSyncTarget === menu) internalModeSyncTarget = null
+      })
   },
 )
 const showComingSoon = () => ElMessage.warning('暂未开放')
@@ -292,6 +313,23 @@ const leftRailItems = computed<RailItem[]>(() => {
   })
 })
 
+// 左侧栏图标：接口优先；接口未返回（空）再回退本地
+const getLocalRailIcon = (item: RailItem, isActive: boolean) => {
+  const key = item.key
+  if (key === 'aiFashion') return isActive ? images.designActive : images.designIcon
+  if (key === 'sketchToReal') return isActive ? images.sketchActive : images.sketchIcon
+  if (key === 'realToSketch') return isActive ? images.realActive : images.realIcon
+  // 面料创款目前只有一个本地图：用 fabricActive 兜底（无论选中与否都至少不空白）
+  return images.fabricActive
+}
+
+// 获取左侧栏接口图标，优先级：接口图标 > 本地图标
+const getRailIcon = (item: RailItem, isActive: boolean) => {
+  const apiIcon = isActive ? item.functionIconSelected : item.functionIcon
+  return apiIcon || getLocalRailIcon(item, isActive)
+}
+
+// 获取系统平台菜单
 const fetchSysPlatformMenu = async () => {
   try {
     const res = await appApi.getSysPlatformMenu()
@@ -760,6 +798,7 @@ const submitByMenuCode = async (
           String(res.data.orderNo),
           String(form?.prompt || '').trim(),
           String(menuCode || '').trim(),
+          menuKey,
         )
         void algoPollingStore.start(res.data.orderNo)
       }
@@ -784,8 +823,17 @@ const mainImageRef = ref<any>(null)
 const thumbnailRef = ref<any>(null)
 // 主图当前滚动百分比（0=顶部），用于避免轮询回填时“把用户拉回顶部”
 const lastMainScrollPercentage = ref(0)
+// 提交成功后将右侧列表定位到顶部，确保最新“生成中”可见
+const scrollResultPanelToTopAfterSubmit = () => {
+  currentIndex.value = 0
+  lastMainScrollPercentage.value = 0
+  window.requestAnimationFrame(() => {
+    mainImageRef.value?.scrollToAsset?.(0)
+    mainImageRef.value?.syncScroll?.(0)
+    thumbnailRef.value?.syncScroll?.(0)
+  })
+}
 // 对“本次提交的每个任务”生效：全部完成后统一回到顶部（支持并发提交）
-const autoFocusOrderNoSet = reactive(new Set<string>())
 // 完成态回填去重：避免同一 orderNo 的同一批结果被 watcher 反复 apply，导致列表顺序/可见性异常
 const appliedDoneSignatureByOrderNo = reactive(new Map<string, string>())
 // 从详情页返回：根据 algoPollingStore.listDirtyToken 判断是否需要强制刷新第一页
@@ -821,12 +869,18 @@ const _upsertGeneratingAssetByOrderNo = (
   orderNo: string,
   prompt: string,
   anyMenuCode: string,
+  sourceMenuKey?: LeftMenuKey,
 ) => {
   const key = String(orderNo ?? '').trim()
   if (!key) return
-  autoFocusOrderNoSet.add(key)
   // submit 侧通常是二级/叶子 menuCode，这里统一归一化为右侧 tab 使用的一级 menuCode
-  const pendingMenuCode = String(resolveTopMenuCodeByAnyCode(anyMenuCode) || '').trim()
+  const pendingMenuCode = normalizeToVisibleTopMenuCode(
+    sourceMenuKey ? resolveMenuCodeByLeftMenu(sourceMenuKey) : '',
+    anyMenuCode,
+    resolveMenuCodeByLeftMenu(leftMenu.value),
+    currentContentTab.value,
+    activeMenuCode.value,
+  )
   if (!pendingMenuCode) return
   const now = new Date().toISOString()
   const idx = findAssetIndexByOrderNo(key)
@@ -858,23 +912,7 @@ const _upsertGeneratingAssetByOrderNo = (
 
   if (idx === -1) {
     assets.value.unshift(generatingItem)
-    currentIndex.value = 0
-    // 提交后强制回到顶部：避免滚动同步/布局变化把缩略图又“同步回去”
-    nextTick(() => {
-      requestAnimationFrame(() => {
-        thumbnailRef.value?.scrollToTop?.()
-        thumbnailRef.value?.scrollToIndex?.(0)
-        thumbnailRef.value?.syncScroll?.(0)
-        mainImageRef.value?.scrollToAsset?.(0)
-        mainImageRef.value?.syncScroll?.(0)
-        // 二次兜底：部分情况下主图滚动事件会把缩略图同步回非顶部
-        setTimeout(() => {
-          thumbnailRef.value?.scrollToTop?.()
-          thumbnailRef.value?.syncScroll?.(0)
-          mainImageRef.value?.syncScroll?.(0)
-        }, 350)
-      })
-    })
+    scrollResultPanelToTopAfterSubmit()
     return
   }
 
@@ -889,21 +927,7 @@ const _upsertGeneratingAssetByOrderNo = (
     assets.value.splice(idx, 1)
     assets.value.unshift(nextItem)
   }
-  currentIndex.value = 0
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      thumbnailRef.value?.scrollToTop?.()
-      thumbnailRef.value?.scrollToIndex?.(0)
-      thumbnailRef.value?.syncScroll?.(0)
-      mainImageRef.value?.scrollToAsset?.(0)
-      mainImageRef.value?.syncScroll?.(0)
-      setTimeout(() => {
-        thumbnailRef.value?.scrollToTop?.()
-        thumbnailRef.value?.syncScroll?.(0)
-        mainImageRef.value?.syncScroll?.(0)
-      }, 350)
-    })
-  })
+  scrollResultPanelToTopAfterSubmit()
 }
 
 // 轮询完成后：把 orderResultVOS 映射回 assets（包含多结果扩展）
@@ -916,35 +940,19 @@ const applyQueryDoneResult = (orderNo: string, orderResultVOS: any[]) => {
   // 已完成：移除本地生成中占位
   pendingLocalMap.delete(key)
 
-  const shouldAutoFocus = autoFocusOrderNoSet.has(key)
   const merged = mergeOrderResultsIntoList(
     assets.value as any[],
     key,
     mappedList as any[],
     {
       preferInPlace: idx >= 0,
-      insertAtIfNotFound: (list) => (shouldAutoFocus ? 0 : list.length),
+      insertAtIfNotFound: (list) => list.length,
     },
   )
-  assets.value = dedupeCreationResultsPreserveOrder(merged.list as any)
+  // mergeOrderResultsIntoList 内部已按 id 去重；这里避免再次全量 dedupe，减少长列表回填开销
+  assets.value = merged.list as any
 
-  // 完成后保持“原位替换”：生成中在哪展示，结果就在哪展示。
-  // 但当“本次提交集合”全部完成时，自动回到顶部展示一次最终结果。
-  if (shouldAutoFocus) {
-    autoFocusOrderNoSet.delete(key)
-    if (autoFocusOrderNoSet.size === 0) {
-      currentIndex.value = 0
-      nextTick(() => {
-        requestAnimationFrame(() => {
-          thumbnailRef.value?.scrollToTop?.()
-          thumbnailRef.value?.scrollToIndex?.(0)
-          thumbnailRef.value?.syncScroll?.(0)
-          mainImageRef.value?.scrollToAsset?.(0)
-          mainImageRef.value?.syncScroll?.(0)
-        })
-      })
-    }
-  }
+  // 完成后保持原位替换：不主动改当前选中与滚动位置，避免视图跳动
   // 一次完成态回填后，pending 已经结束；允许释放签名缓存，避免长期增长
   // 注意：这里不删 appliedDoneSignatureByOrderNo，避免同一完成态在后续 watcher 触发时重复 apply。
 }
@@ -953,13 +961,23 @@ const applyQueryDoneResult = (orderNo: string, orderResultVOS: any[]) => {
 const mapOrderResultToAsset = (vo: any, fallbackOrderNo: string): CreationResult => {
   const key = String(fallbackOrderNo ?? '').trim()
   const pendingMenuCode = key ? String((pendingLocalMap.get(key) as any)?.menuCode ?? '').trim() : ''
+  const tabScopedMenuCode = (() => {
+    const t = String(currentContentTab.value ?? '').trim()
+    if (!t || t === 'favorites') return ''
+    return t
+  })()
+  const normalizedMenuCode = normalizeToVisibleTopMenuCode(
+    String(vo?.menuCode ?? '').trim(),
+    pendingMenuCode,
+    tabScopedMenuCode,
+  )
   return {
     id: String(vo?.id ?? key).trim(),
     algoOrderId: String(vo?.algoOrderId ?? key).trim(),
     algoOrderNo: String(vo?.algoOrderNo ?? key).trim(),
     algoUuId: vo?.algoUuId == null ? null : String(vo.algoUuId),
     // queryDone 在部分场景不返回 menuCode：优先继承本地 pending 的分组，避免按当前 activeMenuCode 串模块
-    menuCode: String(vo?.menuCode ?? '').trim() || pendingMenuCode || '',
+    menuCode: normalizedMenuCode || String(vo?.menuCode ?? '').trim() || pendingMenuCode || '',
     thumbUrl: vo?.thumbUrl ?? null,
     url: vo?.url ?? null,
     originalUrl: vo?.originalUrl ?? null,
@@ -1480,25 +1498,46 @@ const openImageParams = async () => {
 }
 
 const resolveMenuCodeByLeftMenu = (menu: LeftMenuKey) => {
-  const targetCode = menuCodeByKey[menu]
+  const targetCode = String(menuCodeByKey[menu] || '').trim()
+  if (!targetCode) return ''
 
-  // 右侧只展示“一级菜单”，所以这里需要把命中的任意层级子节点 menuCode
-  // 归一化到其“一级父节点 menuCode”（支持超过两层嵌套）。
   const isMatch = (node: any, code: string): boolean => {
     if (!node) return false
     if (String(node?.menuCode ?? '') === code) return true
     const children = Array.isArray(node?.children) ? node.children : []
     return children.some((c: any) => isMatch(c, code))
   }
+  const resolveTopByCode = (code: string) => {
+    const c = String(code || '').trim()
+    if (!c) return ''
+    for (const top of allPlatformMenus.value || []) {
+      const topCode = String(top?.menuCode ?? '')
+      if (!topCode) continue
+      if (isMatch(top, c)) return topCode
+    }
+    return ''
+  }
+  const visibleTopTabSet = new Set(
+    (rightContentTabs.value || [])
+      .map((t: any) => String(t?.key ?? '').trim())
+      .filter((k: string) => !!k && k !== 'favorites'),
+  )
 
-  for (const top of allPlatformMenus.value || []) {
-    const topCode = String(top?.menuCode ?? '')
-    if (!topCode) continue
-    if (isMatch(top, targetCode)) return topCode
+  // 强制归并规则：左侧三种“服装相关”模块始终归到同一个一级“服装设计”分组
+  // 不依赖后端菜单树是否把三者挂在同一父节点，避免右侧列表被拆分。
+  if (menu === 'aiFashion' || menu === 'sketchToReal' || menu === 'realToSketch') {
+    const aiTop = resolveTopByCode(menuCodeByKey.aiFashion)
+    if (aiTop && visibleTopTabSet.has(aiTop)) return aiTop
+    const byLabel = (rightContentTabs.value || []).find((t: any) => String(t?.label ?? '').includes('服装'))
+    const labelCode = String(byLabel?.key ?? '').trim()
+    if (labelCode && visibleTopTabSet.has(labelCode)) return labelCode
   }
 
+  const ownTop = resolveTopByCode(targetCode)
+  if (ownTop && visibleTopTabSet.has(ownTop)) return ownTop
+
   // 找不到时兜底返回原目标 code（让现有逻辑尽量不被破坏）
-  return String(targetCode || '')
+  return targetCode
 }
 
 // 把任意层级 menuCode 归一化到一级菜单 code（用于 submit 的 functionCode -> 右侧 tabKey）
@@ -1816,61 +1855,21 @@ const currentContentTab = ref<string>('favorites')
 // 首次进入后右侧列表已初始化；keep-alive 下切换 leftMenu 时才触发刷新，避免 onMounted 重复拉取
 const hasInitializedRightList = ref(false)
 
-// 根据左侧模块 key 推导右侧 tabKey：来源是哪个模块就选中哪个模块的一级菜单
-const deriveRightTabKeyFromLeftMenu = () => {
-  const moduleMenuCode = resolveMenuCodeByLeftMenu(leftMenu.value)
-  const rightTabs = rightContentTabs.value
-  return rightTabs.some((t) => t.key === moduleMenuCode) ? moduleMenuCode : ''
-}
-
-// 进入面料创款时，右侧应优先展示“AI面料”分组
-const resolveFabricRightTabKey = () => {
-  const moduleMenuCode = resolveMenuCodeByLeftMenu('fabricCreative')
-  const rightTabs = rightContentTabs.value || []
-  if (rightTabs.some((t) => t.key === moduleMenuCode)) return moduleMenuCode
-  // 兜底：部分环境菜单 code 可能有历史差异，按“面料”文案匹配
-  const fallback = rightTabs.find((t: any) => {
-    const key = String(t?.key ?? '').trim()
-    if (!key || key === 'favorites') return false
-    const label = String(t?.label ?? '').trim()
-    return label.includes('面料')
-  })
-  return String(fallback?.key ?? '')
-}
-
-// 左侧模块与右侧 tab 必须一致：从面料切回服装设计时，不能把 tab 留在「AI面料」
-const resolveRightTabKeyForLeftMenu = (menu: LeftMenuKey) => {
-  if (menu === 'fabricCreative') return resolveFabricRightTabKey()
+// 仅用于“首次进入”初始化：按入口模块对齐右侧 tab
+// - 服装相关模块 -> 服装设计一级分组
+// - 面料模块 -> AI面料分组（支持按文案兜底）
+const deriveInitialRightTabByLeftMenu = (menu: LeftMenuKey) => {
   const moduleMenuCode = resolveMenuCodeByLeftMenu(menu)
   const rightTabs = rightContentTabs.value || []
+
   if (rightTabs.some((t) => t.key === moduleMenuCode)) return moduleMenuCode
-  return deriveRightTabKeyFromLeftMenu()
-}
 
-const syncRightContentTabToLeftMenu = (menu: LeftMenuKey) => {
-  const fabricTabKey = resolveFabricRightTabKey()
-  const nextTab = resolveRightTabKeyForLeftMenu(menu)
-  if (!nextTab) return
-
-  // 进入面料创款：右侧必须是 AI面料
   if (menu === 'fabricCreative') {
-    if (currentContentTab.value === nextTab) return
-    currentContentTab.value = nextTab
-    if (hasInitializedRightList.value) {
-      void fetchMyCreations(true, { clearList: true })
-    }
-    return
+    const fabricTab = rightTabs.find((t: any) => String(t?.label ?? '').includes('面料'))
+    if (fabricTab?.key) return String(fabricTab.key)
   }
 
-  // 非面料：仅当右侧仍停留在「AI面料」时才纠正（避免从面料回到服装设计仍高亮面料）
-  // 不强制覆盖用户已选的「全部 / 收藏」，也不在线稿子模块之间切换时改 tab
-  if (fabricTabKey && currentContentTab.value === fabricTabKey) {
-    if (currentContentTab.value === nextTab) return
-    currentContentTab.value = nextTab
-    if (hasInitializedRightList.value) {
-      void fetchMyCreations(true, { clearList: true })
-    }
-  }
+  return ''
 }
 
 // 右侧 tab -> 列表查询参数
@@ -1914,14 +1913,101 @@ const shouldShowPendingInTab = (tabKey: string, moduleMenuCode: string) => {
   if (!m) return false
   if (t === 'favorites') return false
   if (t === '') return true // 全部
+  // 仅展示“当前一级模块”下的生成中；三个左侧模块会先被归并到同一服装一级 code
   return t === m
+}
+
+// 统一把任意来源的 menuCode 收敛成“右侧可见一级 tabKey”
+const normalizeToVisibleTopMenuCode = (...candidates: Array<string | null | undefined>) => {
+  const topTabKeySet = new Set(
+    (rightContentTabs.value || [])
+      .map((t: any) => String(t?.key ?? '').trim())
+      .filter((k: string) => !!k && k !== 'favorites'),
+  )
+  if (!topTabKeySet.size) return ''
+
+  for (const raw of candidates) {
+    const code = String(raw ?? '').trim()
+    if (!code) continue
+    if (topTabKeySet.has(code)) return code
+    const topCode = String(resolveTopMenuCodeByAnyCode(code) || '').trim()
+    if (topCode && topTabKeySet.has(topCode)) return topCode
+  }
+  return ''
 }
 
 // 把 queryAlgoResultPage 返回记录映射为前端 CreationResult（复用公共映射）
 const mapRecordToCreationResult = (r: any): CreationResult | null => {
-  return mapRecordToCreationResultCommon(r, {
+  const mapped = mapRecordToCreationResultCommon(r, {
     fallbackCreateTime: new Date().toISOString(),
   })
+  if (!mapped) return null
+  const tabScopedMenuCode = (() => {
+    const t = String(currentContentTab.value ?? '').trim()
+    if (!t || t === 'favorites') return ''
+    return t
+  })()
+  const normalizedMenuCode = normalizeToVisibleTopMenuCode(
+    String((mapped as any)?.menuCode ?? '').trim(),
+    String((r as any)?.menuCode ?? '').trim(),
+    tabScopedMenuCode,
+  )
+  return {
+    ...(mapped as any),
+    menuCode: normalizedMenuCode || String((mapped as any)?.menuCode ?? '').trim(),
+  } as any
+}
+
+// ==================== 右侧列表性能：增量去重/更新（避免长列表频繁全量 dedupe） ====================
+type CreationKey = string
+const creationKeyOf = (item: any): CreationKey => {
+  const id = String(item?.id ?? '').trim()
+  if (id) return `id:${id}`
+  const orderNo = String(item?.algoOrderNo ?? item?.algoOrderId ?? '').trim()
+  if (orderNo) return `order:${orderNo}`
+  return ''
+}
+const creationScore = (item: any) => {
+  const id = String(item?.id ?? '').trim()
+  const url = String(item?.url ?? '').trim()
+  const thumb = String(item?.thumbUrl ?? '').trim()
+  return (id ? 10 : 0) + (url ? 3 : 0) + (thumb ? 1 : 0)
+}
+
+/**
+ * 把 newItems 合并进 current（保持 current 顺序不变；新项只追加），并做增量去重：
+ * - key：优先 id，其次 algoOrderNo/algoOrderId
+ * - 冲突：保留 score 更高的那条（信息更完整）
+ */
+const mergeCreationsIncremental = (current: CreationResult[], newItems: CreationResult[]) => {
+  const list = Array.isArray(current) ? [...current] : []
+  const indexByKey = new Map<CreationKey, number>()
+
+  for (let i = 0; i < list.length; i++) {
+    const k = creationKeyOf(list[i])
+    if (k) indexByKey.set(k, i)
+  }
+
+  for (const item of newItems || []) {
+    if (!item) continue
+    const k = creationKeyOf(item)
+    if (!k) {
+      list.push(item)
+      continue
+    }
+    const idx = indexByKey.get(k)
+    if (idx === undefined) {
+      indexByKey.set(k, list.length)
+      list.push(item)
+      continue
+    }
+    const existed = list[idx]
+    if (creationScore(item) > creationScore(existed)) {
+      list[idx] = { ...(existed as any), ...(item as any) }
+    }
+  }
+
+  return list
 }
 
 // 列表合并去重：
@@ -2062,11 +2148,12 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
         return shouldShowPendingInTab(tabKey, String(a?.menuCode ?? ''))
       }) as CreationResult[]
       // reset 不应该把旧列表再拼回去（否则顺序会乱，变成“新页插到前面”）
+      // reset 场景允许一次性去重（次数少），但保持输出顺序稳定
       assets.value = dedupeCreationResultsPreserveOrder([...localPending, ...inProgressMapped, ...recordsMapped])
     } else {
       // 加载更多：只追加 records（不再注入 inProgress），保持当前选中项不跳动
       const selectedId = assets.value[currentIndex.value]?.id
-      assets.value = dedupeCreationResultsPreserveOrder([...assets.value, ...recordsMapped])
+      assets.value = mergeCreationsIncremental(assets.value, recordsMapped)
       if (selectedId) {
         const nextIdx = assets.value.findIndex((a) => a?.id === selectedId)
         currentIndex.value = nextIdx >= 0 ? nextIdx : 0
@@ -2160,7 +2247,10 @@ const fetchMyCreations = async (reset = false, opts?: FetchCreationsOpts) => {
 
 // 右侧 tab 切换：重置列表并重新加载
 const handleContentTabChange = (tabKey: string, _fileType?: number) => {
-  currentContentTab.value = tabKey === 'favorites' ? 'favorites' : String(tabKey)
+  const nextTab = tabKey === 'favorites' ? 'favorites' : String(tabKey)
+  // 关键保护：忽略“同 tab 重复触发”，避免左侧切换引发子组件重渲染时误刷新右侧列表
+  if (nextTab === currentContentTab.value) return
+  currentContentTab.value = nextTab
   // 切 tab 属于“第一页刷新”场景：必须强制注入后端 orderResulGenerated，
   // 否则 injectedInProgressByTab 的“只注入一次”会导致切来切去生成中消失。
   void fetchMyCreations(true, { clearList: true, forceInProgress: true })
@@ -2175,8 +2265,9 @@ const handleLoadMore = () => {
 
 // 点击缩略图：切换主图并保持 currentIndex 同步
 const handleThumbnailClick = (idx: number) => {
-  currentIndex.value = idx
   mainImageRef.value?.scrollToAsset?.(idx)
+  // 先滚动主图（内部会置 isExternalScrolling），再更新 currentIndex，避免 watch 走 smooth 滚动引发 IntersectionObserver 抢选中
+  currentIndex.value = idx
 }
 
 // 主图滚动：同步缩略图列表滚动位置
@@ -2606,14 +2697,14 @@ onMounted(async () => {
   await fetchSysPlatformMenu()
   syncActiveMenuCode()
 
-  // 初始化右侧 tab：左侧当前模块对应的一级菜单；否则默认“全部”
-  const moduleMenuCode = activeMenuCode.value
-  const hasModuleTab = rightContentTabs.value.some((t) => t.key === moduleMenuCode)
-  currentContentTab.value = hasModuleTab ? moduleMenuCode : deriveRightTabKeyFromLeftMenu()
+  // 初始化右侧 tab：首次进入时按左侧入口模块对齐；找不到则默认“全部”
+  const initialTab = deriveInitialRightTabByLeftMenu(leftMenu.value)
+  currentContentTab.value = initialTab || ''
   if (import.meta.env.DEV) {
     console.log('[AiFashionStudio] onMounted init tab:', {
-      activeMenuCode: moduleMenuCode,
-      hasModuleTab,
+      leftMenu: leftMenu.value,
+      activeMenuCode: activeMenuCode.value,
+      initialTab,
       currentContentTab: currentContentTab.value,
       rightTabs: rightContentTabs.value.map((t) => t.key),
     })
@@ -2630,6 +2721,23 @@ onMounted(async () => {
 onActivated(() => {
   // 返回工作台时只刷新用户信息，不再强制根据初始 route.mode 覆盖用户当前选择的模块
   refreshUserInfoIfLoggedIn()
+
+  // 路由级 keep-alive 下，页面不会因 ?mode= 变化重建：
+  // 当右侧当前为空时，按当前入口模块回到对应一级 tab，避免出现“模块切了但右侧停在旧空tab”。
+  const modeFromRoute = String(route.query.mode ?? '').trim() as LeftMenuKey
+  const isValidMode = ['aiFashion', 'sketchToReal', 'realToSketch', 'fabricCreative'].includes(modeFromRoute)
+  if (isValidMode) {
+    leftMenu.value = modeFromRoute
+  }
+  const shouldRecoverRightTab = assets.value.length === 0
+  if (shouldRecoverRightTab) {
+    const nextTab = deriveInitialRightTabByLeftMenu(leftMenu.value) || ''
+    if (nextTab !== currentContentTab.value) {
+      currentContentTab.value = nextTab
+    }
+    void fetchMyCreations(true, { clearList: true, forceInProgress: true })
+    return
+  }
 
   // 从详情页返回时：若期间发生“再次生成/提交”等会影响生成中列表的动作，
   // 强制刷新第一页并注入后端 orderResulGenerated，保证生成中立刻可见且分组正确。
@@ -2651,9 +2759,7 @@ watch(
   (menu) => {
     // 左侧模块变化时，更新左侧菜单激活状态
     syncActiveMenuCode()
-    // 左侧模块变化时，右侧 tab 与列表必须与当前模块一致（避免从面料回到服装设计仍高亮 AI面料）
-    syncRightContentTabToLeftMenu(menu)
-    // 左侧切换：面料必对 AI面料；从面料回到其它模块时若右侧仍为 AI面料则纠正（「全部/收藏」在线稿子模块间切换时保留）
+    // 按产品要求：左侧切换只影响左侧参数区，右侧 tab/列表保持不变
     fetchInspirationWords(menu)
     if (menu === 'fabricCreative') void fetchFabricImageTypeOptionTree()
     // 线稿转实物：进入模块时单独拉一次左侧三组选项（避免每次点“灵感词词库”都重复请求）

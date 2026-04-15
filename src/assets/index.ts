@@ -75,6 +75,8 @@ export const images = {
   delMini: new URL('./images/del_mini.png', import.meta.url).href,
   download: new URL('./images/download.png', import.meta.url).href,
   downloadIcon: new URL('./images/download_icon.png', import.meta.url).href,
+  designIcon: new URL('./images/design_icon.png', import.meta.url).href,
+  designActive: new URL('./images/design_active.png', import.meta.url).href,
 
   design1: new URL('./images/home/design1.png', import.meta.url).href,
   design2: new URL('./images/home/design2.png', import.meta.url).href,
@@ -98,7 +100,6 @@ export const images = {
   favorite: new URL('./images/favorite.png', import.meta.url).href,
   fail: new URL('./images/fail.png', import.meta.url).href,
   fail1: new URL('./images/fail1.png', import.meta.url).href,
-
   follow1: new URL('./images/follow1.png', import.meta.url).href,
   follow2: new URL('./images/follow2.png', import.meta.url).href,
   follow3: new URL('./images/follow3.png', import.meta.url).href,
@@ -111,9 +112,9 @@ export const images = {
   // I
   inspirationValue: new URL('./images/inspiration_value.png', import.meta.url).href,
 
-
   // L
   lingyan: new URL('./images/login_popup/lingyan.png', import.meta.url).href,
+  layered: new URL('./images/login_popup/layered.png', import.meta.url).href,
   language: new URL('./images/language.png', import.meta.url).href,
   languageBlack: new URL('./images/language_black.png', import.meta.url).href,
   logo: new URL('./images/logo.png', import.meta.url).href,
@@ -130,6 +131,7 @@ export const images = {
   message: new URL('./images/message.png', import.meta.url).href,
   money: new URL('./images/money.png', import.meta.url).href,
   magic: new URL('./images/magic.png', import.meta.url).href,
+  clothes: new URL('./images/login_popup/clothes.png', import.meta.url).href,
   memberBgTop: new URL('./images/member_bg_top.png', import.meta.url).href,
   memberBgBottom: new URL('./images/member_bg_bottom.png', import.meta.url).href,
 
@@ -141,6 +143,7 @@ export const images = {
 
   // P
   plus: new URL('./images/plus.png', import.meta.url).href,
+  pen: new URL('./images/login_popup/pen.png', import.meta.url).href,
   product: new URL('./images/product.png', import.meta.url).href,
 
   // R
@@ -154,11 +157,14 @@ export const images = {
   replace: new URL('./images/replace.png', import.meta.url).href,
   reset: new URL('./images/team/reset.png', import.meta.url).href,
   recaptureQR: new URL('./images/login_popup/recaptureQR.png', import.meta.url).href,
+  realIcon: new URL('./images/real_icon.png', import.meta.url).href,
+  realActive: new URL('./images/real_active.png', import.meta.url).href,
 
   // S
   star: new URL('./images/star.png', import.meta.url).href,
   star2: new URL('./images/star2.png', import.meta.url).href,
   subscription: new URL('./images/subscription.png', import.meta.url).href,
+  shopping: new URL('./images/login_popup/shopping.png', import.meta.url).href,
   shop: new URL('./images/shop.png', import.meta.url).href,
   shopActive: new URL('./images/shop_active.png', import.meta.url).href,
   set: new URL('./images/set.png', import.meta.url).href,
@@ -166,6 +172,8 @@ export const images = {
   step2: new URL('./images/step2.png', import.meta.url).href,
   step3: new URL('./images/step3.png', import.meta.url).href,
   stepRight: new URL('./images/step_right.png', import.meta.url).href,
+  sketchIcon: new URL('./images/sketch_icon.png', import.meta.url).href,
+  sketchActive: new URL('./images/sketch_active.png', import.meta.url).href,
 
   // T
   together: new URL('./images/together.png', import.meta.url).href,

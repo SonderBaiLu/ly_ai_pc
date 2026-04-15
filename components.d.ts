@@ -54,6 +54,7 @@ declare module 'vue' {
     HeaderHome: typeof import('./src/components/header/HeaderHome.vue')['default']
     HeroSection: typeof import('./src/sections/home/HeroSection.vue')['default']
     HistoryCreativeModal: typeof import('./src/components/HistoryCreativeModal.vue')['default']
+    HomeSections: typeof import('./src/sections/home/HomeSections.vue')['default']
     ImageItem: typeof import('./src/components/ImageItem.vue')['default']
     ImageParamPopup: typeof import('./src/components/ImageParamPopup.vue')['default']
     ImagePreviewModal: typeof import('./src/components/ImagePreviewModal.vue')['default']

@@ -182,7 +182,7 @@ const getImageSrc = (data: ImageData) => {
   // 上传历史：只有 fileUrl，一个字段同时用于列表/预览/下载
   if (data.fileUrl) return String(data.fileUrl)
   // 算法结果：列表使用缩略图 thumbUrl，预览使用 url（大图由上层组件传入）
-  return String(data.thumbUrl || data.url || data.originalUrl || '')
+  return String(data.thumbUrl || data.url || '')
 }
 
 // 计算是否为正常状态（非生成中、非失败）

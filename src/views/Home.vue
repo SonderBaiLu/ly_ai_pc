@@ -4,12 +4,15 @@
 
     <main class="main-content">
       <HeroSection />
-      <GallerySection />
-      <FeaturesSection />
-      <FabricSection />
-      <ModelSection />
-      <StatsSection />
-      <DesignMatrixSection />
+      <!-- 非首屏统一交给一个异步聚合组件，Home 保持简洁 -->
+      <Suspense>
+        <template #default>
+          <HomeSections />
+        </template>
+        <template #fallback>
+          <div class="section-skeleton section-skeleton--all" />
+        </template>
+      </Suspense>
 
     </main>
 
@@ -18,8 +21,12 @@
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
 import { images } from '@/assets'
 import { useUserStore } from '@/stores/user'
+
+// 首页首屏只保留 Hero 同步渲染，其余模块异步加载
+const HomeSections = defineAsyncComponent(() => import('@/sections/home/HomeSections.vue'))
 
 const userStore = useUserStore()
 
@@ -85,4 +92,15 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.section-skeleton {
+  width: 100%;
+  border-radius: 24px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.section-skeleton--all {
+  height: 3640px;
+}
+</style>

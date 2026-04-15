@@ -47,8 +47,26 @@ import {computed, ref} from 'vue';
 import {useI18n} from 'vue-i18n';
 import {useField, useForm} from "vee-validate"; // 记得导入 useField
 import {codeLoginSchema} from "@/utils/validationSchemas.ts";
+import { useUserStore } from '@/stores/user'
+import { enMessages, userLanguageToI18nLocale, zhMessages } from '@/i18n'
 
-const {t} = useI18n();
+const userStore = useUserStore()
+const { t, locale } = useI18n({
+  useScope: 'local',
+  inheritLocale: false,
+  messages: {
+    'zh-chs': zhMessages,
+    en: enMessages,
+  },
+});
+
+watch(
+  () => userStore.userInfo?.language,
+  (userLang) => {
+    locale.value = userLanguageToI18nLocale(userLang)
+  },
+  { immediate: true },
+)
 //表单验证初始化
 const {handleSubmit, validateField} = useForm({
   validationSchema: codeLoginSchema,
