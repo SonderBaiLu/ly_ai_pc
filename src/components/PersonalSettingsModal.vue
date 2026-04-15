@@ -244,6 +244,7 @@ const updatePwd = () => {
   // getUserSetPwd 获取用户是否设置了 密码返回 true or false
   isVisible.value = true;
   // true 传 '1'(修改密码)，false 传 '0'(设置密码)
+  // TODO: 这里需要根据 hasPassword.value 来判断是修改密码还是重置密码
   currentMode.value = hasPassword.value ? '1' : '0';
 }
 

@@ -140,6 +140,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'success'])
+// 其他位置或有差异,以此为准 ！ ！ !
+// 0 - 找回密码，短信验证重置密码
+// 1 - 旧密码 个人改密 团队改密
+// 2 - 无，之前打算留作团队改密，现在直接复用了 个人旧密码改密
+// 3 - 绑定手机号
 const modeType = computed(() => props.mode as '0' | '1' | '2' | '3')
 
 // ====== UI 状态与文案计算 ======
@@ -249,13 +254,14 @@ const handleSubmit = async () => {
 
     // 据模式执行对应 API
     switch (modeType.value) {
-      case '0': // 找回/重置密码 (短信验证)
+      // 0 - 找回密码，短信验证重置密码
+      case '0':
         {
           if (!formData.phone) return ElMessage.error(t('LoginPopUpPage.enterPhoneNumber'))
           if (!formData.code) return ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'))
           const res = await changePwdBySms({
             mobile: formData.phone,
-            verifyCode: Number(formData.code),
+            verifyCode: formData.code,
             newPwd: formData.newPassword,
             newPwdAgain: formData.confirmPassword
           })
@@ -282,8 +288,8 @@ const handleSubmit = async () => {
 
           break
         }
-
-      case '1': // 个人修改密码 (旧密码验证)
+      // 1 - 个人修改密码 (旧密码验证) 团队成员修改密码
+      case '1':
         {
           let res = null;
           if (!formData.phone) return ElMessage.error(t('LoginPopUpPage.enterPhoneNumber'))
@@ -315,7 +321,8 @@ const handleSubmit = async () => {
           }
           break
         }
-      case '3': // 绑定手机号
+        // 3 - 绑定手机号
+      case '3':
         {
           if (!formData.phone) return ElMessage.error(t('LoginPopUpPage.enterPhoneNumber'));
           if (!formData.code) return ElMessage.error(t('LoginPopUpPage.enterTheVerificationCode'));

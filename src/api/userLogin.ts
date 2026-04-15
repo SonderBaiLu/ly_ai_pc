@@ -49,7 +49,7 @@ export const teamLogin = (
 // 用户验证手机号更变密码（登录页忘记密码）
 export const changePwdBySms = (payload: {
     mobile: string,
-    verifyCode: number,
+    verifyCode: string,
     newPwd: string,
     newPwdAgain: string
 }) => {
