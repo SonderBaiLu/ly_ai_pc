@@ -9,15 +9,15 @@
           <p class="footer-contact">{{ t('footer.businessEmail', { at: '@' }) }}</p>
           <div class="qrcode-box">
             <div class="qrcode-card">
-              <img src="@/assets/images/wechat_code1.png" alt="微信二维码-小澍" class="qrcode-image" />
+              <img src="@/assets/images/wechat_code1.png" alt="微信二维码-小潮" class="qrcode-image" />
               <div class="qrcode-label">
-                {{ locale === 'zh-chs' ? '商务咨询-小澍' : 'Business inquiry - Xiaoshu' }}
+                {{ locale === 'zh-chs' ? '商务咨询-小潮' : 'Business inquiry - Xiaoshu' }}
               </div>
             </div>
             <div class="qrcode-card">
-              <img src="@/assets/images/wechat_code2.png" alt="微信二维码-雾楠" class="qrcode-image" />
+              <img src="@/assets/images/wechat_code2.png" alt="微信二维码-雾棉" class="qrcode-image" />
               <div class="qrcode-label">
-                {{ locale === 'zh-chs' ? '商务咨询-雾楠' : 'Business inquiry - Wunan' }}
+                {{ locale === 'zh-chs' ? '商务咨询-雾棉' : 'Business inquiry - Wunan' }}
               </div>
             </div>
             <div class="qrcode-card">
