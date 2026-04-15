@@ -106,7 +106,7 @@
     <InspirationLibrary v-model="showInspirationLibrary" :library-data="libraryData"
       :defaults="formDataByMenu[activeInspirationMenu].inspirationWords" @confirm="handleInspirationConfirm" />
 
-    <HistoryCreativeModal v-model="showHistoryModal" source="creative" :file-type="1" :menu-code="activeMenuCode"
+    <HistoryCreativeModal v-model="showHistoryModal" source="creative" :file-type="1" :menu-code="historyModalMenuCode"
       :multi-select="false" :max-count="1" @select="selectHistoryCreation" />
   </div>
 </template>
@@ -1881,6 +1881,23 @@ const deriveListMenuCode = (tabKey: string) => {
   if (tabKey === '' || tabKey === 'favorites') return ''
   return tabKey
 }
+
+// 历史创作弹窗与右侧列表保持同一筛选口径：只传一级 menuCode
+// 若一级菜单尚未就绪，则传空字符串（全部），避免回退到二级/叶子 code。
+const historyModalMenuCode = computed(() => {
+  const tabMenuCode = deriveListMenuCode(currentContentTab.value)
+  if (tabMenuCode) return tabMenuCode
+
+  const fromLeft = String(resolveMenuCodeByLeftMenu(leftMenu.value) || '').trim()
+  if (!fromLeft) return ''
+
+  const topTabSet = new Set(
+    (rightContentTabs.value || [])
+      .map((t: any) => String(t?.key ?? '').trim())
+      .filter((k) => !!k && k !== 'favorites'),
+  )
+  return topTabSet.has(fromLeft) ? fromLeft : ''
+})
 
 const deriveListQueryParams = (tabKey: string) => {
   // 你的约定：非收藏场景传空字符串；收藏场景才传 '1'
